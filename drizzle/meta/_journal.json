@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1780604145397,
+      "tag": "0000_sad_blob",
+      "breakpoints": true
+    }
+  ]
 }

@@ -1,7 +1,14 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  InsertIntegration,
+  InsertPost,
+  InsertUser,
+  integrations,
+  posts,
+  users,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -56,8 +63,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -89,4 +96,125 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/** Update subscription / Stripe fields for a user. */
+export async function updateUserSubscription(
+  userId: number,
+  data: Partial<
+    Pick<
+      InsertUser,
+      "plan" | "stripeCustomerId" | "stripeSubscriptionId" | "subscriptionStatus"
+    >
+  >,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+/** Update the user's logo storage key used for branding. */
+export async function updateUserLogo(userId: number, logoKey: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ logoKey }).where(eq(users.id, userId));
+}
+
+/* ----------------------------- Posts ----------------------------- */
+
+export async function createPost(data: InsertPost) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(posts).values(data).$returningId();
+  const id = result[0]?.id;
+  return getPostById(id);
+}
+
+export async function getPostById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserPosts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(posts)
+    .where(eq(posts.userId, userId))
+    .orderBy(desc(posts.createdAt));
+}
+
+export async function updatePost(
+  id: number,
+  data: Partial<InsertPost>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(posts).set(data).where(eq(posts.id, id));
+}
+
+/* -------------------------- Integrations -------------------------- */
+
+export async function upsertIntegration(data: InsertIntegration) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await getIntegration(data.userId, data.provider ?? "facebook");
+  if (existing) {
+    await db
+      .update(integrations)
+      .set({
+        accessToken: data.accessToken ?? existing.accessToken,
+        pageAccessToken: data.pageAccessToken ?? existing.pageAccessToken,
+        pageId: data.pageId ?? existing.pageId,
+        pageName: data.pageName ?? existing.pageName,
+        status: data.status ?? existing.status,
+      })
+      .where(eq(integrations.id, existing.id));
+    return getIntegration(data.userId, data.provider ?? "facebook");
+  }
+
+  await db.insert(integrations).values(data);
+  return getIntegration(data.userId, data.provider ?? "facebook");
+}
+
+export async function getIntegration(userId: number, provider = "facebook") {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(integrations)
+    .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function deleteIntegration(userId: number, provider = "facebook") {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .delete(integrations)
+    .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider)));
+}
+
+/** Count posts created by a user since the given date (for monthly plan limits). */
+export async function countUserPostsSince(
+  userId: number,
+  since: Date,
+): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db
+    .select()
+    .from(posts)
+    .where(and(eq(posts.userId, userId), gte(posts.createdAt, since)));
+  return rows.length;
+}

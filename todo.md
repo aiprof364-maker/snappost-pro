@@ -1,51 +1,67 @@
-# SnapPost Pro - Domain Migration TODO
+# SnapPost Pro - Build TODO
 
-## Phase 1: Code Changes (COMPLETED)
+## Database & Backend Foundation
 - [x] Add Facebook domain verification meta tag to client/index.html
-- [x] Audit codebase for hardcoded domain references
-- [x] Verify app uses dynamic domain resolution via window.location.origin
+- [x] Add `posts` table to schema (image, caption, status, fbPostId, createdAt)
+- [x] Add `integrations` table to schema (provider, accessToken, pageId, pageName)
+- [x] Add subscription fields to users table (plan, stripeCustomerId, subscriptionStatus)
+- [x] Push schema with pnpm db:push
+- [x] Add db query helpers for posts and integrations
 
-## Phase 2: Configuration Updates (PENDING - USER ACTION REQUIRED)
+## Design System
+- [x] Choose color palette + typography for professional SaaS look
+- [x] Configure index.css theme tokens + Google font
 
-### Facebook Integration
-- [ ] Update Facebook OAuth Redirect URI in Meta App Dashboard
-  - Old: `https://tradiepost-kkzrtvvp.manus.space/api/oauth/callback`
-  - New: `https://snappostpro.com/api/oauth/callback`
-  - Location: Meta App Dashboard → Settings → Basic → Redirect URIs
-- [ ] Update Facebook Domain Verification in Meta Business Suite
-  - Add domain: `snappostpro.com`
-  - Location: Meta Business Suite → Brand Safety → Domains
-  - Verification method: Meta-tag (already added to HTML)
-- [ ] Verify Facebook permissions are correct: pages_manage_posts, pages_read_engagement, pages_show_list, pages_manage_metadata
+## Backend Routers & Integrations
+- [x] tRPC routers: account, posts, facebook, billing, contact
+- [x] Facebook Graph helper (OAuth, pages, post photo)
+- [x] Caption generation (LLM)
+- [x] Logo branding (sharp composite)
+- [x] Stripe helper + checkout + billing portal
+- [x] Facebook OAuth callback Express route
+- [x] Stripe webhook Express route
+- [x] Backend type-check passes
 
-### Stripe Integration
-- [ ] Update Stripe Webhook endpoint URL
-  - Old: `https://tradiepost-kkzrtvvp.manus.space/api/webhooks/stripe`
-  - New: `https://snappostpro.com/api/webhooks/stripe`
-  - Location: Stripe Dashboard → Developers → Webhooks
-- [ ] Verify Stripe events are configured: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted
-- [ ] Update any hardcoded Stripe redirect URLs to use snappostpro.com
+## Landing Page
+- [x] Hero section with CTA
+- [x] Features section
+- [x] Pricing section (Starter $19/mo, Pro $29/mo)
+- [x] FAQ section
+- [x] Footer with links to Contact + Changelog
 
-### DNS & Deployment
-- [ ] Ensure snappostpro.com DNS records point to Manus deployment
-- [ ] Verify SSL certificate is valid for snappostpro.com
-- [ ] Set DNS TTL to 1 hour during migration (for quick rollback if needed)
+## Photo Upload Flow
+- [x] Upload job site photo (store to S3)
+- [x] AI LLM generates trade-specific caption
+- [x] Brand image with logo overlay
+- [x] Preview + edit before posting
 
-## Phase 3: Testing (PENDING - USER ACTION REQUIRED)
-- [ ] Test OAuth flow on new domain (sign in with Manus OAuth)
-- [ ] Test Stripe payment flow on new domain (create subscription)
-- [ ] Test Facebook posting integration on new domain (post to Facebook)
-- [ ] Test webhook delivery (Stripe webhooks received successfully)
-- [ ] Monitor error logs for domain-related issues
+## Facebook Integration (wired, activates on Meta approval)
+- [x] Facebook OAuth connect flow (pages_manage_posts, pages_read_engagement, pages_show_list, pages_manage_metadata)
+- [x] Store FB tokens + selected page in integrations table
+- [x] Post branded photo to connected FB page
+- [x] Graceful "pending Meta approval" state
 
-## Phase 4: Post-Migration
-- [ ] Verify Meta domain verification is complete (24-48 hours)
-- [ ] Confirm all integrations working on new domain
-- [ ] Keep old Manus domain active for 24-48 hours as fallback
-- [ ] Update any documentation/marketing materials with new domain
+## Stripe Subscriptions
+- [x] Stripe SDK + checkout + webhook + portal
+- [x] Starter $19/mo and Pro $29/mo plans
+- [x] Checkout flow
+- [x] Subscription status gating in dashboard
 
-## Notes
-- No code changes needed in frontend or backend
-- App already uses window.location.origin for dynamic domain resolution
-- All OAuth and API calls use environment variables
-- Facebook verification meta tag added: r4ws2vbab3punrlh4i9vlx96f5cx1p
+## User Dashboard
+- [x] Connected Facebook pages display
+- [x] Post history
+- [x] Account & subscription status
+
+## Other Pages
+- [x] Contact Us page with Make webhook
+- [x] Changelog page with version history
+
+## Domain Readiness
+- [x] App uses window.location.origin (no hardcoded domains)
+- [x] Provide snappostpro.com config guide (Meta + Stripe dashboard settings)
+
+## Testing & Delivery
+- [x] Write vitest tests (plans, facebook scopes, contact hardening)
+- [x] Run all tests and ensure they pass (7/7)
+- [x] Verify landing page renders in browser
+- [x] Save checkpoint and deliver

@@ -452,7 +452,7 @@ export const appRouter = router({
           }
           return { success: true } as const;
         }
-        await fetch(webhook, {
+        const resp = await fetch(webhook, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -462,6 +462,12 @@ export const appRouter = router({
             submittedAt: new Date().toISOString(),
           }),
         }).catch(() => null);
+        if (!resp || !resp.ok) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Could not subscribe you right now. Please try again.",
+          });
+        }
         return { success: true } as const;
       }),
   }),

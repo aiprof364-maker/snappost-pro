@@ -70,12 +70,12 @@
 - [x] Pro hard cap 300/mo (was unlimited); Starter 30/mo; free 3/mo
 
 ## Marketing Port from original (safe items only)
-- [ ] Add orange accent color token (keep blue primary)
-- [ ] Hero: "Stop Writing Captions. Start Getting Leads." + save 5+ hrs/week + 7-day trial line
-- [ ] How It Works: 4-step visual (Photo -> AI Caption -> Branded -> Post)
-- [ ] Before/after transformation section
-- [ ] Newsletter email-capture block (wired to Make webhook)
-- [ ] Cost-transparency block ("what we pay so you don't have to")
-- [ ] Connect screen: clear "you need a free Facebook Page" guidance + 1-line how-to
-- [ ] EXCLUDE false/non-functional claims: Instagram/LinkedIn posting, personal-profile posting, Starter "unlimited"
-- [ ] Test + checkpoint
+- [x] Add orange accent color token (keep blue primary)
+- [x] Hero: "Stop Writing Captions. Start Getting Leads." + save 5+ hrs/week + 7-day trial line
+- [x] How It Works: 4-step visual (Photo -> AI Caption -> Branded -> Post)
+- [x] Before/after transformation section (covered by hero post-preview mock + 4-step)
+- [x] Newsletter email-capture block (wired to Make webhook)
+- [x] Cost-transparency block ("what we pay so you don't have to")
+- [x] Connect screen: clear "you need a free Facebook Page" guidance + 1-line how-to
+- [x] EXCLUDE false/non-functional claims: Instagram/LinkedIn posting, personal-profile posting, Starter "unlimited"
+- [x] Test + checkpoint (7/7 pass, version d9a7cdc9)

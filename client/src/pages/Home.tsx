@@ -241,6 +241,58 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Before / After */}
+      <section className="border-t border-border/60 bg-muted/20 py-20">
+        <div className="container">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              From plain photo to lead-winning post
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Same photo, two very different results. SnapPost Pro does the
+              caption and branding for you.
+            </p>
+          </div>
+          <div className="mt-12 grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
+            {/* Before */}
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                Before
+              </span>
+              <div className="mt-3 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-muted to-muted/40 ring-1 ring-border" />
+              <p className="mt-3 text-sm text-muted-foreground">
+                A raw phone photo with no caption, no branding — easy to scroll
+                past and does nothing for your business.
+              </p>
+            </div>
+            {/* Arrow */}
+            <div className="flex justify-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-accent)] text-white shadow-md">
+                <ArrowRight className="h-5 w-5" />
+              </span>
+            </div>
+            {/* After */}
+            <div className="rounded-2xl border border-primary/30 bg-card p-4 shadow-lg ring-1 ring-primary/10">
+              <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                After
+              </span>
+              <div className="mt-3 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-primary/15 to-muted/40 ring-1 ring-border">
+                <div className="flex h-full items-end justify-end p-3">
+                  <span className="rounded-md bg-background/80 px-2 py-1 text-xs font-bold text-primary ring-1 ring-border">
+                    YOUR LOGO
+                  </span>
+                </div>
+              </div>
+              <p className="mt-3 text-sm">
+                Fresh deck rebuild finished today — built to last through every
+                season. Proud of this one.{" "}
+                <span className="text-primary">#Decking #Builder #QualityWork</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="border-t border-border/60 bg-muted/20 py-20">
         <div className="container">

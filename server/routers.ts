@@ -132,7 +132,9 @@ export const appRouter = router({
               message:
                 plan === "free"
                   ? `You've reached the free limit of ${limit} posts this month. Upgrade to keep posting.`
-                  : `You've reached your plan limit of ${limit} posts this month. Upgrade to Pro for unlimited posts.`,
+                  : plan === "starter"
+                    ? `You've reached your Starter limit of ${limit} posts this month. Upgrade to Pro (300/mo) or wait until next month.`
+                    : `You've reached your monthly limit of ${limit} posts. Your allowance resets at the start of next month.`,
             });
           }
         }

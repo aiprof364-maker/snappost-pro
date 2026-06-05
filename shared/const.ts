@@ -32,9 +32,9 @@ export const PLANS: Record<
     name: "Pro",
     price: 29,
     priceLabel: "$29/mo",
-    postsPerMonth: "Unlimited posts",
+    postsPerMonth: "300 posts / month",
     features: [
-      "Unlimited branded posts",
+      "300 branded posts per month",
       "AI captions with tone control",
       "Logo branding overlay",
       "Up to 5 connected Facebook pages",
@@ -48,5 +48,5 @@ export const PLANS: Record<
 export const PLAN_POST_LIMITS: Record<"free" | PlanId, number | null> = {
   free: 3,
   starter: 30,
-  pro: null,
+  pro: 300,
 };

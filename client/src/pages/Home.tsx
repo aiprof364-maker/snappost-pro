@@ -79,7 +79,7 @@ const FAQS = [
   },
   {
     q: "Which plan should I choose?",
-    a: "Starter ($19/mo) suits solo operators posting a few times a week. Pro ($29/mo) is for unlimited posting and multiple pages.",
+    a: "Starter ($19/mo) suits solo operators posting a few times a week. Pro ($29/mo) gives 300 posts/month (about 10 a day) and multiple pages.",
   },
 ];
 

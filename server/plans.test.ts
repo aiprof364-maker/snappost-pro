@@ -12,9 +12,9 @@ describe("pricing plans", () => {
     expect(PLANS.pro.priceLabel).toBe("$29/mo");
   });
 
-  it("post limits: free=3, starter=30, pro=unlimited", () => {
+  it("post limits: free=3, starter=30, pro=300", () => {
     expect(PLAN_POST_LIMITS.free).toBe(3);
     expect(PLAN_POST_LIMITS.starter).toBe(30);
-    expect(PLAN_POST_LIMITS.pro).toBeNull();
+    expect(PLAN_POST_LIMITS.pro).toBe(300);
   });
 });

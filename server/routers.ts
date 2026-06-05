@@ -434,6 +434,36 @@ export const appRouter = router({
         }
         return { success: true } as const;
       }),
+
+    subscribe: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const webhook = ENV.makeWebhookUrl;
+        // Newsletter is non-critical: if the webhook isn't set, notify owner but don't hard-fail the visitor.
+        if (!webhook) {
+          try {
+            const { notifyOwner } = await import("./_core/notification");
+            await notifyOwner({
+              title: "SnapPost Pro: newsletter signup",
+              content: `New subscriber: ${input.email} (Make webhook not configured)`,
+            });
+          } catch {
+            /* ignore */
+          }
+          return { success: true } as const;
+        }
+        await fetch(webhook, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "newsletter_signup",
+            email: input.email,
+            source: "snappostpro.com",
+            submittedAt: new Date().toISOString(),
+          }),
+        }).catch(() => null);
+        return { success: true } as const;
+      }),
   }),
 });
 

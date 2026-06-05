@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 import PricingCards from "@/components/PricingCards";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Accordion,
   AccordionContent,
@@ -55,9 +59,10 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { n: "1", title: "Upload your photo", desc: "Add a photo from the job you just finished." },
-  { n: "2", title: "We write & brand it", desc: "AI writes the caption; your logo is added automatically." },
-  { n: "3", title: "Post in one click", desc: "Publish to your Facebook page or save it for later." },
+  { n: "1", title: "Take the photo", desc: "Snap a photo of the job you just finished — on site, from your phone." },
+  { n: "2", title: "AI writes the caption", desc: "A trade-specific caption with hashtags is generated for you instantly." },
+  { n: "3", title: "Logo is branded on", desc: "Your business logo is stamped onto the image automatically." },
+  { n: "4", title: "Post to Facebook", desc: "Publish to your connected Facebook page in one click — or save for later." },
 ];
 
 const FAQS = [
@@ -86,6 +91,14 @@ const FAQS = [
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl();
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const subscribe = trpc.contact.subscribe.useMutation({
+    onSuccess: () => {
+      toast.success("You're in! Weekly tips are on the way.");
+      setNewsletterEmail("");
+    },
+    onError: () => toast.error("Couldn't subscribe right now. Please try again."),
+  });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -107,14 +120,17 @@ export default function Home() {
               autopilot for trade businesses
             </span>
             <h1 className="font-display mt-5 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
-              Turn job-site photos into{" "}
-              <span className="text-primary">branded Facebook posts</span> in
-              seconds
+              Stop writing captions.{" "}
+              <span className="text-primary">Start getting leads.</span>
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              SnapPost Pro writes the caption, stamps your logo, and posts to
-              your Facebook page — so you market your business without lifting a
-              finger.
+              As a solo tradie, every minute counts. SnapPost Pro turns your
+              job-site photos into professional, branded Facebook posts in
+              seconds — no writing, no design skills needed. Just take a photo
+              and post.
+            </p>
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-accent)]/12 px-3 py-1 text-sm font-semibold text-[var(--brand-accent)]">
+              <Clock className="h-4 w-4" /> Save 5+ hours every week
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               {isAuthenticated ? (
@@ -137,7 +153,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              No credit card to start · Cancel anytime
+              7-day free trial · No credit card required · Cancel anytime
             </p>
           </div>
 
@@ -205,10 +221,13 @@ export default function Home() {
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              Three steps, zero hassle
+              How it works
             </h2>
           </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+            Four simple steps from photo to Facebook.
+          </p>
+          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map(s => (
               <div key={s.n} className="text-center">
                 <span className="font-display mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
@@ -257,6 +276,76 @@ export default function Home() {
               </AccordionItem>
             ))}
           </Accordion>
+        </div>
+      </section>
+
+      {/* Cost transparency */}
+      <section className="border-t border-border/60 bg-muted/20 py-20">
+        <div className="container max-w-3xl">
+          <div className="text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              What we pay so you don't have to
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Every post runs on AI and automation. Here's roughly what that
+              costs us per active user each month — so you can see the value.
+            </p>
+          </div>
+          <div className="mt-10 overflow-hidden rounded-xl border border-border bg-card">
+            {[
+              ["AI caption writing", "~$0.24 / mo"],
+              ["Image processing & branding", "~$0.10 / mo"],
+              ["Automation & hosting", "~$0.02 / mo"],
+            ].map(([label, cost]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between border-b border-border px-5 py-4 text-sm last:border-b-0"
+              >
+                <span>{label}</span>
+                <span className="font-medium text-muted-foreground">{cost}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between bg-muted/40 px-5 py-4 text-sm font-semibold">
+              <span>Our typical cost</span>
+              <span>~$0.36 / mo</span>
+            </div>
+          </div>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            From $19/month, SnapPost Pro costs less than an hour of labour. The
+            time you save pays for itself on day one.
+          </p>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="py-20">
+        <div className="container max-w-2xl text-center">
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">
+            Get weekly tips for tradies
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            Practical tips to grow your business and save time on social media.
+            No spam — unsubscribe anytime.
+          </p>
+          <form
+            className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
+            onSubmit={e => {
+              e.preventDefault();
+              if (newsletterEmail.trim()) subscribe.mutate({ email: newsletterEmail.trim() });
+            }}
+          >
+            <Input
+              type="email"
+              required
+              placeholder="your@email.com"
+              value={newsletterEmail}
+              onChange={e => setNewsletterEmail(e.target.value)}
+              className="h-11"
+            />
+            <Button type="submit" size="lg" disabled={subscribe.isPending}>
+              {subscribe.isPending ? "Joining…" : "Get tips"}
+            </Button>
+          </form>
         </div>
       </section>
 

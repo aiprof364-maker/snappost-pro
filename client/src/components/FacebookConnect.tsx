@@ -112,8 +112,19 @@ export default function FacebookConnect() {
       ) : (
         <div className="mt-4">
           <p className="text-sm text-muted-foreground">
-            Connect your Facebook page to publish branded posts in one click.
+            Connect your Facebook <strong>Page</strong> to publish branded posts
+            in one click.
           </p>
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-accent)]" />
+            <span>
+              You'll need a free Facebook <strong>Page</strong> for your
+              business (not just a personal profile). Don't have one? On
+              Facebook, open the menu and choose{" "}
+              <strong>Pages → Create new Page</strong> — it takes about a minute,
+              then come back and connect it here.
+            </span>
+          </div>
           <Button
             className="mt-3 gap-2 bg-[#1877F2] hover:bg-[#1877F2]/90"
             onClick={() =>

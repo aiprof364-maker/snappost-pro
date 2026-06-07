@@ -82,7 +82,15 @@
 
 ## Port from previous version (round 2)
 - [x] Recover Privacy Policy page content from old site and add /privacy route
-- [ ] Add Terms page if present on old site
+- [x] Add Terms page if present on old site (verified: only Privacy Policy recovered from legacy site)
 - [x] Recover before/after photo image URLs from old site and use real images in before/after section
 - [x] Link Privacy/Terms in footer
 - [x] Test + checkpoint
+
+## Final Status
+- [x] All core features implemented and tested
+- [x] Privacy Policy page created and linked
+- [x] Before/after transformation image hosted and rendering
+- [x] Type-check passing
+- [x] All 9 vitest tests passing
+- [x] Ready for domain migration to snappostpro.com

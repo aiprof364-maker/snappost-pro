@@ -16,6 +16,7 @@ export default function SiteFooter() {
           <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
           <Link href="/changelog" className="hover:text-foreground">Changelog</Link>
           <Link href="/contact" className="hover:text-foreground">Contact</Link>
+          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
         </nav>
         <p className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} SnapPost Pro. All rights reserved.

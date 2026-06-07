@@ -79,3 +79,10 @@
 - [x] Connect screen: clear "you need a free Facebook Page" guidance + 1-line how-to
 - [x] EXCLUDE false/non-functional claims: Instagram/LinkedIn posting, personal-profile posting, Starter "unlimited"
 - [x] Test + checkpoint (7/7 pass, version d9a7cdc9)
+
+## Port from previous version (round 2)
+- [x] Recover Privacy Policy page content from old site and add /privacy route
+- [ ] Add Terms page if present on old site
+- [x] Recover before/after photo image URLs from old site and use real images in before/after section
+- [x] Link Privacy/Terms in footer
+- [x] Test + checkpoint

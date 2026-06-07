@@ -253,41 +253,28 @@ export default function Home() {
               caption and branding for you.
             </p>
           </div>
-          <div className="mt-12 grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
-            {/* Before */}
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
-                Before
-              </span>
-              <div className="mt-3 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-muted to-muted/40 ring-1 ring-border" />
-              <p className="mt-3 text-sm text-muted-foreground">
-                A raw phone photo with no caption, no branding — easy to scroll
-                past and does nothing for your business.
-              </p>
+          <div className="mx-auto mt-12 max-w-4xl">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+              <img
+                src="/manus-storage/snappost-before-after_096e50ab.webp"
+                alt="Before and after: a raw job-site photo on the left transformed into a clean, branded social post with a caption on the right"
+                className="w-full"
+                loading="lazy"
+              />
             </div>
-            {/* Arrow */}
-            <div className="flex justify-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-accent)] text-white shadow-md">
-                <ArrowRight className="h-5 w-5" />
-              </span>
-            </div>
-            {/* After */}
-            <div className="rounded-2xl border border-primary/30 bg-card p-4 shadow-lg ring-1 ring-primary/10">
-              <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                After
-              </span>
-              <div className="mt-3 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-primary/15 to-muted/40 ring-1 ring-border">
-                <div className="flex h-full items-end justify-end p-3">
-                  <span className="rounded-md bg-background/80 px-2 py-1 text-xs font-bold text-primary ring-1 ring-border">
-                    YOUR LOGO
-                  </span>
-                </div>
+            <div className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-semibold">
+                  Before
+                </span>
+                Raw phone photo, no branding
               </div>
-              <p className="mt-3 text-sm">
-                Fresh deck rebuild finished today — built to last through every
-                season. Proud of this one.{" "}
-                <span className="text-primary">#Decking #Builder #QualityWork</span>
-              </p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  After
+                </span>
+                Branded post with AI caption
+              </div>
             </div>
           </div>
         </div>

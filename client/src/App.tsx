@@ -9,6 +9,7 @@ import Pricing from "./pages/Pricing";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import Changelog from "./pages/Changelog";
+import Privacy from "./pages/Privacy";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/contact"} component={Contact} />
       <Route path={"/changelog"} component={Changelog} />
+      <Route path={"/privacy"} component={Privacy} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

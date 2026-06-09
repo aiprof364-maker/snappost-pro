@@ -94,3 +94,10 @@
 - [x] Type-check passing
 - [x] All 9 vitest tests passing
 - [x] Ready for domain migration to snappostpro.com
+
+## Stripe Checkout Debugging (Current)
+- [ ] Fix Stripe checkout button not redirecting to Stripe Checkout page
+- [ ] Verify trpc mutation is being called from frontend
+- [ ] Check network requests in browser
+- [ ] Verify Stripe session creation is returning valid URL
+- [x] Change all "tradies" references to "contractors" throughout the app

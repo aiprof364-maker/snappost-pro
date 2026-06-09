@@ -24,8 +24,12 @@ const FAQS = [
 ];
 
 export default function Pricing() {
+  const buildTime = new Date().toISOString();
   return (
     <div className="flex min-h-screen flex-col">
+      <div className="fixed bottom-4 right-4 text-xs text-muted-foreground bg-muted p-2 rounded">
+        Build: {buildTime}
+      </div>
       <SiteHeader />
       <main className="flex-1">
         <section className="py-16 md:py-20">

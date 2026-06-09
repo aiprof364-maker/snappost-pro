@@ -1,6 +1,6 @@
 # SnapPost Pro — Go-Live & snappostpro.com Setup Guide
 
-This guide gets SnapPost Pro live on **snappostpro.com** with Facebook posting, Stripe billing, and the Contact form all working. The app code is already domain-agnostic (it uses the live request origin), so there are no hardcoded `tradiepost-kkzrtvvp.manus.space` references to change — you only configure dashboards and add secrets.
+This guide gets SnapPost Pro live on **snappostpro.com** with Facebook posting, Stripe billing, and the Contact form all working. The app code is already domain-agnostic (it uses the live request origin), so there are no hardcoded domain references to change — you only configure dashboards and add secrets.
 
 ---
 

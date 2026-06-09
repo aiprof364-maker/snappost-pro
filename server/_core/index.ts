@@ -1,4 +1,32 @@
+// Load .env.local FIRST, before any other imports (workaround for Manus platform limitation)
+import fs from "fs";
+import path from "path";
+
+const envLocalPath = path.join(process.cwd(), ".env.local");
+if (fs.existsSync(envLocalPath)) {
+  const envContent = fs.readFileSync(envLocalPath, "utf-8");
+  envContent.split("\n").forEach(line => {
+    const trimmedLine = line.trim();
+    if (!trimmedLine || trimmedLine.startsWith("#")) return;
+    const [key, ...valueParts] = trimmedLine.split("=");
+    if (key && valueParts.length > 0) {
+      const value = valueParts.join("=").trim();
+      if (!process.env[key.trim()]) {
+        process.env[key.trim()] = value;
+      }
+    }
+  });
+}
+
+// Now load dotenv (it won't override already-set env vars)
 import "dotenv/config";
+
+// Log environment variables for debugging
+console.log("[Server] Environment variables at startup:");
+console.log("  STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "SET" : "NOT SET");
+console.log("  STRIPE_STARTER_PRICE_ID:", process.env.STRIPE_STARTER_PRICE_ID ? "SET" : "NOT SET");
+console.log("  STRIPE_PRO_PRICE_ID:", process.env.STRIPE_PRO_PRICE_ID ? "SET" : "NOT SET");
+
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -58,7 +86,7 @@ async function startServer() {
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    console.log(`[Server] Port ${preferredPort} unavailable, using ${port}`);
   }
 
   server.listen(port, () => {
@@ -66,4 +94,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(err => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});

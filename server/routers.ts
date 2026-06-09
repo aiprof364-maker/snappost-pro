@@ -356,6 +356,7 @@ export const appRouter = router({
           });
         }
         const user = await getUserById(ctx.user.id);
+        console.log(`[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`);
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
           line_items: [{ price: priceId, quantity: 1 }],
@@ -365,6 +366,14 @@ export const appRouter = router({
           success_url: `${input.origin}/dashboard?checkout=success`,
           cancel_url: `${input.origin}/pricing?checkout=cancel`,
         });
+        console.log(`[Stripe] Session created:`, { id: session.id, url: session.url });
+        if (!session.url) {
+          console.error(`[Stripe] Session URL is null or undefined!`);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create Stripe checkout session",
+          });
+        }
         return { url: session.url };
       }),
 

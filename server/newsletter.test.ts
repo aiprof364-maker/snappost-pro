@@ -26,7 +26,7 @@ describe("contact.subscribe (newsletter)", () => {
     const { appRouter } = await import("./routers");
     const caller = appRouter.createCaller(createPublicCtx());
 
-    const result = await caller.contact.subscribe({ email: "tradie@example.com" });
+    const result = await caller.contact.subscribe({ email: "contractor@example.com" });
     expect(result).toEqual({ success: true });
   });
 
@@ -41,7 +41,7 @@ describe("contact.subscribe (newsletter)", () => {
     const caller = appRouter.createCaller(createPublicCtx());
 
     await expect(
-      caller.contact.subscribe({ email: "tradie@example.com" }),
+      caller.contact.subscribe({ email: "contractor@example.com" }),
     ).rejects.toThrow();
   });
 });

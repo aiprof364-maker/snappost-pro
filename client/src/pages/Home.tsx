@@ -53,7 +53,7 @@ const FEATURES = [
   },
   {
     icon: ShieldCheck,
-    title: "Built for tradies",
+    title: "Built for contractors",
     desc: "Designed for builders, plumbers, sparkies, landscapers and contractors.",
   },
 ];
@@ -124,7 +124,7 @@ export default function Home() {
               <span className="text-primary">Start getting leads.</span>
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              As a solo tradie, every minute counts. SnapPost Pro turns your
+              As a solo contractor, every minute counts. SnapPost Pro turns your
               job-site photos into professional, branded Facebook posts in
               seconds — no writing, no design skills needed. Just take a photo
               and post.
@@ -360,7 +360,7 @@ export default function Home() {
       <section className="py-20">
         <div className="container max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold sm:text-4xl">
-            Get weekly tips for tradies
+            Get weekly tips for contractors
           </h2>
           <p className="mt-3 text-muted-foreground">
             Practical tips to grow your business and save time on social media.
@@ -396,7 +396,7 @@ export default function Home() {
               Ready to market your work effortlessly?
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
-              Join tradies who keep their Facebook page active without the
+              Join contractors who keep their Facebook page active without the
               hassle. Upload your first photo today.
             </p>
             <div className="mt-8 flex justify-center">

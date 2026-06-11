@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { ENV } from "./_core/env";
+import { sendContactFormNotification } from "./email";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { brandImage, fetchStorageBytes } from "./branding";
@@ -413,40 +414,25 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ input }) => {
-        const webhook = ENV.makeWebhookUrl;
-        if (!webhook) {
-          // Misconfiguration: don't silently swallow. Notify the owner and fail clearly.
-          try {
-            const { notifyOwner } = await import("./_core/notification");
-            await notifyOwner({
-              title: "SnapPost Pro: contact form not delivered",
-              content: `MAKE_WEBHOOK_URL is not configured. Message from ${input.name} <${input.email}>: ${input.message}`,
-            });
-          } catch {
-            /* ignore */
-          }
-          throw new TRPCError({
-            code: "PRECONDITION_FAILED",
-            message:
-              "Messaging is not configured yet. Please email us directly while we fix this.",
-          });
-        }
-        const resp = await fetch(webhook, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...input,
-            source: "snappostpro.com",
-            submittedAt: new Date().toISOString(),
-          }),
-        }).catch(() => null);
-        if (!resp || !resp.ok) {
+        try {
+          const { sendContactFormNotification } = await import("./email");
+          const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
+          
+          await sendContactFormNotification(
+            input.name,
+            input.email,
+            input.message,
+            ownerEmail
+          );
+          
+          return { success: true } as const;
+        } catch (err) {
+          console.error("[Contact Form] Failed to send notification:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Could not deliver your message. Please try again.",
           });
         }
-        return { success: true } as const;
       }),
 
     subscribe: publicProcedure

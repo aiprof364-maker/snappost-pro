@@ -196,3 +196,94 @@ export function registerScheduledRoutes(app: Express) {
   app.post("/api/scheduled/trial-expiration-warnings", handleTrialExpirationWarnings);
   app.post("/api/scheduled/renewal-reminders", handleRenewalReminders);
 }
+
+
+/**
+ * Handler for contractor onboarding sequence.
+ * Sends emails on day 1, day 3, and day 5 after signup.
+ */
+async function handleOnboardingSequence(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    // Authenticate as a cron task
+    const user = await sdk.authenticateRequest(req);
+    if (!user.isCron || !user.taskUid) {
+      res.status(403).json({ error: "cron-only" });
+      return;
+    }
+
+    const db = await getDb();
+    if (!db) {
+      res.status(500).json({ error: "Database not available" });
+      return;
+    }
+
+    // Get all users
+    const allUsers = await db.select().from(users);
+
+    let sent = 0;
+    let failed = 0;
+    const now = new Date();
+
+    for (const dbUser of allUsers) {
+      try {
+        if (!dbUser.email || !dbUser.createdAt) continue;
+
+        const signupDate = new Date(dbUser.createdAt);
+        const daysSinceSignup = Math.floor(
+          (now.getTime() - signupDate.getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        // Send day 1 email
+        if (daysSinceSignup === 1) {
+          const { sendOnboardingDay1 } = await import("./email");
+          await sendOnboardingDay1(dbUser.email, dbUser.name || "Contractor");
+          sent++;
+        }
+        // Send day 3 email
+        else if (daysSinceSignup === 3) {
+          const { sendOnboardingDay3 } = await import("./email");
+          await sendOnboardingDay3(dbUser.email, dbUser.name || "Contractor");
+          sent++;
+        }
+        // Send day 5 email
+        else if (daysSinceSignup === 5) {
+          const { sendOnboardingDay5 } = await import("./email");
+          await sendOnboardingDay5(
+            dbUser.email,
+            dbUser.name || "Contractor",
+            dbUser.plan as "free" | "starter" | "pro"
+          );
+          sent++;
+        }
+      } catch (err) {
+        console.error(`Failed to process onboarding for user ${dbUser.id}:`, err);
+        failed++;
+      }
+    }
+
+    res.json({
+      ok: true,
+      sent,
+      failed,
+      total: allUsers.length,
+      taskUid: user.taskUid,
+    });
+  } catch (err) {
+    console.error("[Scheduled] Onboarding sequence handler error:", err);
+    res.status(500).json({
+      error: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      context: { url: req.url, timestamp: new Date().toISOString() },
+    });
+  }
+}
+
+/**
+ * Register the onboarding route.
+ */
+export function registerOnboardingRoute(app: Express) {
+  app.post("/api/scheduled/onboarding-sequence", handleOnboardingSequence);
+}

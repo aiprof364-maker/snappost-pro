@@ -35,7 +35,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerIntegrationRoutes } from "../integrationRoutes";
-import { registerScheduledRoutes } from "../scheduledRoutes";
+import { registerScheduledRoutes, registerOnboardingRoute } from "../scheduledRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -72,6 +72,8 @@ async function startServer() {
   registerIntegrationRoutes(app);
   // Scheduled email routes (must be before Vite/static fallthrough)
   registerScheduledRoutes(app);
+  registerOnboardingRoute(app);
+  console.log("[Scheduled] Onboarding endpoint available at /api/scheduled/onboarding-sequence");
   // tRPC API
   app.use(
     "/api/trpc",
@@ -97,7 +99,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    console.log(`[Scheduled] Endpoints available at /api/scheduled/*`);
+  
   });
 }
 

@@ -147,3 +147,131 @@ export async function sendRenewalReminder(
  * Export for testing purposes.
  */
 export { getResendClient };
+
+export async function sendOnboardingDay1(email: string, userName: string) {
+  const resend = getResendClient();
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: "Welcome to SnapPost Pro! 🚀 Here's how to get started",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Welcome to SnapPost Pro, ${userName}!</h2>
+        <p>We're excited to have you on board. Here's everything you need to know to get started:</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>🎯 Getting Started in 3 Steps:</h3>
+          <ol>
+            <li><strong>Upload a photo</strong> - Take a job site photo and upload it to SnapPost Pro</li>
+            <li><strong>AI generates caption</strong> - Our AI creates a professional caption tailored to your trade</li>
+            <li><strong>Brand & post</strong> - We add your logo, and you post to Facebook in seconds</li>
+          </ol>
+        </div>
+
+        <p><strong>💡 Pro Tip:</strong> The best results come from clear, well-lit photos of your work. Before/after shots perform especially well.</p>
+
+        <p>Ready to create your first branded post?</p>
+        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Start Creating</a>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendOnboardingDay3(email: string, userName: string) {
+  const resend = getResendClient();
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: "💪 Keep the momentum going - Your first posts matter",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>How are your first posts going, ${userName}?</h2>
+        <p>We wanted to check in and share some tips to help you get the most out of SnapPost Pro.</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>📸 Tips for Better Results:</h3>
+          <ul>
+            <li><strong>Post consistently</strong> - 2-3 posts per week builds momentum with your audience</li>
+            <li><strong>Use captions as-is or customize</strong> - Our AI captions are great, but feel free to add your personal touch</li>
+            <li><strong>Track engagement</strong> - Check Facebook Insights to see which posts resonate most</li>
+            <li><strong>Showcase your best work</strong> - Before/after transformations get the most engagement</li>
+          </ul>
+        </div>
+
+        <p><strong>🎁 Bonus:</strong> Your logo branding is automatically applied to every post. This builds brand recognition with every share!</p>
+
+        <p>Keep creating:</p>
+        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendOnboardingDay5(email: string, userName: string, plan: "free" | "starter" | "pro") {
+  const planDetails = {
+    free: { name: "Free", posts: 3, upgrade: true },
+    starter: { name: "Starter", posts: 30, upgrade: false },
+    pro: { name: "Pro", posts: 300, upgrade: false },
+  };
+
+  const details = planDetails[plan];
+  const resend = getResendClient();
+
+  let upgradeSection = "";
+  if (details.upgrade) {
+    upgradeSection = `
+      <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">Ready to post more?</h3>
+        <p>You're on the Free plan with <strong>3 posts per month</strong>. Upgrade to Starter (30 posts) or Pro (300 posts) to scale your marketing.</p>
+        <a href="https://snappostpro.com/pricing" style="background: #ffc107; color: #333; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">View Plans</a>
+      </div>
+    `;
+  }
+
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: "You're crushing it! 🔥 Here's what's next",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>You're doing great, ${userName}!</h2>
+        <p>By now, you've created your first branded posts and seen how easy it is to scale your Facebook marketing.</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>📊 Your Current Plan:</h3>
+          <p><strong>${details.name} Plan:</strong> ${details.posts} branded posts per month</p>
+          <ul>
+            <li>AI-generated captions</li>
+            <li>Logo branding overlay</li>
+            <li>One-click Facebook posting</li>
+          </ul>
+        </div>
+
+        ${upgradeSection}
+
+        <p><strong>💬 Success Story:</strong> Contractors using SnapPost Pro consistently save 5+ hours per week on marketing while getting more leads.</p>
+
+        <p>Keep creating:</p>
+        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
+        </p>
+      </div>
+    `,
+  });
+}

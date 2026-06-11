@@ -145,3 +145,18 @@
 - [x] Admin procedures: highUsageContractors, contractorAnalytics, emailDeliveryStats
 - [x] Admin-only access control (role-based)
 - [x] Upsell opportunity alerts in admin dashboard
+
+## Phase 4: Contractor Onboarding Sequence (Complete)
+- [x] Create 3-email onboarding templates (day 1, day 3, day 5)
+- [x] Implement sendOnboardingDay1, sendOnboardingDay3, sendOnboardingDay5 functions
+- [x] Create scheduled onboarding job endpoint (/api/scheduled/onboarding-sequence)
+- [x] Deploy Heartbeat cron job for onboarding (FDejCrA3Bm5SRbH7LryVCg)
+- [x] All 12 tests passing
+- [x] TypeScript clean
+
+## Email Automation Complete
+- [x] Trial expiration warnings (day 6 of 7-day trial)
+- [x] Renewal reminders (1 day before renewal)
+- [x] Onboarding sequence (day 1, 3, 5 after signup)
+- [x] All emails sent via Resend with persistent API key
+- [x] All scheduled jobs deployed and firing daily at 9am UTC

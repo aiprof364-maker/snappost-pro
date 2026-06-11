@@ -310,3 +310,68 @@ export async function sendContactFormNotification(
     `,
   });
 }
+
+
+export async function sendNewsletterWelcome(email: string) {
+  const resend = getResendClient();
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: "Welcome to SnapPost Pro Newsletter",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Welcome to SnapPost Pro! 🎉</h2>
+        
+        <p>Thanks for subscribing to our newsletter. You'll now receive:</p>
+        
+        <ul style="line-height: 1.8;">
+          <li>💡 Weekly tips to save time on social media</li>
+          <li>📊 Industry insights for tradies and contractors</li>
+          <li>🎁 Exclusive discounts and early access to new features</li>
+          <li>📱 Best practices for Facebook marketing</li>
+        </ul>
+
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;">
+          <p style="margin: 0; color: #666;">
+            First email coming in 3 days. Check your inbox!
+          </p>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">
+          You can unsubscribe anytime by clicking the link at the bottom of any email.
+        </p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #999;">
+          SnapPost Pro • Marketing automation for tradies<br>
+          <a href="https://snappostpro.com" style="color: #5B4FFF; text-decoration: none;">snappostpro.com</a>
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendNewsletterSignupNotification(email: string, ownerEmail: string) {
+  const resend = getResendClient();
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: ownerEmail,
+    subject: `New newsletter subscriber: ${email}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>New Newsletter Subscriber</h2>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+          <p><strong>Subscribed:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Source:</strong> snappostpro.com</p>
+        </div>
+
+        <p style="font-size: 12px; color: #666;">
+          This is an automated notification from SnapPost Pro.
+        </p>
+      </div>
+    `,
+  });
+}

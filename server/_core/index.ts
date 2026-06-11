@@ -35,9 +35,11 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { registerIntegrationRoutes } from "../integrationRoutes";
+import { registerScheduledRoutes } from "../scheduledRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { COOKIE_NAME } from "@shared/const";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -68,6 +70,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);
+  // Scheduled email routes (must be before Vite/static fallthrough)
+  registerScheduledRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -76,6 +80,7 @@ async function startServer() {
       createContext,
     })
   );
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
@@ -92,6 +97,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(`[Scheduled] Endpoints available at /api/scheduled/*`);
   });
 }
 

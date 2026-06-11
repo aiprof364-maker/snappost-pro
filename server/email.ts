@@ -1,6 +1,23 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * Lazy-initialize Resend client only when needed.
+ * This prevents startup errors if RESEND_API_KEY is missing.
+ */
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "RESEND_API_KEY environment variable is not set. Email notifications will not work."
+      );
+    }
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 export async function sendPurchaseConfirmation(
   email: string,
@@ -14,6 +31,7 @@ export async function sendPurchaseConfirmation(
   };
 
   const details = planDetails[plan];
+  const resend = getResendClient();
 
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
@@ -55,6 +73,7 @@ export async function sendTrialExpirationWarning(
   userName: string,
   expirationDate: Date
 ) {
+  const resend = getResendClient();
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
@@ -95,6 +114,7 @@ export async function sendRenewalReminder(
   };
 
   const details = planDetails[plan];
+  const resend = getResendClient();
 
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
@@ -122,3 +142,8 @@ export async function sendRenewalReminder(
     `,
   });
 }
+
+/**
+ * Export for testing purposes.
+ */
+export { getResendClient };

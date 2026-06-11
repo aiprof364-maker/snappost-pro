@@ -115,6 +115,9 @@ export default function Dashboard() {
               <p className="mt-1 text-muted-foreground">
                 Create branded posts and manage your account.
               </p>
+              <a href="/analytics" className="mt-2 inline-flex text-sm text-primary hover:underline">
+                View analytics →
+              </a>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={plan === "free" ? "secondary" : "default"}>

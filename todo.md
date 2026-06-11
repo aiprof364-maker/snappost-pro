@@ -104,3 +104,22 @@
 - [x] Fix post limit display after subscription purchase
 - [x] Add subscription management UI (unsubscribe, billing portal, refund info)
 - [x] Set up Stripe webhook for subscription syncing
+
+
+## FAQ & Feature Verification
+- [x] Verify "Can I edit the caption before posting?" - VERIFIED: Textarea + Save caption button in UploadCard
+- [x] Verify "Can I cancel anytime?" - VERIFIED: Manage subscription button opens Stripe billing portal
+- [ ] Verify "7-day free trial" - Confirm trial is applied to all new subscriptions
+- [ ] Verify "No credit card required" - Check if trial doesn't require card upfront
+
+## Email Notifications
+- [x] Send purchase confirmation email when checkout completes (DONE - Resend integrated)
+- [ ] Send trial expiration warning email on day 6 of trial (Requires Heartbeat scheduler)
+- [ ] Send subscription renewal reminder email before renewal date (Requires Heartbeat scheduler)
+- [x] Set up email service integration (DONE - Resend configured)
+
+## Usage Analytics Dashboard
+- [ ] Track posts created per user per plan
+- [ ] Track feature usage (AI captions, logo branding, Facebook posts)
+- [ ] Identify high-usage users for upsell opportunities
+- [ ] Build analytics dashboard showing usage trends

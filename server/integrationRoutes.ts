@@ -14,6 +14,11 @@ import {
   upsertIntegration,
 } from "./db";
 import { getStripe, planFromPriceId } from "./stripe";
+import {
+  sendPurchaseConfirmation,
+  sendTrialExpirationWarning,
+  sendRenewalReminder,
+} from "./email";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -127,6 +132,27 @@ export function registerIntegrationRoutes(app: Express) {
             );
             const plan = session.metadata?.plan as "starter" | "pro" | undefined;
             if (userId) {
+              const { getDb } = await import("./db");
+              const db = await getDb();
+              if (db) {
+                const { users } = await import("../drizzle/schema");
+                const { eq } = await import("drizzle-orm");
+                const rows = await db
+                  .select()
+                  .from(users)
+                  .where(eq(users.id, userId))
+                  .limit(1);
+                const user = rows[0];
+                if (user && user.email) {
+                  // Send purchase confirmation email
+                  await sendPurchaseConfirmation(
+                    user.email,
+                    user.name || "Contractor",
+                    plan ?? "starter",
+                    plan === "pro" ? 29 : 19
+                  ).catch(e => console.error("[Email] Purchase confirmation failed", e));
+                }
+              }
               await updateUserSubscription(userId, {
                 stripeCustomerId: session.customer ?? undefined,
                 stripeSubscriptionId: session.subscription ?? undefined,

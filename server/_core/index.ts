@@ -26,6 +26,7 @@ console.log("[Server] Environment variables at startup:");
 console.log("  STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "SET" : "NOT SET");
 console.log("  STRIPE_STARTER_PRICE_ID:", process.env.STRIPE_STARTER_PRICE_ID ? "SET" : "NOT SET");
 console.log("  STRIPE_PRO_PRICE_ID:", process.env.STRIPE_PRO_PRICE_ID ? "SET" : "NOT SET");
+console.log("  STRIPE_WEBHOOK_SECRET:", process.env.STRIPE_WEBHOOK_SECRET ? "SET" : "NOT SET");
 
 import express from "express";
 import { createServer } from "http";

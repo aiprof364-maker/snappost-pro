@@ -363,6 +363,9 @@ export const appRouter = router({
           customer_email: user?.email ?? undefined,
           client_reference_id: String(ctx.user.id),
           metadata: { userId: String(ctx.user.id), plan: input.plan },
+          subscription_data: {
+            trial_period_days: 7,
+          },
           success_url: `${input.origin}/dashboard?checkout=success`,
           cancel_url: `${input.origin}/pricing?checkout=cancel`,
         });

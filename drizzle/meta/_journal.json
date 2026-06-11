@@ -15,6 +15,13 @@
       "when": 1780605682565,
       "tag": "0001_glossy_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781213445795,
+      "tag": "0002_slimy_hannibal_king",
+      "breakpoints": true
     }
   ]
 }

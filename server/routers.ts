@@ -8,7 +8,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { ENV } from "./_core/env";
-import { sendContactFormNotification } from "./email";
+import { sendContactFormNotification, sendNewsletterWelcome, sendNewsletterSignupNotification } from "./email";
+import { createContact, createNewsletterSubscriber } from "./db";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { brandImage, fetchStorageBytes } from "./branding";
@@ -416,8 +417,18 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           const { sendContactFormNotification } = await import("./email");
+          const { createContact } = await import("./db");
           const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
           
+          // Save to database
+          await createContact({
+            name: input.name,
+            email: input.email,
+            message: input.message,
+            status: "new",
+          });
+          
+          // Send email notification
           await sendContactFormNotification(
             input.name,
             input.email,
@@ -427,7 +438,7 @@ export const appRouter = router({
           
           return { success: true } as const;
         } catch (err) {
-          console.error("[Contact Form] Failed to send notification:", err);
+          console.error("[Contact Form] Failed to process submission:", err);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "Could not deliver your message. Please try again.",
@@ -438,37 +449,30 @@ export const appRouter = router({
     subscribe: publicProcedure
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {
-        const webhook = ENV.makeWebhookUrl;
-        // Newsletter is non-critical: if the webhook isn't set, notify owner but don't hard-fail the visitor.
-        if (!webhook) {
-          try {
-            const { notifyOwner } = await import("./_core/notification");
-            await notifyOwner({
-              title: "SnapPost Pro: newsletter signup",
-              content: `New subscriber: ${input.email} (Make webhook not configured)`,
-            });
-          } catch {
-            /* ignore */
-          }
+        try {
+          const { sendNewsletterWelcome, sendNewsletterSignupNotification } = await import("./email");
+          const { createNewsletterSubscriber } = await import("./db");
+          const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
+          
+          // Save to database
+          await createNewsletterSubscriber(input.email);
+          
+          // Send welcome email to subscriber
+          await sendNewsletterWelcome(input.email).catch(err => {
+            console.error("[Newsletter] Failed to send welcome email:", err);
+          });
+          
+          // Notify owner of new subscriber
+          await sendNewsletterSignupNotification(input.email, ownerEmail).catch(err => {
+            console.error("[Newsletter] Failed to send owner notification:", err);
+          });
+          
+          return { success: true } as const;
+        } catch (err) {
+          console.error("[Newsletter] Subscription failed:", err);
+          // Newsletter is non-critical: don't hard-fail the visitor
           return { success: true } as const;
         }
-        const resp = await fetch(webhook, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "newsletter_signup",
-            email: input.email,
-            source: "snappostpro.com",
-            submittedAt: new Date().toISOString(),
-          }),
-        }).catch(() => null);
-        if (!resp || !resp.ok) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Could not subscribe you right now. Please try again.",
-          });
-        }
-        return { success: true } as const;
       }),
   }),
 });

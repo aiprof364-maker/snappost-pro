@@ -1,6 +1,6 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
-import { getDb } from "./db";
+import { getDb, getContacts, getNewsletterSubscribers, updateContactStatus } from "./db";
 import { users, posts } from "../drizzle/schema";
 import { eq, gte } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
@@ -153,5 +153,34 @@ export const adminRouter = router({
         lastRun: null,
       },
     };
+  }),
+
+  /**
+   * Get all contact form submissions.
+   */
+  getContacts: protectedProcedure
+    .input((input: any) => input as { status?: string } | undefined)
+    .query(async ({ ctx, input }) => {
+      adminOnlyMiddleware(ctx);
+      return await getContacts(input?.status);
+    }),
+
+  /**
+   * Update contact status (new, replied, archived).
+   */
+  updateContactStatus: protectedProcedure
+    .input((input: any) => input as { id: number; status: string })
+    .mutation(async ({ ctx, input }) => {
+      adminOnlyMiddleware(ctx);
+      await updateContactStatus(input.id, input.status);
+      return { success: true };
+    }),
+
+  /**
+   * Get all newsletter subscribers.
+   */
+  getNewsletterSubscribers: protectedProcedure.query(async ({ ctx }) => {
+    adminOnlyMiddleware(ctx);
+    return await getNewsletterSubscribers();
   }),
 });

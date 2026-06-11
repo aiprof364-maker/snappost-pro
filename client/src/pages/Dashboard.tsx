@@ -61,7 +61,12 @@ export default function Dashboard() {
     else if (fb === "denied") toast.error("Facebook connection was cancelled.");
     else if (fb === "error") toast.error("Facebook connection failed.");
     else if (fb === "session") toast.error("Please log in again to connect Facebook.");
-    if (checkout === "success") toast.success("Subscription active. Welcome aboard!");
+    if (checkout === "success") {
+      toast.success("Subscription active. Welcome aboard!");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }
     if (fb || checkout) {
       window.history.replaceState({}, "", window.location.pathname);
       utils.account.overview.invalidate();
@@ -132,14 +137,19 @@ export default function Dashboard() {
                   <Button size="sm">Upgrade</Button>
                 </a>
               ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => portal.mutate({ origin: window.location.origin })}
-                  disabled={portal.isPending}
-                >
-                  Manage billing
-                </Button>
+                <div className="flex flex-col items-end gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => portal.mutate({ origin: window.location.origin })}
+                    disabled={portal.isPending}
+                  >
+                    {portal.isPending ? "Opening..." : "Manage subscription"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Cancel, refund, or update payment
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -148,7 +158,14 @@ export default function Dashboard() {
             <div className="lg:col-span-2 space-y-4">
               {usageLabel && (
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
-                  <span className="text-muted-foreground">{usageLabel}</span>
+                  <div>
+                    <span className="text-muted-foreground">{usageLabel}</span>
+                    {plan !== "free" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Resets on the 1st of each month
+                      </p>
+                    )}
+                  </div>
                   {atLimit && (
                     <a href="/pricing">
                       <Button size="sm" variant="outline">

@@ -96,8 +96,11 @@
 - [x] Ready for domain migration to snappostpro.com
 
 ## Stripe Checkout Debugging (Current)
-- [ ] Fix Stripe checkout button not redirecting to Stripe Checkout page
-- [ ] Verify trpc mutation is being called from frontend
-- [ ] Check network requests in browser
-- [ ] Verify Stripe session creation is returning valid URL
+- [x] Fix Stripe checkout button not redirecting to Stripe Checkout page
+- [x] Verify trpc mutation is being called from frontend
+- [x] Check network requests in browser
+- [x] Verify Stripe session creation is returning valid URL
 - [x] Change all "tradies" references to "contractors" throughout the app
+- [x] Fix post limit display after subscription purchase
+- [x] Add subscription management UI (unsubscribe, billing portal, refund info)
+- [x] Set up Stripe webhook for subscription syncing

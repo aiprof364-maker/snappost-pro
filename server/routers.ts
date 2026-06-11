@@ -32,6 +32,7 @@ import {
 } from "./facebook";
 import { getPriceId, getStripe, isStripeConfigured } from "./stripe";
 import { storageGetSignedUrl, storagePut } from "./storage";
+import { adminRouter } from "./adminRouters";
 
 /** Decode a data URL or base64 string to a Buffer. */
 function decodeBase64Image(input: string): { buffer: Buffer; mime: string } {
@@ -50,6 +51,7 @@ function startOfMonth(): Date {
 
 export const appRouter = router({
   system: systemRouter,
+  admin: adminRouter,
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),

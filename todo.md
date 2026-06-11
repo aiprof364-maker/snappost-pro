@@ -137,3 +137,11 @@
 - [x] Resend API key configured in persistent platform secrets
 - [x] Analytics dashboard fully functional
 - [x] Scheduled email endpoints ready for deployment
+
+## Phase 3: Advanced Features (Complete)
+- [x] Deploy Heartbeat cron jobs (trial-expiration-warnings, renewal-reminders)
+- [x] Implement real email logic with Stripe API (queries trial_end, current_period_end)
+- [x] Build admin dashboard for high-usage contractors (>70% of limit)
+- [x] Admin procedures: highUsageContractors, contractorAnalytics, emailDeliveryStats
+- [x] Admin-only access control (role-based)
+- [x] Upsell opportunity alerts in admin dashboard

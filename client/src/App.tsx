@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
+import AdminDashboard from "./pages/AdminDashboard";
 import Contact from "./pages/Contact";
 import Changelog from "./pages/Changelog";
 import Privacy from "./pages/Privacy";
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/analytics"} component={Analytics} />
+      <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/contact"} component={Contact} />
       <Route path={"/changelog"} component={Changelog} />
       <Route path={"/privacy"} component={Privacy} />

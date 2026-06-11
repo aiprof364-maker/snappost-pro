@@ -1,10 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { sdk } from "./_core/sdk";
-import { getUserById } from "./db";
+import { getDb } from "./db";
+import { users } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 import {
   sendTrialExpirationWarning,
   sendRenewalReminder,
 } from "./email";
+import { getStripe } from "./stripe";
 
 /**
  * Scheduled email routes for Heartbeat cron jobs.
@@ -13,7 +16,7 @@ import {
 
 /**
  * Handler for trial expiration warnings (day 6 of 7-day trial).
- * Triggered by Heartbeat cron job.
+ * Finds all users with "trialing" subscriptions and sends them a warning email.
  */
 async function handleTrialExpirationWarnings(
   req: Request,
@@ -27,17 +30,64 @@ async function handleTrialExpirationWarnings(
       return;
     }
 
-    // In a real implementation, you would:
-    // 1. Query all users with subscriptionStatus === "trialing"
-    // 2. Check if their trial_end date is tomorrow (via Stripe API or stored in DB)
-    // 3. Send warning emails to those users
+    const stripe = getStripe();
+    if (!stripe) {
+      res.status(500).json({ error: "Stripe not configured" });
+      return;
+    }
 
-    // For now, this is a placeholder that logs the cron execution
-    console.log(`[Scheduled] Trial expiration warnings cron triggered (taskUid: ${user.taskUid})`);
+    const db = await getDb();
+    if (!db) {
+      res.status(500).json({ error: "Database not available" });
+      return;
+    }
+
+    // Get all users with trialing subscriptions
+    const trialingUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.subscriptionStatus, "trialing"));
+
+    let sent = 0;
+    let failed = 0;
+    const now = new Date();
+
+    for (const dbUser of trialingUsers) {
+      try {
+        if (!dbUser.stripeSubscriptionId || !dbUser.email) continue;
+
+        // Fetch subscription from Stripe to get trial_end date
+        const subscription = await stripe.subscriptions.retrieve(
+          dbUser.stripeSubscriptionId
+        );
+
+        if (!subscription.trial_end) continue;
+
+        const trialEndDate = new Date(subscription.trial_end * 1000);
+        const daysDiff = Math.floor(
+          (trialEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        // Send warning on day 6 (1 day before trial ends)
+        if (daysDiff === 1) {
+          await sendTrialExpirationWarning(
+            dbUser.email,
+            dbUser.name || "Contractor",
+            trialEndDate
+          );
+          sent++;
+        }
+      } catch (err) {
+        console.error(`Failed to process trial warning for user ${dbUser.id}:`, err);
+        failed++;
+      }
+    }
 
     res.json({
       ok: true,
-      message: "Trial expiration warnings processed",
+      sent,
+      failed,
+      total: trialingUsers.length,
       taskUid: user.taskUid,
     });
   } catch (err) {
@@ -52,7 +102,7 @@ async function handleTrialExpirationWarnings(
 
 /**
  * Handler for subscription renewal reminders (day before renewal).
- * Triggered by Heartbeat cron job.
+ * Finds all users with active subscriptions renewing tomorrow and sends them a reminder.
  */
 async function handleRenewalReminders(
   req: Request,
@@ -66,17 +116,66 @@ async function handleRenewalReminders(
       return;
     }
 
-    // In a real implementation, you would:
-    // 1. Query all users with subscriptionStatus === "active"
-    // 2. Check if their renewal date is tomorrow (via Stripe API or stored in DB)
-    // 3. Send renewal reminder emails to those users
+    const stripe = getStripe();
+    if (!stripe) {
+      res.status(500).json({ error: "Stripe not configured" });
+      return;
+    }
 
-    // For now, this is a placeholder that logs the cron execution
-    console.log(`[Scheduled] Renewal reminders cron triggered (taskUid: ${user.taskUid})`);
+    const db = await getDb();
+    if (!db) {
+      res.status(500).json({ error: "Database not available" });
+      return;
+    }
+
+    // Get all users with active subscriptions
+    const activeUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.subscriptionStatus, "active"));
+
+    let sent = 0;
+    let failed = 0;
+    const now = new Date();
+
+    for (const dbUser of activeUsers) {
+      try {
+        if (!dbUser.stripeSubscriptionId || !dbUser.email || !dbUser.plan) continue;
+
+        // Fetch subscription from Stripe to get current_period_end date
+        const subscription = await stripe.subscriptions.retrieve(
+          dbUser.stripeSubscriptionId
+        );
+
+        const periodEnd = (subscription as any).current_period_end;
+        if (typeof periodEnd !== "number") continue;
+
+        const renewalDate = new Date(periodEnd * 1000);
+        const daysDiff = Math.floor(
+          (renewalDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
+        );
+
+        // Send reminder 1 day before renewal
+        if (daysDiff === 1) {
+          await sendRenewalReminder(
+            dbUser.email,
+            dbUser.name || "Contractor",
+            dbUser.plan as "starter" | "pro",
+            renewalDate
+          );
+          sent++;
+        }
+      } catch (err) {
+        console.error(`Failed to process renewal reminder for user ${dbUser.id}:`, err);
+        failed++;
+      }
+    }
 
     res.json({
       ok: true,
-      message: "Renewal reminders processed",
+      sent,
+      failed,
+      total: activeUsers.length,
       taskUid: user.taskUid,
     });
   } catch (err) {

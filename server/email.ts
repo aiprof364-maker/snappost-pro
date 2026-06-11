@@ -275,3 +275,38 @@ export async function sendOnboardingDay5(email: string, userName: string, plan: 
     `,
   });
 }
+
+
+export async function sendContactFormNotification(
+  name: string,
+  email: string,
+  message: string,
+  ownerEmail: string
+) {
+  const resend = getResendClient();
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: ownerEmail,
+    subject: `New contact form submission from ${name}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>New Contact Form Submission</h2>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+          <p><strong>Message:</strong></p>
+          <p style="white-space: pre-wrap; background: white; padding: 10px; border-radius: 4px;">${message}</p>
+        </div>
+
+        <p><strong>Reply to:</strong> <a href="mailto:${email}">${email}</a></p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #666;">
+          This is an automated notification from SnapPost Pro contact form.
+        </p>
+      </div>
+    `,
+  });
+}

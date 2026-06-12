@@ -65,6 +65,24 @@ const STEPS = [
   { n: "4", title: "Post to Facebook", desc: "Publish to your connected Facebook page in one click — or save for later." },
 ];
 
+const TESTIMONIALS = [
+  {
+    quote: "Saves me 5+ hours every week. I used to spend evenings writing captions. Now I just snap a photo and post.",
+    author: "Mike T.",
+    role: "Deck Builder",
+  },
+  {
+    quote: "My Facebook engagement doubled since I started posting consistently. This tool made it actually possible.",
+    author: "Sarah L.",
+    role: "Landscaper",
+  },
+  {
+    quote: "The logo branding on every post keeps my business front-and-center. Clients recognize my work instantly.",
+    author: "James R.",
+    role: "Plumber",
+  },
+];
+
 const FAQS = [
   {
     q: "Do I need design or writing skills?",
@@ -86,7 +104,7 @@ const FAQS = [
     q: "Which plan should I choose?",
     a: "Starter ($19/mo) suits solo operators posting a few times a week. Pro ($29/mo) gives 300 posts/month (about 10 a day) and multiple pages.",
   },
-];
+]
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
@@ -294,6 +312,57 @@ export default function Home() {
           </div>
           <div className="mt-12">
             <PricingCards />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="border-t border-border/60 bg-muted/20 py-20">
+        <div className="container">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              Trusted by contractors
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              See what builders and tradespeople are saying about SnapPost Pro.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                quote: "Saves me 5+ hours every week. I used to spend evenings writing captions. Now I just snap a photo and post.",
+                author: "Mike T.",
+                role: "Deck Builder",
+              },
+              {
+                quote: "My Facebook engagement doubled since I started posting consistently. This tool made it actually possible.",
+                author: "Sarah L.",
+                role: "Landscaper",
+              },
+              {
+                quote: "The logo branding on every post keeps my business front-and-center. Clients recognize my work instantly.",
+                author: "James R.",
+                role: "Plumber",
+              },
+            ].map((t, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <p className="text-sm leading-relaxed text-muted-foreground italic">
+                  "{t.quote}"
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    {t.author.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{t.author}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

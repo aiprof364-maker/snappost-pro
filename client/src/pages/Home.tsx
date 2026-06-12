@@ -166,12 +166,13 @@ export default function Home() {
                 </span>
                 <span className="text-sm font-semibold">New post preview</span>
               </div>
-              <div className="mt-4 aspect-[4/3] w-full rounded-xl bg-gradient-to-br from-muted to-muted/40 ring-1 ring-border">
-                <div className="flex h-full items-end justify-end p-3">
-                  <span className="rounded-md bg-background/80 px-2 py-1 text-xs font-bold text-primary ring-1 ring-border">
-                    YOUR LOGO
-                  </span>
-                </div>
+              <div className="mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl ring-1 ring-border">
+                <img
+                  src="/manus-storage/deck-photo_77f6ce90.jpg"
+                  alt="Professional deck project with contractor branding logo"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
               </div>
               <p className="mt-4 text-sm">
                 Fresh deck rebuild finished today — built to last through every

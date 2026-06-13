@@ -119,22 +119,24 @@ export default function Dashboard() {
                 View analytics →
               </a>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={plan === "free" ? "secondary" : "default"}>
-                {planLabel} plan
-              </Badge>
-              {plan !== "free" && subStatus !== "none" && (
-                <Badge
-                  variant={
-                    subStatus === "active" || subStatus === "trialing"
-                      ? "default"
-                      : "destructive"
-                  }
-                  className="capitalize"
-                >
-                  {subStatus.replace("_", " ")}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Badge variant={plan === "free" ? "secondary" : "default"}>
+                  {planLabel} plan
                 </Badge>
-              )}
+                {plan !== "free" && subStatus !== "none" && (
+                  <Badge
+                    variant={
+                      subStatus === "active" || subStatus === "trialing"
+                        ? "default"
+                        : "destructive"
+                    }
+                    className="capitalize"
+                  >
+                    {subStatus.replace("_", " ")}
+                  </Badge>
+                )}
+              </div>
               {plan === "free" ? (
                 <a href="/pricing">
                   <Button size="sm">Upgrade</Button>

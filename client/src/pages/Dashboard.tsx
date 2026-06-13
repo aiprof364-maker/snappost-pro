@@ -142,7 +142,7 @@ export default function Dashboard() {
                   <Button size="sm">Upgrade</Button>
                 </a>
               ) : (
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-3">
                   <Button
                     size="sm"
                     variant="outline"

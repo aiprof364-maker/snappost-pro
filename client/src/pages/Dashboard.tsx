@@ -107,7 +107,7 @@ export default function Dashboard() {
       <SiteHeader />
       <main className="flex-1 bg-muted/20">
         <div className="container py-10">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-6">
             <div>
               <h1 className="font-display text-3xl font-bold">
                 Welcome{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
@@ -119,7 +119,7 @@ export default function Dashboard() {
                 View analytics →
               </a>
             </div>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-6">
               <div className="flex items-center gap-2">
                 <Badge variant={plan === "free" ? "secondary" : "default"}>
                   {planLabel} plan
@@ -142,7 +142,7 @@ export default function Dashboard() {
                   <Button size="sm">Upgrade</Button>
                 </a>
               ) : (
-                <div className="flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-2">
                   <Button
                     size="sm"
                     variant="outline"

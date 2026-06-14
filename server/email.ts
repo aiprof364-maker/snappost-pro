@@ -375,3 +375,40 @@ export async function sendNewsletterSignupNotification(email: string, ownerEmail
     `,
   });
 }
+
+export async function sendEmailVerification(email: string, userName: string, verificationToken: string) {
+  const resend = getResendClient();
+  const verificationUrl = `https://snappostpro.com/verify-email?token=${verificationToken}`;
+  
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: "Verify your SnapPost Pro email",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Verify your email, ${userName}</h2>
+        <p>Welcome to SnapPost Pro! Please verify your email address to get started.</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <a href="${verificationUrl}" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">Verify Email</a>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">
+          Or copy and paste this link in your browser:<br>
+          <code style="background: #f5f5f5; padding: 8px; border-radius: 4px; display: block; word-break: break-all; margin-top: 10px;">${verificationUrl}</code>
+        </p>
+
+        <p style="color: #999; font-size: 12px;">
+          This link expires in 24 hours. If you didn't sign up for SnapPost Pro, you can ignore this email.
+        </p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #999;">
+          SnapPost Pro • Marketing automation for tradies<br>
+          <a href="https://snappostpro.com" style="color: #5B4FFF; text-decoration: none;">snappostpro.com</a>
+        </p>
+      </div>
+    `,
+  });
+}

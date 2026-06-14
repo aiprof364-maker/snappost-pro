@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -27,6 +27,12 @@ export const users = mysqlTable("users", {
   subscriptionStatus: varchar("subscriptionStatus", { length: 32 }).default("none"),
   /** Logo image storage key used to brand uploaded photos. */
   logoKey: varchar("logoKey", { length: 256 }),
+  /** Email verification status: pending, verified. */
+  emailVerified: boolean("emailVerified").default(false).notNull(),
+  /** Email verification token (hashed). */
+  emailVerificationToken: varchar("emailVerificationToken", { length: 256 }),
+  /** Email verification token expiry. */
+  emailVerificationTokenExpiry: timestamp("emailVerificationTokenExpiry"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

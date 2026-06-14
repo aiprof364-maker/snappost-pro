@@ -286,3 +286,92 @@ export async function unsubscribeNewsletter(email: string): Promise<void> {
   if (!db) return;
   await db.update(newsletterSubscribers).set({ status: "unsubscribed" }).where(eq(newsletterSubscribers.email, email));
 }
+
+/* ----------------------- Email Verification ----------------------- */
+
+import crypto from "crypto";
+
+/**
+ * Generate a random email verification token and hash it for storage.
+ * Returns both the plain token (for email) and the hash (for database).
+ */
+export function generateEmailVerificationToken(): { token: string; hash: string } {
+  const token = crypto.randomBytes(32).toString("hex");
+  const hash = crypto.createHash("sha256").update(token).digest("hex");
+  return { token, hash };
+}
+
+/**
+ * Create or update email verification token for a user.
+ * Token expires in 24 hours.
+ */
+export async function setEmailVerificationToken(
+  userId: number,
+  tokenHash: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  const expiryTime = new Date();
+  expiryTime.setHours(expiryTime.getHours() + 24);
+
+  await db
+    .update(users)
+    .set({
+      emailVerificationToken: tokenHash,
+      emailVerificationTokenExpiry: expiryTime,
+    })
+    .where(eq(users.id, userId));
+}
+
+/**
+ * Verify an email using the provided token.
+ * Returns the user if verification succeeds, null otherwise.
+ */
+export async function verifyEmailToken(tokenHash: string) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(
+      and(
+        eq(users.emailVerificationToken, tokenHash),
+        gte(users.emailVerificationTokenExpiry, new Date()),
+      ),
+    )
+    .limit(1);
+
+  if (result.length === 0) return null;
+
+  const user = result[0];
+
+  // Mark email as verified and clear token
+  await db
+    .update(users)
+    .set({
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationTokenExpiry: null,
+    })
+    .where(eq(users.id, user.id));
+
+  return user;
+}
+
+/**
+ * Check if a user's email is verified.
+ */
+export async function isEmailVerified(userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return result.length > 0 ? result[0].emailVerified : false;
+}

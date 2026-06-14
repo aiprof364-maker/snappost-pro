@@ -13,6 +13,7 @@ import AdminLeads from "./pages/AdminLeads";
 import Contact from "./pages/Contact";
 import Changelog from "./pages/Changelog";
 import Privacy from "./pages/Privacy";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path={"/contact"} component={Contact} />
       <Route path={"/changelog"} component={Changelog} />
       <Route path={"/privacy"} component={Privacy} />
+      <Route path={"/verify-email"} component={VerifyEmail} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

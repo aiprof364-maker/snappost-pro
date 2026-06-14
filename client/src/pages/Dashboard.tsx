@@ -87,6 +87,15 @@ export default function Dashboard() {
   const facebookConnected = overview.data?.facebook?.status === "connected";
   const usage = overview.data?.usage;
   const subStatus = overview.data?.subscriptionStatus ?? "none";
+  const emailVerified = user?.emailVerified ?? false;
+  const resendVerificationEmail = trpc.auth.resendVerificationEmail.useMutation({
+    onSuccess: () => {
+      toast.success("Verification email sent. Check your inbox.");
+    },
+    onError: (e) => {
+      toast.error(e.message);
+    },
+  });
   const usageLabel =
     usage == null
       ? null
@@ -137,6 +146,25 @@ export default function Dashboard() {
                   </Badge>
                 )}
               </div>
+              {!emailVerified && (
+                <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="font-medium text-yellow-900">Verify your email</p>
+                      <p className="mt-1 text-sm text-yellow-800">Check your inbox for a verification link. You need to verify before posting to Facebook.</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => resendVerificationEmail.mutate()}
+                      disabled={resendVerificationEmail.isPending}
+                      className="ml-2 shrink-0"
+                    >
+                      {resendVerificationEmail.isPending ? "Sending..." : "Resend"}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {plan === "free" ? (
                 <a href="/pricing">
                   <Button size="sm">Upgrade</Button>

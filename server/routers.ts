@@ -74,6 +74,30 @@ export const appRouter = router({
         }
         return { success: true, email: user.email } as const;
       }),
+    resendVerificationEmail: protectedProcedure.mutation(async ({ ctx }) => {
+      const { generateEmailVerificationToken, setEmailVerificationToken, getUserById } = await import("./db");
+      const { sendEmailVerification } = await import("./email");
+      
+      const user = await getUserById(ctx.user.id);
+      if (!user || !user.email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "User email not found" });
+      }
+      
+      if (user.emailVerified) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Email already verified" });
+      }
+      
+      const { token: verificationToken, hash: tokenHash } = generateEmailVerificationToken();
+      await setEmailVerificationToken(ctx.user.id, tokenHash);
+      
+      try {
+        await sendEmailVerification(user.email, user.name || "User", verificationToken);
+        return { success: true, message: "Verification email sent" } as const;
+      } catch (error) {
+        console.error("[Email] Failed to send verification email:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to send verification email" });
+      }
+    }),
   }),
 
   /* --------------------------- Account --------------------------- */
@@ -226,6 +250,16 @@ export const appRouter = router({
     publish: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
+        // Check email verification
+        const { isEmailVerified } = await import("./db");
+        const emailVerified = await isEmailVerified(ctx.user.id);
+        if (!emailVerified) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Please verify your email before posting to Facebook. Check your inbox for the verification link.",
+          });
+        }
+
         const post = await getPostById(input.id);
         if (!post || post.userId !== ctx.user.id) {
           throw new TRPCError({ code: "NOT_FOUND" });

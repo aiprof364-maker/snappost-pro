@@ -28,13 +28,25 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      await db.upsertUser({
+      const user = await db.upsertUser({
         openId: userInfo.openId,
         name: userInfo.name || null,
         email: userInfo.email ?? null,
         loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
         lastSignedIn: new Date(),
       });
+
+      // Generate and send email verification token
+      const { token: verificationToken, hash: tokenHash } = db.generateEmailVerificationToken();
+      const userId = await db.getUserByOpenId(userInfo.openId);
+      if (userId?.id) {
+        await db.setEmailVerificationToken(userId.id, tokenHash);
+        // Send verification email asynchronously (don't block OAuth flow)
+        const { sendEmailVerification } = await import("../email");
+        sendEmailVerification(userInfo.email || "", userInfo.name || "User", verificationToken).catch(err => {
+          console.error("[Email] Failed to send verification email:", err);
+        });
+      }
 
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",

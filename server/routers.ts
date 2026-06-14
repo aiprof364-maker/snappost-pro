@@ -62,6 +62,18 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    verifyEmail: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ input }) => {
+        const { verifyEmailToken } = await import("./db");
+        const crypto = await import("crypto");
+        const tokenHash = crypto.createHash("sha256").update(input.token).digest("hex");
+        const user = await verifyEmailToken(tokenHash);
+        if (!user) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired verification token" });
+        }
+        return { success: true, email: user.email } as const;
+      }),
   }),
 
   /* --------------------------- Account --------------------------- */

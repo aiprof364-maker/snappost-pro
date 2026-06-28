@@ -1,9 +1,10 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
-import { Camera, Menu } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { Camera, LogOut, Menu } from "lucide-react";
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const NAV = [
   { label: "Features", href: "/#features" },
@@ -13,8 +14,14 @@ const NAV = [
 ];
 
 export default function SiteHeader() {
-  const { isAuthenticated, loading } = useAuth();
   const [open, setOpen] = useState(false);
+  const { isAuthenticated, loading } = useAuth();
+  const [, setLocation] = useLocation();
+  const logout = trpc.auth.logout.useMutation({
+    onSuccess: () => {
+      setLocation("/");
+    },
+  });
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
@@ -40,9 +47,20 @@ export default function SiteHeader() {
 
         <div className="hidden items-center gap-3 md:flex">
           {loading ? null : isAuthenticated ? (
-            <Link href="/dashboard">
-              <Button>Dashboard</Button>
-            </Link>
+            <>
+              <Link href="/dashboard">
+                <Button>Dashboard</Button>
+              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => logout.mutate()}
+                disabled={logout.isPending}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                {logout.isPending ? "Logging out..." : "Logout"}
+              </Button>
+            </>
           ) : (
             <>
               <a href={getLoginUrl()}>
@@ -78,9 +96,23 @@ export default function SiteHeader() {
               </a>
             ))}
             {isAuthenticated ? (
-              <Link href="/dashboard">
-                <Button className="w-full">Dashboard</Button>
-              </Link>
+              <>
+                <Link href="/dashboard">
+                  <Button className="w-full">Dashboard</Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    logout.mutate();
+                    setOpen(false);
+                  }}
+                  disabled={logout.isPending}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {logout.isPending ? "Logging out..." : "Logout"}
+                </Button>
+              </>
             ) : (
               <a href={getLoginUrl()}>
                 <Button className="w-full">Get started</Button>

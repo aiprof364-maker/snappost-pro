@@ -52,6 +52,15 @@ export default function Dashboard() {
     onError: e => toast.error(e.message),
   });
 
+  const resendVerificationEmail = trpc.auth.resendVerificationEmail.useMutation({
+    onSuccess: () => {
+      toast.success("Verification email sent. Check your inbox.");
+    },
+    onError: (e) => {
+      toast.error(e.message);
+    },
+  });
+
   // Handle facebook callback query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -88,14 +97,6 @@ export default function Dashboard() {
   const usage = overview.data?.usage;
   const subStatus = overview.data?.subscriptionStatus ?? "none";
   const emailVerified = user?.emailVerified ?? false;
-  const resendVerificationEmail = trpc.auth.resendVerificationEmail.useMutation({
-    onSuccess: () => {
-      toast.success("Verification email sent. Check your inbox.");
-    },
-    onError: (e) => {
-      toast.error(e.message);
-    },
-  });
   const usageLabel =
     usage == null
       ? null

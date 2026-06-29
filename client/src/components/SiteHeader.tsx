@@ -15,13 +15,7 @@ const NAV = [
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const { isAuthenticated, loading } = useAuth();
-  const [, setLocation] = useLocation();
-  const logout = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      setLocation("/");
-    },
-  });
+  const { isAuthenticated, loading, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
@@ -54,11 +48,10 @@ export default function SiteHeader() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => logout.mutate()}
-                disabled={logout.isPending}
+                onClick={() => logout()}
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                {logout.isPending ? "Logging out..." : "Logout"}
+                Logout
               </Button>
             </>
           ) : (
@@ -104,13 +97,12 @@ export default function SiteHeader() {
                   variant="outline"
                   className="w-full"
                   onClick={() => {
-                    logout.mutate();
+                    logout();
                     setOpen(false);
                   }}
-                  disabled={logout.isPending}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  {logout.isPending ? "Logging out..." : "Logout"}
+                  Logout
                 </Button>
               </>
             ) : (

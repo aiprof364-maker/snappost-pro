@@ -1,17 +1,19 @@
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "wouter";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 
 export default function VerifyEmail() {
-  const [searchParams] = useSearchParams();
-  const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
   const verifyMutation = trpc.auth.verifyEmail.useMutation();
+
+  // Get token from URL search params using native URLSearchParams
+  const searchParams = useMemo(() => {
+    return new URLSearchParams(window.location.search);
+  }, []);
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -35,7 +37,7 @@ export default function VerifyEmail() {
         },
       }
     );
-  }, [searchParams]);
+  }, [searchParams, verifyMutation]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">

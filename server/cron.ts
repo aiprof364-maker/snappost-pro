@@ -8,6 +8,7 @@ import {
   sendOnboardingDay1,
   sendOnboardingDay3,
   sendOnboardingDay5,
+  sendCronErrorAlert,
 } from "./email";
 import { getStripe } from "./stripe";
 
@@ -17,16 +18,23 @@ import { getStripe } from "./stripe";
  */
 
 async function runTrialExpirationWarnings() {
+  const jobName = "trial-expiration-warnings";
+  const errors: string[] = [];
+  
   try {
     const stripe = getStripe();
     if (!stripe) {
-      console.error("[Cron] Stripe not configured");
+      const msg = "[Cron] Stripe not configured";
+      console.error(msg);
+      errors.push(msg);
       return;
     }
 
     const db = await getDb();
     if (!db) {
-      console.error("[Cron] Database not available");
+      const msg = "[Cron] Database not available";
+      console.error(msg);
+      errors.push(msg);
       return;
     }
 
@@ -63,28 +71,56 @@ async function runTrialExpirationWarnings() {
           sent++;
         }
       } catch (err) {
+        const errMsg = err instanceof Error ? err.stack || err.message : String(err);
         console.error(`[Cron] Failed to process trial warning for user ${dbUser.id}:`, err);
+        errors.push(`User ${dbUser.id}: ${errMsg}`);
         failed++;
       }
     }
 
     console.log(`[Cron] Trial expiration warnings: sent=${sent}, failed=${failed}, total=${trialingUsers.length}`);
+    
+    // Alert if any failures occurred
+    if (failed > 0 && errors.length > 0) {
+      try {
+        await sendCronErrorAlert(
+          jobName,
+          `${failed} failures out of ${trialingUsers.length} users processed.\n\nDetails:\n${errors.join("\n")}`,
+          new Date()
+        );
+      } catch (alertErr) {
+        console.error("[Cron] Failed to send error alert:", alertErr);
+      }
+    }
   } catch (err) {
+    const errorMsg = err instanceof Error ? (err.stack || err.message) : String(err);
     console.error("[Cron] Trial expiration warning error:", err);
+    try {
+      await sendCronErrorAlert(jobName, errorMsg, new Date());
+    } catch (alertErr) {
+      console.error("[Cron] Failed to send error alert:", alertErr);
+    }
   }
 }
 
 async function runRenewalReminders() {
+  const jobName = "renewal-reminders";
+  const errors: string[] = [];
+  
   try {
     const stripe = getStripe();
     if (!stripe) {
-      console.error("[Cron] Stripe not configured");
+      const msg = "[Cron] Stripe not configured";
+      console.error(msg);
+      errors.push(msg);
       return;
     }
 
     const db = await getDb();
     if (!db) {
-      console.error("[Cron] Database not available");
+      const msg = "[Cron] Database not available";
+      console.error(msg);
+      errors.push(msg);
       return;
     }
 
@@ -123,22 +159,48 @@ async function runRenewalReminders() {
           sent++;
         }
       } catch (err) {
+        const errMsg = err instanceof Error ? err.stack || err.message : String(err);
         console.error(`[Cron] Failed to process renewal reminder for user ${dbUser.id}:`, err);
+        errors.push(`User ${dbUser.id}: ${errMsg}`);
         failed++;
       }
     }
 
     console.log(`[Cron] Renewal reminders: sent=${sent}, failed=${failed}, total=${activeUsers.length}`);
+    
+    // Alert if any failures occurred
+    if (failed > 0 && errors.length > 0) {
+      try {
+        await sendCronErrorAlert(
+          jobName,
+          `${failed} failures out of ${activeUsers.length} users processed.\n\nDetails:\n${errors.join("\n")}`,
+          new Date()
+        );
+      } catch (alertErr) {
+        console.error("[Cron] Failed to send error alert:", alertErr);
+      }
+    }
   } catch (err) {
+    const errorMsg = err instanceof Error ? (err.stack || err.message) : String(err);
     console.error("[Cron] Renewal reminder error:", err);
+    try {
+      await sendCronErrorAlert(jobName, errorMsg, new Date());
+    } catch (alertErr) {
+      console.error("[Cron] Failed to send error alert:", alertErr);
+    }
   }
 }
 
 async function runOnboardingSequence() {
+  const jobName = "onboarding-sequence";
+  const errors: string[] = [];
+  
   try {
     const db = await getDb();
     if (!db) {
-      console.error("[Cron] Database not available");
+      const msg = "[Cron] Database not available";
+      console.error(msg);
+      errors.push(msg);
       return;
     }
 
@@ -172,14 +234,35 @@ async function runOnboardingSequence() {
           sent++;
         }
       } catch (err) {
+        const errMsg = err instanceof Error ? err.stack || err.message : String(err);
         console.error(`[Cron] Failed to process onboarding for user ${dbUser.id}:`, err);
+        errors.push(`User ${dbUser.id}: ${errMsg}`);
         failed++;
       }
     }
 
     console.log(`[Cron] Onboarding sequence: sent=${sent}, failed=${failed}, total=${allUsers.length}`);
+    
+    // Alert if any failures occurred
+    if (failed > 0 && errors.length > 0) {
+      try {
+        await sendCronErrorAlert(
+          jobName,
+          `${failed} failures out of ${allUsers.length} users processed.\n\nDetails:\n${errors.join("\n")}`,
+          new Date()
+        );
+      } catch (alertErr) {
+        console.error("[Cron] Failed to send error alert:", alertErr);
+      }
+    }
   } catch (err) {
+    const errorMsg = err instanceof Error ? (err.stack || err.message) : String(err);
     console.error("[Cron] Onboarding sequence error:", err);
+    try {
+      await sendCronErrorAlert(jobName, errorMsg, new Date());
+    } catch (alertErr) {
+      console.error("[Cron] Failed to send error alert:", alertErr);
+    }
   }
 }
 

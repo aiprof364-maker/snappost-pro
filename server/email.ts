@@ -144,6 +144,49 @@ export async function sendRenewalReminder(
 }
 
 /**
+ * Send cron job error alert to admin
+ */
+export async function sendCronErrorAlert(
+  jobName: string,
+  error: string,
+  timestamp: Date
+) {
+  const resend = getResendClient();
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@snappostpro.com";
+
+  return resend.emails.send({
+    from: "SnapPost Pro Alerts <alerts@snappostpro.com>",
+    to: adminEmail,
+    subject: `🚨 Cron Job Failed: ${jobName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc2626;">⚠️ Cron Job Error Alert</h2>
+        
+        <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+          <p><strong>Job:</strong> ${jobName}</p>
+          <p><strong>Time:</strong> ${timestamp.toISOString()}</p>
+          <p><strong>Status:</strong> Failed</p>
+        </div>
+
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 12px; overflow-x: auto;">
+          <p style="margin-top: 0;"><strong>Error Details:</strong></p>
+          <pre style="white-space: pre-wrap; word-wrap: break-word;">${error}</pre>
+        </div>
+
+        <p><strong>Action Required:</strong></p>
+        <ul>
+          <li>Check Railway logs for more details</li>
+          <li>Verify database and Stripe API connectivity</li>
+          <li>Check Resend API key configuration</li>
+        </ul>
+
+        <p>This is an automated alert from SnapPost Pro's cron monitoring system.</p>
+      </div>
+    `,
+  });
+}
+
+/**
  * Export for testing purposes.
  */
 export { getResendClient };

@@ -171,3 +171,10 @@
 - [x] Confirm zero Manus charges for scheduled jobs going forward
 
 **Result:** All email automation now runs on Railway via node-cron. No more Manus platform costs for scheduled jobs.
+
+## Error Alerting for Cron Jobs
+- [x] Set up error alerting for cron job failures (email-based via Resend)
+  - Added sendCronErrorAlert() function to email.ts
+  - Integrated error capture into all three cron jobs
+  - Errors sent to admin@snappostpro.com with full stack traces
+  - Zero additional cost (uses existing Resend integration)

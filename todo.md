@@ -160,3 +160,14 @@
 - [x] Onboarding sequence (day 1, 3, 5 after signup)
 - [x] All emails sent via Resend with persistent API key
 - [x] All scheduled jobs deployed and firing daily at 9am UTC
+
+## Cron Migration: Manus → Railway (COMPLETE)
+- [x] Install node-cron package
+- [x] Create server/cron.ts with three scheduled jobs
+- [x] Export handlers from scheduledRoutes.ts
+- [x] Integrate cron initialization into server startup
+- [x] Verify cron jobs running on Railway at 9am UTC daily
+- [x] Delete all 3 Manus Heartbeat jobs (FDejCrA3Bm5SRbH7LryVCg, C42Bn4SV6yaNuoixaLFuqV, 76WrUwkooDAsxbfTTAPGig)
+- [x] Confirm zero Manus charges for scheduled jobs going forward
+
+**Result:** All email automation now runs on Railway via node-cron. No more Manus platform costs for scheduled jobs.

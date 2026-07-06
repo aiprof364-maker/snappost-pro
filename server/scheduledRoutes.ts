@@ -18,7 +18,7 @@ import { getStripe } from "./stripe";
  * Handler for trial expiration warnings (day 6 of 7-day trial).
  * Finds all users with "trialing" subscriptions and sends them a warning email.
  */
-async function handleTrialExpirationWarnings(
+export async function handleTrialExpirationWarnings(
   req: Request,
   res: Response
 ): Promise<void> {
@@ -104,7 +104,7 @@ async function handleTrialExpirationWarnings(
  * Handler for subscription renewal reminders (day before renewal).
  * Finds all users with active subscriptions renewing tomorrow and sends them a reminder.
  */
-async function handleRenewalReminders(
+export async function handleRenewalReminders(
   req: Request,
   res: Response
 ): Promise<void> {
@@ -202,7 +202,7 @@ export function registerScheduledRoutes(app: Express) {
  * Handler for contractor onboarding sequence.
  * Sends emails on day 1, day 3, and day 5 after signup.
  */
-async function handleOnboardingSequence(
+export async function handleOnboardingSequence(
   req: Request,
   res: Response
 ): Promise<void> {

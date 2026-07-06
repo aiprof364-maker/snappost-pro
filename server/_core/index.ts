@@ -40,6 +40,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { COOKIE_NAME } from "@shared/const";
+import { initializeCrons } from "../cron";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -97,9 +98,11 @@ async function startServer() {
     console.log(`[Server] Port ${preferredPort} unavailable, using ${port}`);
   }
 
+  // Initialize node-cron jobs (runs on Railway, not Manus)
+  initializeCrons();
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-  
   });
 }
 

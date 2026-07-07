@@ -212,3 +212,8 @@
   - Endpoints: /api/scheduled/onboarding-24h-reminders, /api/scheduled/onboarding-48h-reminders
   - Added database helpers: getIncompleteOnboardingUsers(), getStalledOnboardingUsers()
   - Ready to wire up with Heartbeat cron jobs (24h and 48h after signup)
+- [x] Create Heartbeat cron jobs for reminder emails
+  - Created: onboarding-24h-reminders (task_uid: MeRqovonGkUQ5bLynTkaGC)
+  - Created: onboarding-48h-reminders (task_uid: hnqRTx7RKSJx7MkwWmmh4U)
+  - Both run hourly (0 0 * * * *) and check for users needing reminders
+  - Active and monitoring now

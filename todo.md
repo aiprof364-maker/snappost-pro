@@ -178,3 +178,12 @@
   - Integrated error capture into all three cron jobs
   - Errors sent to admin@snappostpro.com with full stack traces
   - Zero additional cost (uses existing Resend integration)
+
+## Onboarding Checklist Widget
+- [x] Build contractor onboarding checklist for dashboard
+  - Added onboarding_checklist table to track: profile setup, Facebook connection, first post, first publish
+  - Created tRPC procedures to get and update checklist status
+  - Built OnboardingChecklist component with progress bar and step tracking
+  - Integrated into Dashboard to display on page load
+  - Completion percentage calculated automatically (0-100%)
+  - Timestamps recorded for each completed step

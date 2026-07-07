@@ -99,6 +99,35 @@ export const posts = mysqlTable("posts", {
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
 
+/**
+ * Onboarding checklist tracking for new contractors.
+ * Tracks completion of key setup steps to improve retention.
+ */
+export const onboardingChecklist = mysqlTable("onboarding_checklist", {
+  id: int("id").autoincrement().primaryKey(),
+  /** FK to users.id (contractor). */
+  userId: int("userId").notNull().unique(),
+  /** Profile setup: uploaded logo or filled in business name. */
+  profileCompleted: boolean("profileCompleted").default(false).notNull(),
+  profileCompletedAt: timestamp("profileCompletedAt"),
+  /** Facebook connection: at least one page connected. */
+  facebookConnected: boolean("facebookConnected").default(false).notNull(),
+  facebookConnectedAt: timestamp("facebookConnectedAt"),
+  /** First post: at least one photo uploaded and branded. */
+  firstPostCreated: boolean("firstPostCreated").default(false).notNull(),
+  firstPostCreatedAt: timestamp("firstPostCreatedAt"),
+  /** First post published to Facebook. */
+  firstPostPublished: boolean("firstPostPublished").default(false).notNull(),
+  firstPostPublishedAt: timestamp("firstPostPublishedAt"),
+  /** Overall completion percentage (0-100). */
+  completionPercentage: int("completionPercentage").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type OnboardingChecklist = typeof onboardingChecklist.$inferSelect;
+export type InsertOnboardingChecklist = typeof onboardingChecklist.$inferInsert;
+
 
 /**
  * Contact form submissions.

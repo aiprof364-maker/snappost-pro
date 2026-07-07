@@ -25,6 +25,8 @@ import {
   updatePost,
   updateUserLogo,
   upsertIntegration,
+  getOrCreateOnboardingChecklist,
+  updateOnboardingStep,
 } from "./db";
 import {
   FACEBOOK_SCOPES,
@@ -520,6 +522,33 @@ export const appRouter = router({
           return { success: true } as const;
         }
       }),
+  }),
+
+  onboarding: router({
+    /** Get the current user's onboarding checklist. */
+    getChecklist: protectedProcedure.query(async ({ ctx }) => {
+      return await getOrCreateOnboardingChecklist(ctx.user.id);
+    }),
+
+    /** Mark profile as completed (logo uploaded or business name filled in). */
+    completeProfile: protectedProcedure.mutation(async ({ ctx }) => {
+      return await updateOnboardingStep(ctx.user.id, "profileCompleted", true);
+    }),
+
+    /** Mark Facebook connection as completed. */
+    completeFacebookConnection: protectedProcedure.mutation(async ({ ctx }) => {
+      return await updateOnboardingStep(ctx.user.id, "facebookConnected", true);
+    }),
+
+    /** Mark first post as created. */
+    completeFirstPost: protectedProcedure.mutation(async ({ ctx }) => {
+      return await updateOnboardingStep(ctx.user.id, "firstPostCreated", true);
+    }),
+
+    /** Mark first post as published to Facebook. */
+    completeFirstPostPublished: protectedProcedure.mutation(async ({ ctx }) => {
+      return await updateOnboardingStep(ctx.user.id, "firstPostPublished", true);
+    }),
   }),
 });
 

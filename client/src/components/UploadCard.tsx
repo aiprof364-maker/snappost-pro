@@ -37,12 +37,16 @@ export default function UploadCard({
 
   const utils = trpc.useUtils();
 
+  const completeFirstPost = trpc.onboarding.completeFirstPost.useMutation();
+  const completeFirstPostPublished = trpc.onboarding.completeFirstPostPublished.useMutation();
+
   const createPost = trpc.posts.create.useMutation({
     onSuccess: post => {
       if (!post) return;
       setCreatedId(post.id);
       setCaption(post.caption ?? "");
       setBrandedUrl(post.brandedImageUrl ?? null);
+      completeFirstPost.mutate();
       utils.posts.list.invalidate();
       onCreated?.();
       toast.success("Caption written and photo branded.");
@@ -58,9 +62,16 @@ export default function UploadCard({
   const publish = trpc.posts.publish.useMutation({
     onSuccess: () => {
       toast.success("Posted to Facebook!");
+      completeFirstPostPublished.mutate();
       utils.posts.list.invalidate();
     },
-    onError: e => toast.error(e.message),
+    onError: e => {
+      if (e.message.includes("Facebook")) {
+        toast.error("Connect your Facebook page to publish posts.");
+      } else {
+        toast.error(e.message);
+      }
+    },
   });
 
   const handleFile = async (file?: File) => {
@@ -87,6 +98,14 @@ export default function UploadCard({
       <p className="mt-1 text-sm text-muted-foreground">
         Upload a job photo. We write the caption and add your logo automatically.
       </p>
+
+      {!facebookConnected && (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <p className="text-sm font-medium text-blue-900">
+            💡 <strong>Next step:</strong> Connect your Facebook page to publish posts directly from SnapPost Pro.
+          </p>
+        </div>
+      )}
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>

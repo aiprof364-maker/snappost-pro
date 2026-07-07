@@ -217,3 +217,25 @@
   - Created: onboarding-48h-reminders (task_uid: hnqRTx7RKSJx7MkwWmmh4U)
   - Both run hourly (0 0 * * * *) and check for users needing reminders
   - Active and monitoring now
+
+
+## Conversion Funnel Tracking & Success Dashboard
+- [x] Add conversion_events table to track signup → first post → upgrade funnel
+  - Tracks: signup, first_post, first_publish, upgrade_starter, upgrade_pro
+  - Includes metadata (plan, amount, stripe session ID)
+  - Database migration created and pushed
+- [x] Integrate Stripe webhook to log conversion events
+  - Updated checkout.session.completed handler to log upgrade events
+  - Logs plan, amount, and stripe session ID for each purchase
+  - Added logConversionEvent() helper function
+- [x] Create database helpers for funnel analysis
+  - getUserConversionStats(userId) — returns full conversion timeline
+  - logConversionEvent(userId, eventType, metadata) — logs events
+- [x] Build SuccessDashboard component with premium features
+  - Shows: posts published, days active, engagement rate
+  - Premium features: Advanced Analytics, Multi-Page Management, Content Calendar
+  - Upgrade CTAs for each locked feature
+  - Only visible to Starter/Pro users
+- [x] Integrate SuccessDashboard into Dashboard page
+  - Displayed after onboarding checklist for paying users
+  - Shows current plan info and feature comparison

@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import UploadCard from "@/components/UploadCard";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { FeatureUnlock } from "@/components/FeatureUnlock";
+import { SuccessDashboard } from "@/components/SuccessDashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
@@ -192,6 +193,13 @@ export default function Dashboard() {
 
           {/* Onboarding checklist */}
           <OnboardingChecklist />
+
+          {/* Success dashboard with analytics and premium features */}
+          {user?.plan !== "free" && (
+            <div className="mt-8">
+              <SuccessDashboard />
+            </div>
+          )}
 
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">

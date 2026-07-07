@@ -132,7 +132,7 @@ export function registerIntegrationRoutes(app: Express) {
             );
             const plan = session.metadata?.plan as "starter" | "pro" | undefined;
             if (userId) {
-              const { getDb } = await import("./db");
+              const { getDb, logConversionEvent } = await import("./db");
               const db = await getDb();
               if (db) {
                 const { users } = await import("../drizzle/schema");
@@ -153,6 +153,12 @@ export function registerIntegrationRoutes(app: Express) {
                   ).catch(e => console.error("[Email] Purchase confirmation failed", e));
                 }
               }
+              // Log conversion event for funnel tracking
+              await logConversionEvent(userId, `upgrade_${plan || "starter"}`, {
+                plan: plan || "starter",
+                amount: plan === "pro" ? 29 : 19,
+                stripeSessionId: session.id,
+              }).catch(e => console.error("[Conversion] Failed to log upgrade event", e));
               await updateUserSubscription(userId, {
                 stripeCustomerId: session.customer ?? undefined,
                 stripeSubscriptionId: session.subscription ?? undefined,

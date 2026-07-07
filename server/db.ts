@@ -6,15 +6,33 @@ import {
   InsertUser,
   InsertContact,
   InsertNewsletterSubscriber,
+  InsertOnboardingChecklist,
+  OnboardingChecklist,
   integrations,
   posts,
   users,
   contacts,
   newsletterSubscribers,
+  onboardingChecklist,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+/**
+ * Helper to calculate onboarding completion percentage.
+ * Returns 0-100 based on completed steps.
+ */
+function calculateCompletionPercentage(checklist: OnboardingChecklist): number {
+  const steps = [
+    checklist.profileCompleted,
+    checklist.facebookConnected,
+    checklist.firstPostCreated,
+    checklist.firstPostPublished,
+  ];
+  const completed = steps.filter(Boolean).length;
+  return Math.round((completed / steps.length) * 100);
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -374,4 +392,100 @@ export async function isEmailVerified(userId: number): Promise<boolean> {
     .limit(1);
 
   return result.length > 0 ? result[0].emailVerified : false;
+}
+
+/**
+ * Get or create onboarding checklist for a user.
+ */
+export async function getOrCreateOnboardingChecklist(
+  userId: number
+): Promise<OnboardingChecklist | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    // Try to find existing checklist
+    const existing = await db
+      .select()
+      .from(onboardingChecklist)
+      .where(eq(onboardingChecklist.userId, userId))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    // Create new checklist for this user
+    await db.insert(onboardingChecklist).values({
+      userId,
+      profileCompleted: false,
+      facebookConnected: false,
+      firstPostCreated: false,
+      firstPostPublished: false,
+      completionPercentage: 0,
+    });
+
+    const created = await db
+      .select()
+      .from(onboardingChecklist)
+      .where(eq(onboardingChecklist.userId, userId))
+      .limit(1);
+
+    return created[0] || null;
+  } catch (error) {
+    console.error("[Database] Error getting/creating onboarding checklist:", error);
+    return null;
+  }
+}
+
+/**
+ * Update onboarding checklist step and recalculate completion percentage.
+ */
+export async function updateOnboardingStep(
+  userId: number,
+  step: "profileCompleted" | "facebookConnected" | "firstPostCreated" | "firstPostPublished",
+  completed: boolean
+): Promise<OnboardingChecklist | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const checklist = await getOrCreateOnboardingChecklist(userId);
+    if (!checklist) return null;
+
+    const updates: Record<string, unknown> = {
+      [step]: completed,
+    };
+
+    // Set timestamp when step is completed
+    if (completed) {
+      const timestampField = `${step}At` as const;
+      updates[timestampField] = new Date();
+    }
+
+    // Recalculate completion percentage
+    const updatedChecklist = {
+      ...checklist,
+      ...updates,
+    } as OnboardingChecklist;
+
+    const completionPercentage = calculateCompletionPercentage(updatedChecklist);
+    updates.completionPercentage = completionPercentage;
+
+    await db
+      .update(onboardingChecklist)
+      .set(updates)
+      .where(eq(onboardingChecklist.userId, userId));
+
+    const result = await db
+      .select()
+      .from(onboardingChecklist)
+      .where(eq(onboardingChecklist.userId, userId))
+      .limit(1);
+
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Error updating onboarding step:", error);
+    return null;
+  }
 }

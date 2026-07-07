@@ -187,3 +187,18 @@
   - Integrated into Dashboard to display on page load
   - Completion percentage calculated automatically (0-100%)
   - Timestamps recorded for each completed step
+
+## Contextual Prompts & Guidance
+- [x] Add contextual prompts to guide contractors
+  - UploadCard now shows blue info banner when Facebook not connected
+  - Checklist auto-updates when user uploads first photo (completeFirstPost)
+  - Checklist auto-updates when user publishes first post (completeFirstPostPublished)
+  - Error messages guide users to connect Facebook before publishing
+
+## Completion Incentives
+- [x] Build FeatureUnlock component to drive engagement
+  - Shows 4 premium features locked until 100% onboarding completion
+  - Features: Advanced Analytics, Multi-Page Management, Content Calendar, AI Caption Variations
+  - Visual progress indicator (X/4 features unlocked)
+  - Celebration message when all steps complete
+  - Integrated into Dashboard sidebar for constant visibility

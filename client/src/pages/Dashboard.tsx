@@ -4,6 +4,7 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import UploadCard from "@/components/UploadCard";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
+import { FeatureUnlock } from "@/components/FeatureUnlock";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getLoginUrl } from "@/const";
@@ -220,6 +221,9 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
+              {/* Feature unlock incentives */}
+              <FeatureUnlock />
+
               {/* Logo */}
               <div className="rounded-xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2">

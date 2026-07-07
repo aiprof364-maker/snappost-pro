@@ -455,3 +455,100 @@ export async function sendEmailVerification(email: string, userName: string, ver
     `,
   });
 }
+
+
+export async function sendOnboardingReminder24h(email: string, userName: string, completionPercentage: number) {
+  const resend = getResendClient();
+  
+  let nextStepMessage = "";
+  if (completionPercentage === 0) {
+    nextStepMessage = "Upload your first job photo to get started.";
+  } else if (completionPercentage < 50) {
+    nextStepMessage = "Connect your Facebook page to publish posts directly.";
+  } else if (completionPercentage < 100) {
+    nextStepMessage = "Publish your first post to Facebook to unlock premium features.";
+  }
+
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: `${completionPercentage}% done! Just ${100 - completionPercentage}% more to unlock premium features 🚀`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>You're ${completionPercentage}% done, ${userName}! 🎯</h2>
+        <p>You're making great progress on your SnapPost Pro setup. Let's finish strong!</p>
+        
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px; margin: 20px 0; color: white;">
+          <h3 style="margin-top: 0; color: white;">Setup Progress</h3>
+          <div style="background: rgba(255,255,255,0.2); border-radius: 4px; height: 8px; margin: 10px 0; overflow: hidden;">
+            <div style="background: white; height: 100%; width: ${completionPercentage}%; transition: width 0.3s;"></div>
+          </div>
+          <p style="margin: 10px 0 0 0; font-size: 14px;">${completionPercentage}% Complete</p>
+        </div>
+
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Next Step:</h3>
+          <p><strong>${nextStepMessage}</strong></p>
+          <p style="color: #666; font-size: 14px;">Complete your setup to unlock Advanced Analytics, Multi-Page Management, Content Calendar, and AI Caption Variations.</p>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">Continue Setup</a>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendOnboardingReminder48h(email: string, userName: string, completionPercentage: number) {
+  const resend = getResendClient();
+  
+  let encouragement = "";
+  if (completionPercentage === 0) {
+    encouragement = "Don't worry — it only takes 2 minutes to upload your first photo and see the magic happen.";
+  } else if (completionPercentage < 100) {
+    encouragement = "You're so close! Just one more step to unlock all premium features and start scaling your marketing.";
+  }
+
+  return resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: `Last chance: Unlock premium features today 🔓`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Almost there, ${userName}! 💪</h2>
+        <p>${encouragement}</p>
+        
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <h3 style="margin-top: 0; color: #856404;">🎁 What You'll Unlock:</h3>
+          <ul style="color: #856404; margin: 10px 0;">
+            <li>📊 Advanced Analytics — Track engagement for every post</li>
+            <li>🔗 Multi-Page Management — Manage multiple Facebook pages</li>
+            <li>📅 Content Calendar — Schedule posts in advance</li>
+            <li>✨ AI Caption Variations — Get multiple caption options</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">Finish Setup Now</a>
+        </div>
+
+        <p style="color: #666; font-size: 14px; text-align: center;">
+          Contractors using SnapPost Pro save 5+ hours per week on marketing. Let's get you there.
+        </p>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        
+        <p style="font-size: 12px; color: #666;">
+          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
+        </p>
+      </div>
+    `,
+  });
+}

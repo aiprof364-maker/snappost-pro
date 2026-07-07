@@ -202,3 +202,13 @@
   - Visual progress indicator (X/4 features unlocked)
   - Celebration message when all steps complete
   - Integrated into Dashboard sidebar for constant visibility
+
+
+## Onboarding Email Reminders
+- [x] Build email reminder system for incomplete onboarding
+  - Added sendOnboardingReminder24h() — sends at 24h if onboarding incomplete
+  - Added sendOnboardingReminder48h() — sends at 48h if no progress in 24h
+  - Created handlers: handleOnboarding24hReminders, handleOnboarding48hReminders
+  - Endpoints: /api/scheduled/onboarding-24h-reminders, /api/scheduled/onboarding-48h-reminders
+  - Added database helpers: getIncompleteOnboardingUsers(), getStalledOnboardingUsers()
+  - Ready to wire up with Heartbeat cron jobs (24h and 48h after signup)

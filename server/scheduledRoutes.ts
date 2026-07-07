@@ -6,7 +6,10 @@ import { eq } from "drizzle-orm";
 import {
   sendTrialExpirationWarning,
   sendRenewalReminder,
+  sendOnboardingReminder24h,
+  sendOnboardingReminder48h,
 } from "./email";
+import { getIncompleteOnboardingUsers, getStalledOnboardingUsers } from "./db";
 import { getStripe } from "./stripe";
 
 /**
@@ -189,12 +192,122 @@ export async function handleRenewalReminders(
 }
 
 /**
+ * Handler for 24-hour onboarding reminders.
+ * Sends to all users with incomplete onboarding.
+ */
+export async function handleOnboarding24hReminders(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const user = await sdk.authenticateRequest(req);
+    if (!user.isCron || !user.taskUid) {
+      res.status(403).json({ error: "cron-only" });
+      return;
+    }
+
+    const incompleteUsers = await getIncompleteOnboardingUsers();
+    let sent = 0;
+    let failed = 0;
+
+    for (const dbUser of incompleteUsers) {
+      try {
+        if (!dbUser.email) continue;
+        await sendOnboardingReminder24h(
+          dbUser.email,
+          dbUser.name || "Contractor",
+          dbUser.completionPercentage
+        );
+        sent++;
+      } catch (err) {
+        console.error(
+          `[Scheduled] Failed to send 24h reminder to user ${dbUser.userId}:`,
+          err
+        );
+        failed++;
+      }
+    }
+
+    res.json({
+      ok: true,
+      sent,
+      failed,
+      total: incompleteUsers.length,
+      taskUid: user.taskUid,
+    });
+  } catch (err) {
+    console.error("[Scheduled] 24h onboarding reminder handler error:", err);
+    res.status(500).json({
+      error: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      context: { url: req.url, timestamp: new Date().toISOString() },
+    });
+  }
+}
+
+/**
+ * Handler for 48-hour onboarding reminders.
+ * Sends to users who haven't progressed in 24+ hours.
+ */
+export async function handleOnboarding48hReminders(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const user = await sdk.authenticateRequest(req);
+    if (!user.isCron || !user.taskUid) {
+      res.status(403).json({ error: "cron-only" });
+      return;
+    }
+
+    const stalledUsers = await getStalledOnboardingUsers(24);
+    let sent = 0;
+    let failed = 0;
+
+    for (const dbUser of stalledUsers) {
+      try {
+        if (!dbUser.email) continue;
+        await sendOnboardingReminder48h(
+          dbUser.email,
+          dbUser.name || "Contractor",
+          dbUser.completionPercentage
+        );
+        sent++;
+      } catch (err) {
+        console.error(
+          `[Scheduled] Failed to send 48h reminder to user ${dbUser.userId}:`,
+          err
+        );
+        failed++;
+      }
+    }
+
+    res.json({
+      ok: true,
+      sent,
+      failed,
+      total: stalledUsers.length,
+      taskUid: user.taskUid,
+    });
+  } catch (err) {
+    console.error("[Scheduled] 48h onboarding reminder handler error:", err);
+    res.status(500).json({
+      error: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      context: { url: req.url, timestamp: new Date().toISOString() },
+    });
+  }
+}
+
+/**
  * Register scheduled email routes with Express.
  * These must be mounted BEFORE the Vite/static fallthrough.
  */
 export function registerScheduledRoutes(app: Express) {
   app.post("/api/scheduled/trial-expiration-warnings", handleTrialExpirationWarnings);
   app.post("/api/scheduled/renewal-reminders", handleRenewalReminders);
+  app.post("/api/scheduled/onboarding-24h-reminders", handleOnboarding24hReminders);
+  app.post("/api/scheduled/onboarding-48h-reminders", handleOnboarding48hReminders);
 }
 
 

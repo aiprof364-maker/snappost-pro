@@ -1,4 +1,4 @@
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertIntegration,
@@ -487,5 +487,80 @@ export async function updateOnboardingStep(
   } catch (error) {
     console.error("[Database] Error updating onboarding step:", error);
     return null;
+  }
+}
+
+
+/**
+ * Get all users with incomplete onboarding (completion < 100%).
+ * Used by scheduled reminder emails.
+ */
+export async function getIncompleteOnboardingUsers(): Promise<
+  Array<{
+    userId: number;
+    email: string | null;
+    name: string | null;
+    completionPercentage: number;
+  }>
+> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const results = await db
+      .select({
+        userId: users.id,
+        email: users.email,
+        name: users.name,
+        completionPercentage: onboardingChecklist.completionPercentage,
+      })
+      .from(onboardingChecklist)
+      .innerJoin(users, eq(onboardingChecklist.userId, users.id))
+      .where(sql`${onboardingChecklist.completionPercentage} < 100`);
+
+    return results;
+  } catch (error) {
+    console.error("[Database] Error fetching incomplete onboarding users:", error);
+    return [];
+  }
+}
+
+/**
+ * Get users who started onboarding but haven't progressed in X hours.
+ * Used to identify stalled users for reminder emails.
+ */
+export async function getStalledOnboardingUsers(hoursAgo: number): Promise<
+  Array<{
+    userId: number;
+    email: string | null;
+    name: string | null;
+    completionPercentage: number;
+    lastUpdated: Date | null;
+  }>
+> {
+  const db = await getDb();
+  if (!db) return [];
+
+  try {
+    const cutoffTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+
+    const results = await db
+      .select({
+        userId: users.id,
+        email: users.email,
+        name: users.name,
+        completionPercentage: onboardingChecklist.completionPercentage,
+        lastUpdated: onboardingChecklist.updatedAt,
+      })
+      .from(onboardingChecklist)
+      .innerJoin(users, eq(onboardingChecklist.userId, users.id))
+      .where(
+        sql`${onboardingChecklist.completionPercentage} < 100 AND ${onboardingChecklist.updatedAt} < ${cutoffTime}`
+      );
+
+    return results;
+  } catch (error) {
+    console.error("[Database] Error fetching stalled onboarding users:", error);
+    return [];
   }
 }

@@ -128,6 +128,21 @@ export const onboardingChecklist = mysqlTable("onboarding_checklist", {
 export type OnboardingChecklist = typeof onboardingChecklist.$inferSelect;
 export type InsertOnboardingChecklist = typeof onboardingChecklist.$inferInsert;
 
+/**
+ * Conversion funnel tracking for analytics.
+ * Tracks key events: signup, first post, first publish, upgrade.
+ */
+export const conversionEvents = mysqlTable("conversion_events", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  metadata: text("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ConversionEvent = typeof conversionEvents.$inferSelect;
+export type InsertConversionEvent = typeof conversionEvents.$inferInsert;
+
 
 /**
  * Contact form submissions.

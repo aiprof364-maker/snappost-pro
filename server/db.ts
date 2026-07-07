@@ -564,3 +564,110 @@ export async function getStalledOnboardingUsers(hoursAgo: number): Promise<
     return [];
   }
 }
+
+
+/**
+ * Log a conversion event for funnel tracking.
+ */
+export async function logConversionEvent(
+  userId: number,
+  eventType: string,
+  metadata?: Record<string, any>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const { conversionEvents } = await import("../drizzle/schema");
+    await db.insert(conversionEvents).values({
+      userId,
+      eventType,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+    });
+  } catch (error) {
+    console.error("[Database] Error logging conversion event:", error);
+  }
+}
+
+/**
+ * Get conversion funnel stats for a user.
+ */
+export async function getUserConversionStats(userId: number): Promise<{
+  signupDate: Date | null;
+  firstPostDate: Date | null;
+  firstPublishDate: Date | null;
+  firstUpgradeDate: Date | null;
+  upgradePlan: string | null;
+  totalPostsPublished: number;
+}> {
+  const db = await getDb();
+  if (!db) {
+    return {
+      signupDate: null,
+      firstPostDate: null,
+      firstPublishDate: null,
+      firstUpgradeDate: null,
+      upgradePlan: null,
+      totalPostsPublished: 0,
+    };
+  }
+
+  try {
+    const { conversionEvents, posts, users } = await import("../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+
+    // Get user signup date
+    const userRow = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    // Get first post and publish dates
+    const firstPost = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId))
+      .orderBy(posts.createdAt)
+      .limit(1);
+
+    const firstPublished = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId))
+      .limit(1);
+
+    // Get upgrade events
+    const upgradeEvents = await db
+      .select()
+      .from(conversionEvents)
+      .where(eq(conversionEvents.userId, userId));
+
+    const firstUpgrade = upgradeEvents.find(e => e.eventType.startsWith("upgrade_"));
+    const totalPublished = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId));
+
+    return {
+      signupDate: userRow[0]?.createdAt ?? null,
+      firstPostDate: firstPost[0]?.createdAt ?? null,
+      firstPublishDate: firstPublished[0]?.createdAt ?? null,
+      firstUpgradeDate: firstUpgrade?.createdAt ?? null,
+      upgradePlan: firstUpgrade?.metadata
+        ? JSON.parse(firstUpgrade.metadata).plan
+        : null,
+      totalPostsPublished: totalPublished.length,
+    };
+  } catch (error) {
+    console.error("[Database] Error getting conversion stats:", error);
+    return {
+      signupDate: null,
+      firstPostDate: null,
+      firstPublishDate: null,
+      firstUpgradeDate: null,
+      upgradePlan: null,
+      totalPostsPublished: 0,
+    };
+  }
+}

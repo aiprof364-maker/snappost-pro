@@ -241,3 +241,12 @@
 - [x] Integrate SuccessDashboard into Dashboard page
   - Displayed after onboarding checklist for paying users
   - Shows current plan info and feature comparison
+
+
+## SSL Certificate Fix (Current)
+- [x] Fixed NET::ERR_CERT_COMMON_NAME_INVALID error on snappostpro.com
+  - Added CNAME record to Namecheap: `e934u323.up.railway.app`
+  - Added TXT record to Namecheap: `_railway-verify` with verification token
+  - DNS records saved and propagating (5-10 min wait)
+  - Railway will auto-issue SSL certificate once TXT record verifies
+  - Status: Pending DNS propagation and Railway verification

@@ -17,7 +17,7 @@ export default function PricingCards() {
 
   const handleSelect = (plan: PlanId) => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      window.location.href = getLoginUrl("/pricing");
       return;
     }
     checkout.mutate({ plan, origin: window.location.origin });

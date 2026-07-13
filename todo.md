@@ -1,5 +1,7 @@
 # SnapPost Pro - Build TODO
 
+**⚠️ IMPORTANT:** See AI_AGENT_GUIDELINES.md for rules to prevent repeated mistakes
+
 ## Database & Backend Foundation
 - [x] Add Facebook domain verification meta tag to client/index.html
 - [x] Add `posts` table to schema (image, caption, status, fbPostId, createdAt)

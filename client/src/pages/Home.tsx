@@ -108,7 +108,7 @@ const FAQS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl();
+  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/pricing");
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const subscribe = trpc.contact.subscribe.useMutation({
     onSuccess: () => {

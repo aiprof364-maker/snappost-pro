@@ -150,22 +150,22 @@ export default function Home() {
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-accent)]/12 px-3 py-1 text-sm font-semibold text-[var(--brand-accent)]">
               <Clock className="h-4 w-4" /> Save 5+ hours every week
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {isAuthenticated ? (
                 <Link href="/dashboard">
-                  <Button size="lg" className="gap-2">
-                    Go to dashboard <ArrowRight className="h-4 w-4" />
+                  <Button size="lg" className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold">
+                    Go to dashboard <ArrowRight className="h-5 w-5" />
                   </Button>
                 </Link>
               ) : (
                 <a href={primaryCta}>
-                  <Button size="lg" className="gap-2">
-                    Start free <ArrowRight className="h-4 w-4" />
+                  <Button size="lg" className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold">
+                    Start free <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
               )}
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="bg-background">
+                <Button size="lg" className="w-full sm:w-auto px-8 py-6 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
                   View pricing
                 </Button>
               </Link>
@@ -471,8 +471,8 @@ export default function Home() {
             </p>
             <div className="mt-8 flex justify-center">
               <a href={primaryCta}>
-                <Button size="lg" variant="secondary" className="gap-2">
-                  Get started <ArrowRight className="h-4 w-4" />
+                <Button size="lg" variant="secondary" className="gap-2 px-8 py-6 text-base font-semibold">
+                  Get started <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>
             </div>

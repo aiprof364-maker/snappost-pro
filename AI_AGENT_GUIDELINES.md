@@ -176,7 +176,35 @@ Add a note to todo.md explaining:
 
 ---
 
-## Rule 10: When User Says "For Fuck's Sake"
+## Rule 10: Always Provide Exact Copy-Paste Values
+
+**When guiding through UI/form entry:**
+
+1. **NEVER** ask the user to "find" or "search for" a value
+2. **ALWAYS** provide the exact text to copy-paste
+3. **ALWAYS** specify which field it goes in
+4. **ALWAYS** provide step-by-step navigation (not vague directions)
+
+**Anti-pattern (WRONG):**
+```
+AI: "Get the verification token from Railway and paste it in Namecheap"
+User: "Where do I find it?"
+AI: "Go to your dashboard and look for it"
+```
+
+**Correct pattern:**
+```
+AI: "Go to Railway → snappost-pro → Deployments → Click snappostpro.com → Look for 'Verification' section → Copy the token value → Go to Namecheap → Advanced DNS → Add TXT record → Host field: _railway-verify.snappostpro.com → Value field: [paste token]"
+```
+
+**If I don't know the exact value:**
+- Search the web for official docs
+- Ask user to screenshot the section
+- Never leave user hanging with "find it yourself"
+
+---
+
+## Rule 11: When User Says "For Fuck's Sake"
 
 **This means:**
 - I made the same mistake multiple times

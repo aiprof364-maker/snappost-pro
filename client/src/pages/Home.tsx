@@ -275,7 +275,7 @@ export default function Home() {
           <div className="mx-auto mt-12 max-w-4xl">
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
              <img
-                src="/manus-storage/snappost-before-after_8bedb4b6.jpg"
+                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663362253705/kEZqIoIrnjcXJQsR.jpg"
                alt="Before and after: a raw job-site photo on the left transformed into a clean, branded social post with a caption on the right"
                 className="w-full"
                 loading="lazy"

@@ -184,10 +184,10 @@ export default function Home() {
                 </span>
                 <span className="text-sm font-semibold">New post preview</span>
               </div>
-              <div className="mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl ring-1 ring-border">
-                <img
-                  src="/manus-storage/deck-photo_77f6ce90.jpg"
-                  alt="Professional deck project with contractor branding logo"
+             <div className="mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl ring-1 ring-border">
+               <img
+                  src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663362253705/HqsrxLUptFBrYnTU.jpg"
+                 alt="Professional deck project with contractor branding logo"
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
@@ -274,9 +274,9 @@ export default function Home() {
           </div>
           <div className="mx-auto mt-12 max-w-4xl">
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-              <img
-                src="/manus-storage/snappost-before-after_096e50ab.webp"
-                alt="Before and after: a raw job-site photo on the left transformed into a clean, branded social post with a caption on the right"
+             <img
+                src="/manus-storage/snappost-before-after_8bedb4b6.jpg"
+               alt="Before and after: a raw job-site photo on the left transformed into a clean, branded social post with a caption on the right"
                 className="w-full"
                 loading="lazy"
               />

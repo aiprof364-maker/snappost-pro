@@ -396,20 +396,21 @@ export default function Home() {
               What's your time worth?
            </h2>
           </div>
-          <div className="mx-auto mt-8 max-w-2xl space-y-6 text-center">
-            <p className="text-lg text-muted-foreground">
-              The average contractor spends 45 minutes crafting a single Facebook
-              post — finding the photo, writing the caption, figuring out what to
+         <div className="mx-auto mt-8 max-w-2xl space-y-6 text-center">
+           <p className="text-lg text-muted-foreground">
+             The average contractor spends 45 minutes crafting a single Facebook
+             post — finding the photo, writing the caption, figuring out what to
               say.
-            </p>
-            <p className="text-2xl font-bold text-primary">
-              SnapPost Pro does it in under 60 seconds.
-            </p>
-            <p className="text-lg text-muted-foreground">
-              At $19/month, that's less than one hour of your labour — and it
-              runs every month without you touching it.
-            </p>
-          </div>
+           </p>
+           <p className="text-2xl font-bold text-primary">
+              SnapPost Pro does it in under 60 seconds. Snap a photo on site,
+              upload it, and your professional post is ready to go.
+           </p>
+           <p className="text-lg text-muted-foreground">
+              At $19/month, that's less than one hour of your labour — every
+              single post, for the life of your subscription.
+           </p>
+         </div>
         </div>
       </section>
 

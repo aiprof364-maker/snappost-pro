@@ -222,10 +222,10 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
-              <UploadCard
-                facebookConnected={facebookConnected}
-                atLimit={atLimit}
-              />
+             <UploadCard
+               facebookConnected={facebookConnected}
+               atLimit={atLimit}
+             />
             </div>
 
             <div className="space-y-6">
@@ -233,7 +233,7 @@ export default function Dashboard() {
               <FeatureUnlock />
 
               {/* Logo */}
-              <div className="rounded-xl border border-border bg-card p-6">
+              <div id="logo-section" className="rounded-xl border border-border bg-card p-6 transition-all duration-300">
                 <div className="flex items-center gap-2">
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Stamp className="h-5 w-5" />
@@ -269,7 +269,9 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              <FacebookConnect />
+              <div id="facebook-section">
+                <FacebookConnect />
+              </div>
             </div>
           </div>
 

@@ -1,31 +1,36 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
+// Cloudinary-based storage for SnapPost Pro
+// Replaces Manus storage with Cloudinary for full Railway independence.
 
-import { ENV } from "./_core/env";
+import { v2 as cloudinary } from "cloudinary";
 
-function getForgeConfig() {
-  const forgeUrl = ENV.forgeApiUrl;
-  const forgeKey = ENV.forgeApiKey;
+function ensureCloudinaryConfig() {
+  if (!cloudinary.config().cloud_name) {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-  if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
+    if (!cloudName || !apiKey || !apiSecret) {
+      throw new Error(
+        "Cloudinary config missing: set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET"
+      );
+    }
+
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+      secure: true,
+    });
   }
-
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
 }
 
 function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  return relKey.replace(/^\/+/, "").replace(/\.[^.]+$/, ""); // Remove leading slashes and extension for Cloudinary public_id
 }
 
 function appendHashSuffix(relKey: string): string {
   const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
-  const lastDot = relKey.lastIndexOf(".");
-  if (lastDot === -1) return `${relKey}_${hash}`;
-  return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+  return `${relKey}_${hash}`;
 }
 
 export async function storagePut(
@@ -33,65 +38,36 @@ export async function storagePut(
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = appendHashSuffix(normalizeKey(relKey));
+  ensureCloudinaryConfig();
 
-  // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
-  presignUrl.searchParams.set("path", key);
+  const publicId = appendHashSuffix(normalizeKey(relKey));
 
-  const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
+  // Convert data to base64 data URI for Cloudinary upload
+  const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
+  const base64 = buffer.toString("base64");
+  const mimeType = contentType || "image/jpeg";
+  const dataUri = `data:${mimeType};base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    public_id: publicId,
+    folder: "snappost-pro",
+    resource_type: "image",
+    overwrite: true,
   });
 
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
-  }
-
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
-
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-
-  if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
-  }
-
-  return { key, url: `/manus-storage/${key}` };
+  return { key: result.public_id, url: result.secure_url };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
+  ensureCloudinaryConfig();
   const key = normalizeKey(relKey);
-  return { key, url: `/manus-storage/${key}` };
+  const url = cloudinary.url(key, { secure: true });
+  return { key, url };
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = normalizeKey(relKey);
-
-  const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
-  getUrl.searchParams.set("path", key);
-
-  const resp = await fetch(getUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
-  }
-
-  const { url } = (await resp.json()) as { url: string };
+  ensureCloudinaryConfig();
+  // Cloudinary URLs are already publicly accessible, no signing needed
+  const url = cloudinary.url(relKey, { secure: true, resource_type: "image" });
   return url;
 }

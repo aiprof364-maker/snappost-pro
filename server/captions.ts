@@ -1,8 +1,8 @@
-import { invokeLLM } from "./_core/llm";
+import OpenAI from "openai";
 
 /**
  * Generate a trade-specific social caption for a job-site photo.
- * Accepts a publicly-fetchable image URL (signed storage URL) and optional context.
+ * Uses OpenAI GPT-4o-mini for cost-effective caption generation.
  */
 export async function generateCaption(params: {
   imageUrl: string;
@@ -11,6 +11,17 @@ export async function generateCaption(params: {
   businessName?: string;
 }): Promise<string> {
   const { imageUrl, trade, tone, businessName } = params;
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.error("[Captions] OPENAI_API_KEY not set");
+    return (
+      `Another job done right${businessName ? ` by ${businessName}` : ""}. ` +
+      "Quality work you can count on. #TradeLife #QualityWork #LocalBusiness"
+    );
+  }
+
+  const openai = new OpenAI({ apiKey });
 
   const system =
     "You are a social media copywriter for trade businesses (builders, plumbers, " +
@@ -27,23 +38,30 @@ export async function generateCaption(params: {
     ? context.join(" ")
     : "Trade: general contracting. Tone: confident and approachable.";
 
-  const response = await invokeLLM({
-    messages: [
-      { role: "system", content: system },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: `Write the caption. ${contextLine}` },
-          { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
-        ],
-      },
-    ],
-  });
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: `Write the caption. ${contextLine}` },
+            { type: "image_url", image_url: { url: imageUrl, detail: "low" } },
+          ],
+        },
+      ],
+      max_tokens: 300,
+    });
 
-  const text = response?.choices?.[0]?.message?.content;
-  if (typeof text === "string" && text.trim()) {
-    return text.trim();
+    const text = response?.choices?.[0]?.message?.content;
+    if (typeof text === "string" && text.trim()) {
+      return text.trim();
+    }
+  } catch (error) {
+    console.error("[Captions] OpenAI error:", error);
   }
+
   // Fallback caption so the flow never blocks on an empty model response.
   return (
     `Another job done right${businessName ? ` by ${businessName}` : ""}. ` +

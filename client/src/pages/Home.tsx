@@ -388,41 +388,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Cost transparency */}
-      <section className="border-t border-border/60 bg-muted/20 py-20">
-        <div className="container max-w-3xl">
-          <div className="text-center">
-            <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              What we pay so you don't have to
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Every post runs on AI and automation. Here's roughly what that
-              costs us per active user each month — so you can see the value.
+     {/* Cost transparency */}
+     <section className="border-t border-border/60 bg-muted/20 py-20">
+       <div className="container max-w-3xl">
+         <div className="text-center">
+           <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              What's your time worth?
+           </h2>
+          </div>
+          <div className="mx-auto mt-8 max-w-2xl space-y-6 text-center">
+            <p className="text-lg text-muted-foreground">
+              The average contractor spends 45 minutes crafting a single Facebook
+              post — finding the photo, writing the caption, figuring out what to
+              say.
+            </p>
+            <p className="text-2xl font-bold text-primary">
+              SnapPost Pro does it in under 60 seconds.
+            </p>
+            <p className="text-lg text-muted-foreground">
+              At $19/month, that's less than one hour of your labour — and it
+              runs every month without you touching it.
             </p>
           </div>
-          <div className="mt-10 overflow-hidden rounded-xl border border-border bg-card">
-            {[
-              ["AI caption writing", "~$0.24 / mo"],
-              ["Image processing & branding", "~$0.10 / mo"],
-              ["Automation & hosting", "~$0.02 / mo"],
-            ].map(([label, cost]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between border-b border-border px-5 py-4 text-sm last:border-b-0"
-              >
-                <span>{label}</span>
-                <span className="font-medium text-muted-foreground">{cost}</span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between bg-muted/40 px-5 py-4 text-sm font-semibold">
-              <span>Our typical cost</span>
-              <span>~$0.36 / mo</span>
-            </div>
-          </div>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            From $19/month, SnapPost Pro costs less than an hour of labour. The
-            time you save pays for itself on day one.
-          </p>
         </div>
       </section>
 

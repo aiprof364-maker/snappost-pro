@@ -26,6 +26,7 @@ export function OnboardingChecklist() {
       description: "Upload your logo to brand all posts",
       completed: checklist.profileCompleted,
       icon: "profile",
+      scrollTo: "logo-section",
     },
     {
       id: "facebook",
@@ -33,6 +34,7 @@ export function OnboardingChecklist() {
       description: "Link your Facebook business page",
       completed: checklist.facebookConnected,
       icon: "facebook",
+      scrollTo: "facebook-section",
     },
     {
       id: "first-post",
@@ -40,6 +42,7 @@ export function OnboardingChecklist() {
       description: "Upload a photo and generate a caption",
       completed: checklist.firstPostCreated,
       icon: "camera",
+      scrollTo: "upload-section",
     },
     {
       id: "publish",
@@ -47,11 +50,25 @@ export function OnboardingChecklist() {
       description: "Share your branded post",
       completed: checklist.firstPostPublished,
       icon: "publish",
+      scrollTo: "upload-section",
     },
   ];
 
   const completedCount = steps.filter((s) => s.completed).length;
   const completionPercentage = checklist.completionPercentage;
+
+  const handleStepClick = (step: typeof steps[0]) => {
+    if (step.completed) return;
+    const el = document.getElementById(step.scrollTo);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Flash the section briefly
+      el.classList.add("ring-2", "ring-indigo-400", "ring-offset-2");
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-indigo-400", "ring-offset-2");
+      }, 2000);
+    }
+  };
 
   return (
     <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-200 p-6">
@@ -90,10 +107,11 @@ export function OnboardingChecklist() {
         {steps.map((step) => (
           <div
             key={step.id}
+            onClick={() => handleStepClick(step)}
             className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
               step.completed
                 ? "bg-white bg-opacity-60"
-                : "bg-white bg-opacity-40 hover:bg-opacity-60"
+                : "bg-white bg-opacity-40 hover:bg-opacity-60 cursor-pointer hover:ring-1 hover:ring-indigo-300"
             }`}
           >
             <div className="flex-shrink-0 mt-0.5">
@@ -115,6 +133,11 @@ export function OnboardingChecklist() {
               </p>
               <p className="text-xs text-gray-600">{step.description}</p>
             </div>
+            {!step.completed && (
+              <span className="text-xs text-indigo-600 font-medium whitespace-nowrap">
+                Do this →
+              </span>
+            )}
           </div>
         ))}
       </div>

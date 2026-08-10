@@ -93,7 +93,7 @@ export default function UploadCard({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div id="upload-section" className="rounded-xl border border-border bg-card p-6 transition-all duration-300">
       <h3 className="font-display text-lg font-bold">Create a new post</h3>
       <p className="mt-1 text-sm text-muted-foreground">
         Upload a job photo. We write the caption and add your logo automatically.

@@ -250,3 +250,12 @@
   - DNS records saved and propagating (5-10 min wait)
   - Railway will auto-issue SSL certificate once TXT record verifies
   - Status: Pending DNS propagation and Railway verification
+
+## Migration: Remove Manus Dependency (Current)
+- [ ] Replace Manus LLM (invokeLLM) with OpenAI API for AI caption generation
+- [ ] Replace Manus storage (storagePut/storageProxy) with Cloudinary for image upload/retrieval
+- [ ] Replace Manus image branding with Cloudinary logo overlay transformation
+- [ ] Add OpenAI + Cloudinary environment variables to Railway
+- [ ] Save all credentials to project reference file
+- [ ] Test full flow on Railway: upload photo → AI caption → logo branding → display
+- [ ] Fix Stripe checkout branding (TRADIEPOST → SnapPost Pro)

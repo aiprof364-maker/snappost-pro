@@ -269,14 +269,18 @@
 
 ## Facebook Permission Configuration Blocker (Current)
 - [x] Verify the correct Page-publishing Meta app: SnapPostPro Publishing (App ID 1405328174824025)
-- [ ] Switch Railway Facebook App ID and matching App Secret from the ordinary Login app to SnapPostPro Publishing
-- [ ] Configure SnapPostPro Publishing’s valid OAuth redirect URLs for the live Facebook callback
-- [ ] Verify the required Page permissions under SnapPostPro Publishing’s Manage everything on your Page use case
+- [x] Switch Railway Facebook App ID and matching App Secret from the ordinary Login app to SnapPostPro Publishing
+- [x] Configure SnapPostPro Publishing’s valid OAuth redirect URLs for the live Facebook callback
+- [x] Verify the required Page permissions under SnapPostPro Publishing’s Manage everything on your Page use case
 - [x] Add the required `business_management` scope to the live Facebook Login for Business request
 - [x] Add a visible Facebook reauthorization control when a connected account has no selected Page
-- [ ] Remove any unnecessary Page permission from the app’s requested OAuth scope list
-- [ ] Verify administrator Page connection and a successful test post before App Review submission
+- [x] Verify the Facebook request contains only the required Business and Page permissions
+- [x] Verify administrator Page connection and a successful test post before App Review submission
 
 ## Draft Post Usability (Current)
 - [ ] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link
+
+## Onboarding Accuracy (Current)
+- [x] Mark the Connect Facebook checklist step complete after a successful Facebook OAuth callback
+- [x] Backfill the checklist for already-connected users so their progress is accurate

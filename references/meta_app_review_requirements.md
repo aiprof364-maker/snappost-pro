@@ -23,10 +23,11 @@ For Facebook Page publishing, Meta's screen-recording guide explicitly says revi
 
 ## SnapPost Pro Permissions in Code
 
+- `business_management` — enumerate the contractor-selected business portfolio so the app can access its permitted Pages through the current Facebook Login for Business flow.
 - `pages_show_list` — show the Pages managed by the signed-in contractor so they can choose the Page to connect.
 - `pages_read_engagement` — retrieve minimal connected-Page data needed to identify and display the selected Page and support Page publishing.
 - `pages_manage_posts` — publish the contractor's branded image and caption to the contractor-selected Facebook Page.
-- `pages_manage_metadata` — only request if the implemented Graph API integration demonstrably needs it; avoid requesting permissions not required by the customer workflow.
+- `pages_manage_metadata` — required by Meta's Manage everything on your Page use case to obtain the selected Page's access token and manage the Page connection.
 
 ## Verified Configuration Finding: 2026-08-12
 
@@ -38,13 +39,14 @@ Meta's official use-case mapping lists **Manage everything on your Page** as the
 
 The Pages API documentation confirms that a Page publishing test requires a Page on which the administrator has the `CREATE_CONTENT` task, a Page access token, and the appropriate Page permissions. A Page can be published or unpublished for testing.
 
-### Configuration Order
+### Verified Production Configuration: 2026-08-12
 
-1. Add the **Manage everything on your Page** use case to the existing `snappostpro` Meta app.
-2. Enable only the Page permissions required for the implemented create-and-publish workflow.
-3. Retest administrator OAuth and Page selection.
-4. Publish one test post to an administrator-managed Page and view it there.
-5. Record the complete evidence before submitting App Review.
+1. **SnapPostPro Publishing** (App ID `1405328174824025`) is the live Facebook Page-publishing app. It has the **Manage everything on your Page** use case.
+2. The enabled permission set is exactly: `business_management`, `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, and `pages_manage_metadata`.
+3. Railway's `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` were switched to the matching SnapPostPro Publishing credentials.
+4. Valid OAuth callback URLs are `https://snappostpro.com/api/facebook/callback` and `https://www.snappostpro.com/api/facebook/callback`.
+5. Administrator testing connected the **Airprof Studios** business portfolio and selected the **TradiePosts** Page (ID `1174494559070858`).
+6. The test post was successfully published to TradiePosts with post ID `1174494559070858_122115921831314961`.
 
 ### Sources
 
@@ -60,6 +62,7 @@ The Pages API documentation confirms that a Page publishing test requires a Page
 - Business verification: confirmed by the user
 - The YouTube link resolves to an unlisted video titled `SnapPost Pro — Facebook Page Posting Workflow`.
 - The live dashboard URL resolves at https://snappostpro.com/dashboard.
+- Airprof Studios and the TradiePosts Page have completed a successful administrator connection and test publish.
 
 ## Submission Gate
 

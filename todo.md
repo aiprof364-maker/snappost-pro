@@ -278,7 +278,7 @@
 - [x] Verify administrator Page connection and a successful test post before App Review submission
 
 ## Draft Post Usability (Current)
-- [ ] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
+- [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link
 
 ## Onboarding Accuracy (Current)

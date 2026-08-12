@@ -8,6 +8,15 @@ import { FeatureUnlock } from "@/components/FeatureUnlock";
 import { SuccessDashboard } from "@/components/SuccessDashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { PLANS } from "@shared/const";
@@ -16,10 +25,11 @@ import {
   ExternalLink,
   ImageIcon,
   Loader2,
+  Share2,
   Stamp,
   XCircle,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -41,6 +51,8 @@ export default function Dashboard() {
   });
   const posts = trpc.posts.list.useQuery(undefined, { enabled: isAuthenticated });
   const logoRef = useRef<HTMLInputElement>(null);
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [selectedCaption, setSelectedCaption] = useState("");
 
   const uploadLogo = trpc.account.uploadLogo.useMutation({
     onSuccess: () => {
@@ -62,6 +74,25 @@ export default function Dashboard() {
     onError: (e) => {
       toast.error(e.message);
     },
+  });
+
+  const updateSavedCaption = trpc.posts.updateCaption.useMutation({
+    onSuccess: () => {
+      toast.success("Caption saved.");
+      utils.posts.list.invalidate();
+    },
+    onError: e => toast.error(e.message),
+  });
+
+  const completeFirstPostPublished = trpc.onboarding.completeFirstPostPublished.useMutation();
+  const publishSavedDraft = trpc.posts.publish.useMutation({
+    onSuccess: result => {
+      toast.success(`Posted successfully to ${result.pageName}!`);
+      completeFirstPostPublished.mutate();
+      utils.posts.list.invalidate();
+      setSelectedPostId(null);
+    },
+    onError: e => toast.error(e.message),
   });
 
   // Handle facebook callback query params
@@ -97,6 +128,7 @@ export default function Dashboard() {
   const planLabel =
     plan === "free" ? "Free" : PLANS[plan as "starter" | "pro"]?.name ?? plan;
   const facebookConnected = overview.data?.facebook?.status === "connected";
+  const selectedPost = posts.data?.find(post => post.id === selectedPostId);
   const usage = overview.data?.usage;
   const subStatus = overview.data?.subscriptionStatus ?? "none";
   const emailVerified = user?.emailVerified ?? false;
@@ -278,6 +310,9 @@ export default function Dashboard() {
           {/* Post history */}
           <div className="mt-10">
             <h2 className="font-display text-xl font-bold">Post history</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Select a draft to review, edit its caption, or publish it.
+            </p>
             {posts.isLoading ? (
               <Loader2 className="mt-4 h-5 w-5 animate-spin text-muted-foreground" />
             ) : (posts.data ?? []).length === 0 ? (
@@ -292,7 +327,26 @@ export default function Dashboard() {
                 {(posts.data ?? []).map(p => (
                   <div
                     key={p.id}
-                    className="overflow-hidden rounded-xl border border-border bg-card"
+                    role={p.status === "draft" ? "button" : undefined}
+                    tabIndex={p.status === "draft" ? 0 : undefined}
+                    onClick={() => {
+                      if (p.status === "draft") {
+                        setSelectedPostId(p.id);
+                        setSelectedCaption(p.caption ?? "");
+                      }
+                    }}
+                    onKeyDown={event => {
+                      if (p.status === "draft" && (event.key === "Enter" || event.key === " ")) {
+                        event.preventDefault();
+                        setSelectedPostId(p.id);
+                        setSelectedCaption(p.caption ?? "");
+                      }
+                    }}
+                    className={`overflow-hidden rounded-xl border border-border bg-card ${
+                      p.status === "draft"
+                        ? "cursor-pointer transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                        : ""
+                    }`}
                   >
                     {p.brandedImageUrl || p.originalImageUrl ? (
                       <img
@@ -315,6 +369,9 @@ export default function Dashboard() {
                       <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
                         {p.caption || "No caption"}
                       </p>
+                      {p.status === "draft" && (
+                        <p className="mt-3 text-xs font-medium text-primary">Review draft →</p>
+                      )}
                       {p.status === "published" && p.facebookPostId && (
                         <a
                           href={`https://www.facebook.com/${p.facebookPostId}`}
@@ -331,6 +388,75 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          <Dialog
+            open={Boolean(selectedPost)}
+            onOpenChange={open => {
+              if (!open) setSelectedPostId(null);
+            }}
+          >
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+              {selectedPost && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Review draft post</DialogTitle>
+                    <DialogDescription>
+                      Edit the caption, then publish this saved draft when you are ready.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <img
+                    src={selectedPost.brandedImageUrl ?? selectedPost.originalImageUrl ?? ""}
+                    alt="Saved draft post"
+                    className="max-h-80 w-full rounded-lg object-contain ring-1 ring-border"
+                  />
+                  <div>
+                    <label htmlFor="saved-draft-caption" className="text-sm font-medium">
+                      Caption
+                    </label>
+                    <Textarea
+                      id="saved-draft-caption"
+                      value={selectedCaption}
+                      onChange={event => setSelectedCaption(event.target.value)}
+                      rows={6}
+                      className="mt-2"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        updateSavedCaption.mutate({
+                          id: selectedPost.id,
+                          caption: selectedCaption,
+                        })
+                      }
+                      disabled={updateSavedCaption.isPending}
+                    >
+                      {updateSavedCaption.isPending ? "Saving..." : "Save caption"}
+                    </Button>
+                    <Button
+                      className="gap-1.5"
+                      disabled={!facebookConnected || publishSavedDraft.isPending}
+                      onClick={() => publishSavedDraft.mutate({ id: selectedPost.id })}
+                    >
+                      {publishSavedDraft.isPending ? (
+                        "Posting..."
+                      ) : (
+                        <>
+                          <Share2 className="h-4 w-4" /> Post to Facebook
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                  {!facebookConnected && (
+                    <p className="text-sm text-muted-foreground">
+                      Connect a Facebook Page before publishing this draft.
+                    </p>
+                  )}
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
       <SiteFooter />

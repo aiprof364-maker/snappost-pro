@@ -272,6 +272,6 @@
 - [ ] Switch Railway Facebook App ID and matching App Secret from the ordinary Login app to SnapPostPro Publishing
 - [ ] Configure SnapPostPro Publishing’s valid OAuth redirect URLs for the live Facebook callback
 - [ ] Verify the required Page permissions under SnapPostPro Publishing’s Manage everything on your Page use case
-- [ ] Add the required `business_management` scope to the live Facebook Login for Business request
+- [x] Add the required `business_management` scope to the live Facebook Login for Business request
 - [ ] Remove any unnecessary Page permission from the app’s requested OAuth scope list
 - [ ] Verify administrator Page connection and a successful test post before App Review submission

@@ -294,7 +294,11 @@ export const appRouter = router({
             facebookPostId: fbId,
             errorMessage: null,
           });
-          return { success: true, facebookPostId: fbId } as const;
+          return {
+            success: true,
+            facebookPostId: fbId,
+            pageName: integration.pageName ?? "your Facebook Page",
+          } as const;
         } catch (e: any) {
           await updatePost(input.id, {
             status: "failed",

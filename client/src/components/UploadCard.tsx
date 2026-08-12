@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Share2, Sparkles, Upload } from "lucide-react";
+import { getFacebookPostUrl } from "@shared/facebookPost";
+import { CheckCircle2, ExternalLink, Loader2, Share2, Sparkles, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -34,6 +35,10 @@ export default function UploadCard({
   const [createdId, setCreatedId] = useState<number | null>(null);
   const [caption, setCaption] = useState("");
   const [brandedUrl, setBrandedUrl] = useState<string | null>(null);
+  const [publishedPost, setPublishedPost] = useState<{
+    facebookPostId: string;
+    pageName: string;
+  } | null>(null);
 
   const utils = trpc.useUtils();
 
@@ -60,8 +65,12 @@ export default function UploadCard({
   });
 
   const publish = trpc.posts.publish.useMutation({
-    onSuccess: () => {
-      toast.success("Posted to Facebook!");
+    onSuccess: result => {
+      setPublishedPost({
+        facebookPostId: result.facebookPostId,
+        pageName: result.pageName,
+      });
+      toast.success(`Posted to ${result.pageName}!`);
       completeFirstPostPublished.mutate();
       utils.posts.list.invalidate();
     },
@@ -85,6 +94,7 @@ export default function UploadCard({
     setCreatedId(null);
     setBrandedUrl(null);
     setCaption("");
+    setPublishedPost(null);
     createPost.mutate({
       image: dataUrl,
       trade: trade || undefined,
@@ -201,11 +211,15 @@ export default function UploadCard({
               <Button
                 size="sm"
                 className="gap-1.5"
-                disabled={!createdId || !facebookConnected || publish.isPending}
+                disabled={!createdId || !facebookConnected || publish.isPending || Boolean(publishedPost)}
                 onClick={() => createdId && publish.mutate({ id: createdId })}
               >
                 {publish.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+                ) : publishedPost ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Posted
+                  </>
                 ) : (
                   <>
                     <Share2 className="h-4 w-4" /> Post to Facebook
@@ -218,6 +232,27 @@ export default function UploadCard({
                 Connect a Facebook page to publish. Your post is saved as a
                 draft in the meantime.
               </p>
+            )}
+            {publishedPost && (
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <div>
+                    <p className="font-semibold">Posted successfully to {publishedPost.pageName}</p>
+                    <p className="mt-1 text-sm text-emerald-800">
+                      Your branded job-site post is now live on Facebook.
+                    </p>
+                    <a
+                      href={getFacebookPostUrl(publishedPost.facebookPostId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
+                    >
+                      View on Facebook <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

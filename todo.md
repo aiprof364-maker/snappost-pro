@@ -276,3 +276,7 @@
 - [x] Add a visible Facebook reauthorization control when a connected account has no selected Page
 - [ ] Remove any unnecessary Page permission from the app’s requested OAuth scope list
 - [ ] Verify administrator Page connection and a successful test post before App Review submission
+
+## Draft Post Usability (Current)
+- [ ] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
+- [ ] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

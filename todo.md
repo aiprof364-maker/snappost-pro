@@ -279,4 +279,4 @@
 
 ## Draft Post Usability (Current)
 - [ ] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
-- [ ] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link
+- [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

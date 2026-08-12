@@ -259,3 +259,19 @@
 - [ ] Save all credentials to project reference file
 - [ ] Test full flow on Railway: upload photo → AI caption → logo branding → display
 - [ ] Fix Stripe checkout branding (TRADIEPOST → SnapPost Pro)
+
+## Meta App Review Submission (Current)
+- [x] Record and upload unlisted Meta App Review workflow screencast
+- [ ] Verify the published unlisted screencast and review its suitability
+- [ ] Confirm the required Meta permissions and App Review instructions
+- [ ] Submit the requested permissions for Meta App Review
+- [ ] Record the submission status and follow-up requirements
+
+## Facebook Permission Configuration Blocker (Current)
+- [x] Verify the correct Page-publishing Meta app: SnapPostPro Publishing (App ID 1405328174824025)
+- [ ] Switch Railway Facebook App ID and matching App Secret from the ordinary Login app to SnapPostPro Publishing
+- [ ] Configure SnapPostPro Publishing’s valid OAuth redirect URLs for the live Facebook callback
+- [ ] Verify the required Page permissions under SnapPostPro Publishing’s Manage everything on your Page use case
+- [ ] Add the required `business_management` scope to the live Facebook Login for Business request
+- [ ] Remove any unnecessary Page permission from the app’s requested OAuth scope list
+- [ ] Verify administrator Page connection and a successful test post before App Review submission

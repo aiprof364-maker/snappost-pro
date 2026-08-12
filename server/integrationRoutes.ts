@@ -12,6 +12,7 @@ import {
   getUserByOpenId,
   updateUserSubscription,
   upsertIntegration,
+  updateOnboardingStep,
 } from "./db";
 import { getStripe, planFromPriceId } from "./stripe";
 import {
@@ -88,6 +89,7 @@ export function registerIntegrationRoutes(app: Express) {
         pageAccessToken,
         status: "connected",
       });
+      await updateOnboardingStep(userId, "facebookConnected", true);
 
       res.redirect(302, `${dashboard}?facebook=connected`);
     } catch (e) {

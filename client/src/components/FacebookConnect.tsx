@@ -104,9 +104,23 @@ export default function FacebookConnect() {
             </Select>
           </div>
           {pagesQuery.data?.length === 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              No pages found on this account yet.
-            </p>
+            <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
+              <p>
+                No Pages are available with this connection yet. Reconnect to refresh
+                your Facebook permissions and Page access.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() =>
+                  getAuthUrl.mutate({ origin: window.location.origin })
+                }
+                disabled={getAuthUrl.isPending}
+              >
+                {getAuthUrl.isPending ? "Opening Facebook..." : "Reconnect Facebook"}
+              </Button>
+            </div>
           )}
         </div>
       ) : (

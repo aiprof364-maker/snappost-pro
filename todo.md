@@ -273,5 +273,6 @@
 - [ ] Configure SnapPostPro Publishing’s valid OAuth redirect URLs for the live Facebook callback
 - [ ] Verify the required Page permissions under SnapPostPro Publishing’s Manage everything on your Page use case
 - [x] Add the required `business_management` scope to the live Facebook Login for Business request
+- [ ] Add a visible Facebook reauthorization control when a connected account has no selected Page
 - [ ] Remove any unnecessary Page permission from the app’s requested OAuth scope list
 - [ ] Verify administrator Page connection and a successful test post before App Review submission

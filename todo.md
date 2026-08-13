@@ -310,3 +310,8 @@
 - [ ] Add a safe visible resend-link action with rate limiting and user-facing delivery guidance
 - [x] Send a user to the public SnapPost Pro home page after logout while ensuring no automatic re-authentication loop occurs
   - Fixed the protected-page unauthenticated redirect race and verified live on 13 August 2026: dashboard Logout now opens `https://snappostpro.com/` with **Log in** and **Get started** visible, and no automatic re-authentication.
+
+## Live Upload Regression — 13 August 2026
+- [ ] Diagnose the reported production failure when a user selects a job-site photo for a new post
+- [ ] Repair the upload flow without changing independent authentication, Facebook connection behavior, or existing post history
+- [ ] Add regression coverage and verify a live Railway photo upload succeeds before resuming Meta App Review recording

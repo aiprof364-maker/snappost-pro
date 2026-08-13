@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { PLANS } from "@shared/const";
+import { getUploadLimitNotice } from "@shared/uploadLimit";
 import {
   CheckCircle2,
   ExternalLink,
@@ -140,6 +141,7 @@ export default function Dashboard() {
         : `${usage.used} / ${usage.limit} posts this month`;
   const atLimit =
     usage != null && usage.limit !== null && usage.used >= usage.limit;
+  const uploadLimitNotice = getUploadLimitNotice(plan, usage);
 
   const handleLogo = async (file?: File) => {
     if (!file) return;
@@ -257,6 +259,7 @@ export default function Dashboard() {
              <UploadCard
                facebookConnected={facebookConnected}
                atLimit={atLimit}
+               limitNotice={uploadLimitNotice}
              />
             </div>
 

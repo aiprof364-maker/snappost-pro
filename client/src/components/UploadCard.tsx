@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { getFacebookPostUrl } from "@shared/facebookPost";
+import type { UploadLimitNotice } from "@shared/uploadLimit";
 import { CheckCircle2, ExternalLink, Loader2, Share2, Sparkles, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -20,12 +21,14 @@ function fileToDataUrl(file: File): Promise<string> {
 type Props = {
   facebookConnected: boolean;
   atLimit?: boolean;
+  limitNotice?: UploadLimitNotice | null;
   onCreated?: () => void;
 };
 
 export default function UploadCard({
   facebookConnected,
   atLimit = false,
+  limitNotice = null,
   onCreated,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -109,7 +112,22 @@ export default function UploadCard({
         Upload a job photo. We write the caption and add your logo automatically.
       </p>
 
-      {!facebookConnected && (
+      {atLimit && limitNotice ? (
+        <div
+          role="alert"
+          className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950"
+        >
+          <p className="text-sm font-medium">{limitNotice.message}</p>
+          {limitNotice.action && (
+            <a
+              href={limitNotice.action.href}
+              className="mt-2 inline-flex text-sm font-semibold underline underline-offset-4 hover:text-amber-800"
+            >
+              {limitNotice.action.label} →
+            </a>
+          )}
+        </div>
+      ) : !facebookConnected && (
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
           <p className="text-sm font-medium text-blue-900">
             💡 <strong>Next step:</strong> Connect your Facebook page to publish posts directly from SnapPost Pro.
@@ -154,7 +172,12 @@ export default function UploadCard({
         className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 py-10 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
         disabled={createPost.isPending || atLimit}
       >
-        {createPost.isPending ? (
+        {atLimit ? (
+          <>
+            <span className="text-sm font-medium">Upload limit reached</span>
+            <span className="text-xs">Review the message above to continue.</span>
+          </>
+        ) : createPost.isPending ? (
           <>
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span className="text-sm">Writing caption & branding photo…</span>

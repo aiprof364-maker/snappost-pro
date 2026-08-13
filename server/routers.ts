@@ -7,10 +7,8 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { ENV } from "./_core/env";
 import { sendContactFormNotification, sendNewsletterWelcome, sendNewsletterSignupNotification } from "./email";
 import { createContact, createNewsletterSubscriber } from "./db";
-import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { generateCaption } from "./captions";
@@ -66,7 +64,6 @@ function startOfMonth(): Date {
 }
 
 export const appRouter = router({
-  system: systemRouter,
   admin: adminRouter,
 
   auth: router({

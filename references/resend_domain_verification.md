@@ -27,3 +27,7 @@
 - After the logout-redirect regression fix was pushed to GitHub, the Railway production login screen accepted a fresh magic-link request and displayed the 15-minute expiry confirmation.
 - The fresh post-deployment magic-link email arrived in the designated Gmail inbox from `SnapPost Pro <noreply@snappostpro.com>`.
 - The fresh magic link authenticated the user into the live Railway dashboard, confirming the deployed email sign-in path remained operational after the redirect-race change.
+- A final post-deployment magic-link request was accepted by the production login screen for the end-to-end logout validation.
+- The final magic-link email arrived in the designated Gmail inbox from `SnapPost Pro <noreply@snappostpro.com>`.
+- The final magic link opened the authenticated live Railway dashboard, ready for the final logout-navigation check.
+- Final live logout result: selecting **Logout** from the authenticated dashboard returned the user to `https://snappostpro.com/`, showing **Log in** and **Get started** rather than automatically authenticating again.

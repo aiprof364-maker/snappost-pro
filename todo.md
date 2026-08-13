@@ -321,8 +321,9 @@
 - [ ] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording
 
 ## Paid Starter Entitlement Correction — 13 August 2026
-- [ ] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record
-- [ ] Correct any proven cancellation, webhook, customer-linkage, or entitlement-reconciliation defect so the real paid subscriber has the Starter 30-post allowance
+- [x] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record
+- [x] Correct any proven cancellation, webhook, customer-linkage, or entitlement-reconciliation defect so the real paid subscriber has the Starter 30-post allowance
+  - No application entitlement defect was found. Stripe confirms the prior paid Starter subscription was deliberately set to cancel at period end and expired on 9 July 2026; a new active Starter subscription will correctly restore the 30-post allowance without another trial.
 - [ ] Verify the live dashboard shows Starter and `5 / 30 posts this month`, then complete one real photo-upload test
   - Evidence preserved: Stripe records a successful **US$19.00** payment for Starter on 9 June 2026. That subscription was marked `cancel_at_period_end` on 12 June 2026 with Stripe reason `cancellation_requested` and feedback `other`; it expired on 9 July 2026. No newer subscription exists for the linked Stripe customer. The application source contains no direct Stripe cancellation API call, so the record points to a Stripe-hosted cancellation path rather than a failed file upload or a current entitlement-mapping mismatch.
 

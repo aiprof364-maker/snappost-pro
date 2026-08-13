@@ -284,3 +284,9 @@
 ## Onboarding Accuracy (Current)
 - [x] Mark the Connect Facebook checklist step complete after a successful Facebook OAuth callback
 - [x] Backfill the checklist for already-connected users so their progress is accurate
+
+## Subscription Entitlement Audit (Current)
+- [x] Trace the live Starter account state across the database, Stripe Checkout session, webhook, pricing display, and dashboard feature gates
+- [x] Prevent Starter subscribers from receiving Pro plan display or Pro-only access unless Stripe confirms an active Pro subscription
+- [x] Add automated entitlement coverage for Starter, Pro, inactive, and cancelled subscription states
+- [x] Redirect every successful logout to the SnapPost Pro home page instead of a 404 route

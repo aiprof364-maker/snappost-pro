@@ -320,6 +320,11 @@
   - `shared/uploadLimit.test.ts` covers available capacity plus Free, Starter, and Pro monthly-cap messages; the full test suite and TypeScript validation pass.
 - [ ] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording
 
+## Live Usage Counter Regression — 13 August 2026
+- [ ] Diagnose why the Starter dashboard remains at `5 / 30 posts this month` after a verified successful photo upload and Facebook publish
+- [ ] Refresh the account usage query after new-post creation and publishing without changing entitlement enforcement or the existing Facebook flow
+- [ ] Add regression coverage and verify the live dashboard reflects the new post count
+
 ## Paid Starter Entitlement Correction — 13 August 2026
 - [x] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record
 - [x] Correct any proven cancellation, webhook, customer-linkage, or entitlement-reconciliation defect so the real paid subscriber has the Starter 30-post allowance

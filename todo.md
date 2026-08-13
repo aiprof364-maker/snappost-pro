@@ -321,9 +321,12 @@
 - [ ] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording
 
 ## Live Usage Counter Regression — 13 August 2026
-- [ ] Diagnose why the Starter dashboard remains at `5 / 30 posts this month` after a verified successful photo upload and Facebook publish
-- [ ] Refresh the account usage query after new-post creation and publishing without changing entitlement enforcement or the existing Facebook flow
+- [x] Diagnose why the Starter dashboard remains at `5 / 30 posts this month` after a verified successful photo upload and Facebook publish
+  - Root cause: `UploadCard` refreshed post history only after creating the draft. The dashboard allowance comes from the separate `account.overview` query, so its cached value remained at 5 until a full page refresh.
+- [x] Refresh the account usage query after new-post creation and publishing without changing entitlement enforcement or the existing Facebook flow
+  - New post creation now invalidates both post history and `account.overview`, so the count refreshes as soon as a draft consumes allowance.
 - [ ] Add regression coverage and verify the live dashboard reflects the new post count
+  - Production recheck after the successful post now correctly shows `6 / 30 posts this month`; the next post creation will confirm the newly deployed automatic in-page refresh.
 
 ## Paid Starter Entitlement Correction — 13 August 2026
 - [x] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record

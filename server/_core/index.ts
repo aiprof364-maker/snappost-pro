@@ -33,7 +33,6 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "../authRoutes";
-import { registerStorageProxy } from "./storageProxy";
 import { registerIntegrationRoutes } from "../integrationRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -66,7 +65,6 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  registerStorageProxy(app);
   registerAuthRoutes(app);
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);

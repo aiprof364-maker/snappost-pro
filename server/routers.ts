@@ -41,6 +41,7 @@ import {
   isStripeConfigured,
   reconcileUserSubscription,
 } from "./stripe";
+import { createMagicLinkToken, SESSION_COOKIE } from "./auth";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { adminRouter } from "./adminRouters";
 
@@ -65,9 +66,21 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    requestSignInLink: publicProcedure
+      .input(z.object({ email: z.string().email(), origin: z.string().url(), next: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const token = await createMagicLinkToken(input.email);
+        const next = input.next?.startsWith("/") ? input.next : "/dashboard";
+        const link = new URL("/api/auth/verify", input.origin);
+        link.searchParams.set("token", token);
+        link.searchParams.set("next", next);
+        const { sendMagicSignInLink } = await import("./email");
+        await sendMagicSignInLink(input.email.trim().toLowerCase(), link.toString());
+        return { success: true } as const;
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
     verifyEmail: publicProcedure

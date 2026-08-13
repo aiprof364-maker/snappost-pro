@@ -290,3 +290,10 @@
 - [x] Prevent Starter subscribers from receiving Pro plan display or Pro-only access unless Stripe confirms an active Pro subscription
 - [x] Add automated entitlement coverage for Starter, Pro, inactive, and cancelled subscription states
 - [x] Redirect every successful logout to the SnapPost Pro home page instead of a 404 route
+- [ ] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
+
+## Zero Manus Runtime Authority (Current)
+- [ ] Inventory every remaining Manus runtime dependency in authentication, API helpers, storage, scheduled work, and client configuration
+- [ ] Replace Manus OAuth with independent Railway-hosted authentication so login and logout never involve Manus
+- [ ] Verify the live app continues to operate when all Manus runtime environment variables and routes are absent
+- [ ] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout

@@ -41,6 +41,18 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/** One-time passwordless email sign-in links for the Railway-hosted app. */
+export const authTokens = mysqlTable("auth_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  tokenHash: varchar("tokenHash", { length: 128 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuthToken = typeof authTokens.$inferSelect;
+
 /**
  * Social integrations (Facebook pages). Stores OAuth tokens and the selected page.
  * Tokens are sensitive — never expose them to the client.

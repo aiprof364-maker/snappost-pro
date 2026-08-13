@@ -2,7 +2,6 @@ import { COOKIE_NAME } from "@shared/const";
 import type { Express, Request, Response } from "express";
 import express from "express";
 import { parse as parseCookieHeader } from "cookie";
-import { sdk } from "./_core/sdk";
 import {
   exchangeCodeForToken,
   getLongLivedToken,
@@ -15,6 +14,7 @@ import {
   updateOnboardingStep,
 } from "./db";
 import { entitlementFromSubscription, getStripe } from "./stripe";
+import { getSessionUser } from "./auth";
 import {
   sendPurchaseConfirmation,
   sendTrialExpirationWarning,
@@ -27,10 +27,7 @@ function getQueryParam(req: Request, key: string): string | undefined {
 }
 
 async function resolveUserId(req: Request): Promise<number | null> {
-  const cookies = parseCookieHeader(req.headers.cookie ?? "");
-  const session = await sdk.verifySession(cookies[COOKIE_NAME]);
-  if (!session) return null;
-  const user = await getUserByOpenId(session.openId);
+  const user = await getSessionUser(req);
   return user?.id ?? null;
 }
 

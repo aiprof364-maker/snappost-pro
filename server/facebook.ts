@@ -1,6 +1,6 @@
-import { ENV } from "./_core/env";
-
 const GRAPH = "https://graph.facebook.com/v19.0";
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID ?? "";
+const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET ?? "";
 
 /**
  * Minimum permissions for contractor-selected Facebook Page publishing.
@@ -16,13 +16,13 @@ export const FACEBOOK_SCOPES = [
 ] as const;
 
 export function isFacebookConfigured(): boolean {
-  return Boolean(ENV.facebookAppId && ENV.facebookAppSecret);
+  return Boolean(FACEBOOK_APP_ID && FACEBOOK_APP_SECRET);
 }
 
 /** Build the Facebook OAuth dialog URL. redirectUri must match the app settings. */
 export function buildFacebookAuthUrl(redirectUri: string, state: string): string {
   const url = new URL("https://www.facebook.com/v19.0/dialog/oauth");
-  url.searchParams.set("client_id", ENV.facebookAppId);
+  url.searchParams.set("client_id", FACEBOOK_APP_ID);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
   url.searchParams.set("scope", FACEBOOK_SCOPES.join(","));
@@ -36,8 +36,8 @@ export async function exchangeCodeForToken(
   redirectUri: string,
 ): Promise<string> {
   const url = new URL(`${GRAPH}/oauth/access_token`);
-  url.searchParams.set("client_id", ENV.facebookAppId);
-  url.searchParams.set("client_secret", ENV.facebookAppSecret);
+  url.searchParams.set("client_id", FACEBOOK_APP_ID);
+  url.searchParams.set("client_secret", FACEBOOK_APP_SECRET);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("code", code);
 
@@ -55,8 +55,8 @@ export async function exchangeCodeForToken(
 export async function getLongLivedToken(shortToken: string): Promise<string> {
   const url = new URL(`${GRAPH}/oauth/access_token`);
   url.searchParams.set("grant_type", "fb_exchange_token");
-  url.searchParams.set("client_id", ENV.facebookAppId);
-  url.searchParams.set("client_secret", ENV.facebookAppSecret);
+  url.searchParams.set("client_id", FACEBOOK_APP_ID);
+  url.searchParams.set("client_secret", FACEBOOK_APP_SECRET);
   url.searchParams.set("fb_exchange_token", shortToken);
 
   const resp = await fetch(url);

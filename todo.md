@@ -336,7 +336,8 @@
   - The disabled upload control now states **Upload limit reached** and displays the exact allowance message plus the appropriate pricing action. Key files: `client/src/components/UploadCard.tsx`, `client/src/pages/Dashboard.tsx`, `shared/uploadLimit.ts`.
 - [x] Add regression coverage for the exact upload-limit explanation
   - `shared/uploadLimit.test.ts` covers available capacity plus Free, Starter, and Pro monthly-cap messages; the full test suite and TypeScript validation pass.
-- [ ] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording
+- [x] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording
+  - With Starter active, the user uploaded, captioned, branded, and successfully published a new job photo to TradiePosts; usage persisted as `6 / 30`.
 
 ## Live Usage Counter Regression — 13 August 2026
 - [x] Diagnose why the Starter dashboard remains at `5 / 30 posts this month` after a verified successful photo upload and Facebook publish
@@ -347,15 +348,19 @@
   - Production recheck after the successful post now correctly shows `6 / 30 posts this month`; the next post creation will confirm the newly deployed automatic in-page refresh.
 
 ## Active Starter Persistence Regression — 14 August 2026
-- [ ] Diagnose why the same authenticated account briefly displayed Starter with post history, logo, and TradiePosts connection, then reloaded as Free with empty dashboard data
-- [ ] Correct the proven Stripe reconciliation, customer linkage, or session/account-data defect without granting unverified access
-- [ ] Verify stable live Starter access with `6 / 30`, persisted history, logo, and Facebook connection across repeated refreshes
+- [x] Diagnose why the same authenticated account briefly displayed Starter with post history, logo, and TradiePosts connection, then reloaded as Free with empty dashboard data
+  - The persisted account was correct: Starter, active Stripe subscription, six current-month posts, logo key, and a Facebook integration. The client briefly rendered its `free` fallback before the authoritative account-overview query returned.
+- [x] Correct the proven Stripe reconciliation, customer linkage, or session/account-data defect without granting unverified access
+  - The dashboard now remains in a neutral loading state until account overview completes, eliminating the false Free and empty-data flash without altering Stripe entitlement checks.
+- [x] Verify stable live Starter access with `6 / 30`, persisted history, logo, and Facebook connection across repeated refreshes
+  - Fresh independent sign-in on 14 August 2026 confirmed Starter, 30 monthly posts, `6 / 30` used, and active photo-upload access. The database independently confirms the active Stripe subscription, persisted logo, six posts, and one TradiePosts connection.
 
 ## Paid Starter Entitlement Correction — 13 August 2026
 - [x] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record
 - [x] Correct any proven cancellation, webhook, customer-linkage, or entitlement-reconciliation defect so the real paid subscriber has the Starter 30-post allowance
   - No application entitlement defect was found. Stripe confirms the prior paid Starter subscription was deliberately set to cancel at period end and expired on 9 July 2026; a new active Starter subscription will correctly restore the 30-post allowance without another trial.
-- [ ] Verify the live dashboard shows Starter and `5 / 30 posts this month`, then complete one real photo-upload test
+- [x] Verify the live dashboard shows Starter and `5 / 30 posts this month`, then complete one real photo-upload test
+  - Verified after the successful test post as Starter with `6 / 30` used, an enabled upload control, and successful branded Facebook publishing.
   - Evidence preserved: Stripe records a successful **US$19.00** payment for Starter on 9 June 2026. That subscription was marked `cancel_at_period_end` on 12 June 2026 with Stripe reason `cancellation_requested` and feedback `other`; it expired on 9 July 2026. No newer subscription exists for the linked Stripe customer. The application source contains no direct Stripe cancellation API call, so the record points to a Stripe-hosted cancellation path rather than a failed file upload or a current entitlement-mapping mismatch.
 
 ## Single 7-Day Trial Enforcement — 13 August 2026

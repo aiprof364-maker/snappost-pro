@@ -43,6 +43,13 @@
       "when": 1783392538874,
       "tag": "0005_tiresome_starbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786580411044,
+      "tag": "0006_amused_bastion",
+      "breakpoints": true
     }
   ]
 }

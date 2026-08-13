@@ -14,7 +14,7 @@ import {
   upsertIntegration,
   updateOnboardingStep,
 } from "./db";
-import { getStripe, planFromPriceId } from "./stripe";
+import { entitlementFromSubscription, getStripe } from "./stripe";
 import {
   sendPurchaseConfirmation,
   sendTrialExpirationWarning,
@@ -132,7 +132,14 @@ export function registerIntegrationRoutes(app: Express) {
             const userId = Number(
               session.metadata?.userId ?? session.client_reference_id,
             );
-            const plan = session.metadata?.plan as "starter" | "pro" | undefined;
+            const requestedPlan = session.metadata?.plan as "starter" | "pro" | undefined;
+            const stripeSubscription = typeof session.subscription === "string"
+              ? await stripe.subscriptions.retrieve(session.subscription)
+              : null;
+            const entitlement = stripeSubscription
+              ? entitlementFromSubscription(stripeSubscription)
+              : null;
+            const plan = entitlement?.plan === "free" ? requestedPlan : entitlement?.plan;
             if (userId) {
               const { getDb, logConversionEvent } = await import("./db");
               const db = await getDb();
@@ -164,8 +171,7 @@ export function registerIntegrationRoutes(app: Express) {
               await updateUserSubscription(userId, {
                 stripeCustomerId: session.customer ?? undefined,
                 stripeSubscriptionId: session.subscription ?? undefined,
-                plan: plan ?? "starter",
-                subscriptionStatus: "active",
+                ...(entitlement ?? {}),
               });
             }
             break;
@@ -173,8 +179,7 @@ export function registerIntegrationRoutes(app: Express) {
           case "customer.subscription.updated":
           case "customer.subscription.created": {
             const sub = event.data.object as any;
-            const priceId = sub.items?.data?.[0]?.price?.id;
-            const plan = planFromPriceId(priceId);
+            const entitlement = entitlementFromSubscription(sub);
             const customerId = sub.customer as string;
             // Find user by stripeCustomerId
             const { getDb } = await import("./db");
@@ -189,9 +194,7 @@ export function registerIntegrationRoutes(app: Express) {
                 .limit(1);
               if (rows[0]) {
                 await updateUserSubscription(rows[0].id, {
-                  plan: plan ?? rows[0].plan === "free" ? "starter" : rows[0].plan,
-                  subscriptionStatus: sub.status ?? "active",
-                  stripeSubscriptionId: sub.id,
+                  ...entitlement,
                 });
               }
             }

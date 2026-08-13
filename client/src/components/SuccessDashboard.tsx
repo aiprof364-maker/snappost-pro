@@ -7,6 +7,9 @@ import { trpc } from "@/lib/trpc";
 
 export function SuccessDashboard() {
   const { data: user } = trpc.auth.me.useQuery();
+  const { data: overview } = trpc.account.overview.useQuery(undefined, {
+    enabled: Boolean(user),
+  });
   const [stats, setStats] = useState({
     totalPosts: 0,
     publishedPosts: 0,
@@ -32,8 +35,9 @@ export function SuccessDashboard() {
     });
   }, [user]);
 
-  const isProUser = user?.plan === "pro";
-  const isStarterUser = user?.plan === "starter";
+  const currentPlan = overview?.plan ?? user?.plan ?? "free";
+  const isProUser = currentPlan === "pro";
+  const isStarterUser = currentPlan === "starter";
 
   return (
     <div className="space-y-6">
@@ -216,16 +220,16 @@ export function SuccessDashboard() {
             <div className="flex justify-between">
               <span className="text-sm font-medium">Plan:</span>
               <Badge variant="outline" className="capitalize">
-                {user?.plan || "free"}
+                {currentPlan}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">Posts per month:</span>
               <span className="text-sm">
-                {user?.plan === "pro" ? "300" : user?.plan === "starter" ? "30" : "3"}
+                {currentPlan === "pro" ? "300" : currentPlan === "starter" ? "30" : "3"}
               </span>
             </div>
-            {user?.plan === "free" && (
+            {currentPlan === "free" && (
               <Button className="w-full mt-4">View Pricing Plans</Button>
             )}
           </div>

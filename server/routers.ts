@@ -34,7 +34,13 @@ import {
   listPages,
   postPhotoToPage,
 } from "./facebook";
-import { getPriceId, getStripe, isStripeConfigured } from "./stripe";
+import {
+  getPriceId,
+  getStripe,
+  hasPaidEntitlement,
+  isStripeConfigured,
+  reconcileUserSubscription,
+} from "./stripe";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { adminRouter } from "./adminRouters";
 
@@ -106,7 +112,7 @@ export const appRouter = router({
   account: router({
     /** Full account snapshot: plan, subscription, logo, facebook connection. */
     overview: protectedProcedure.query(async ({ ctx }) => {
-      const user = await getUserById(ctx.user.id);
+      const user = await reconcileUserSubscription(await getUserById(ctx.user.id));
       const integration = await getIntegration(ctx.user.id, "facebook");
       const plan = (user?.plan ?? "free") as "free" | PlanId;
       const used = await countUserPostsSince(ctx.user.id, startOfMonth());
@@ -163,7 +169,7 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         // Enforce monthly plan limit (server-side).
-        const user0 = await getUserById(ctx.user.id);
+        const user0 = await reconcileUserSubscription(await getUserById(ctx.user.id));
         const plan = (user0?.plan ?? "free") as "free" | PlanId;
         const limit = PLAN_POST_LIMITS[plan];
         if (limit !== null) {
@@ -411,7 +417,13 @@ export const appRouter = router({
             message: `Missing price id for the ${input.plan} plan.`,
           });
         }
-        const user = await getUserById(ctx.user.id);
+        const user = await reconcileUserSubscription(await getUserById(ctx.user.id));
+        if (user && hasPaidEntitlement({ plan: user.plan, subscriptionStatus: user.subscriptionStatus ?? "none" })) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: `You already have an active ${user.plan} subscription. Use Manage subscription to change your plan.`,
+          });
+        }
         console.log(`[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`);
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",

@@ -8,16 +8,26 @@ import { toast } from "sonner";
 
 export default function PricingCards() {
   const { isAuthenticated } = useAuth();
+  const account = trpc.account.overview.useQuery(undefined, { enabled: isAuthenticated });
   const checkout = trpc.billing.createCheckout.useMutation({
     onSuccess: data => {
       if (data.url) window.location.href = data.url;
     },
     onError: err => toast.error(err.message),
   });
+  const portal = trpc.billing.portal.useMutation({
+    onSuccess: data => data.url && (window.location.href = data.url),
+    onError: err => toast.error(err.message),
+  });
 
   const handleSelect = (plan: PlanId) => {
     if (!isAuthenticated) {
       window.location.href = getLoginUrl("/pricing");
+      return;
+    }
+    const hasActivePaidPlan = account.data?.plan !== "free" && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
+    if (hasActivePaidPlan) {
+      portal.mutate({ origin: window.location.origin });
       return;
     }
     checkout.mutate({ plan, origin: window.location.origin });
@@ -30,6 +40,8 @@ export default function PricingCards() {
       {order.map(id => {
         const plan = PLANS[id];
         const featured = id === "pro";
+        const currentPlan = account.data?.plan === id && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
+        const hasActivePaidPlan = account.data?.plan !== "free" && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
         return (
           <div
             key={id}
@@ -66,10 +78,16 @@ export default function PricingCards() {
               className="mt-8 w-full"
               variant={featured ? "default" : "outline"}
               onClick={() => handleSelect(id)}
-              disabled={checkout.isPending}
+              disabled={checkout.isPending || portal.isPending || currentPlan}
             >
               {checkout.isPending && checkout.variables?.plan === id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : portal.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : currentPlan ? (
+                `Current ${plan.name} plan`
+              ) : hasActivePaidPlan ? (
+                "Manage plan"
               ) : (
                 `Choose ${plan.name}`
               )}

@@ -28,6 +28,7 @@ export function useAuth(options?: UseAuthOptions) {
     try {
       await logoutMutation.mutateAsync();
       utils.auth.me.setData(undefined, null);
+      window.location.assign("/");
     } catch (error: unknown) {
       if (
         error instanceof TRPCClientError &&

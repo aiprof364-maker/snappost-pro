@@ -67,3 +67,21 @@ The Pages API documentation confirms that a Page publishing test requires a Page
 ## Submission Gate
 
 Before submitting, verify that the screen recording shows the complete Facebook connection, Page selection, successful publish, and the published post on the Page for every Page permission requested. If the existing recording stops before those actions, record a corrected review video rather than submitting incomplete evidence.
+
+## Recording Preparation — 13 August 2026
+
+- Part 1 remains available at `https://youtu.be/yghFV2XWcKI`.
+- The Resend sender domain and independent Railway sign-in flow are now verified; a fresh test-account sign-in was requested to reset the existing Facebook connection before recording the required Page-selection and successful-publish segment.
+- The recording-preparation magic link arrived from `SnapPost Pro <noreply@snappostpro.com>` in the designated Gmail inbox.
+- The message is present in the existing SnapPost Pro sign-in email thread and ready to be opened for the dashboard-reset step.
+- The Gmail thread contains the latest 15-minute SnapPost Pro magic link required to access the dashboard for the controlled connection reset.
+- Sender-filtered Gmail results confirm the newest message is from `noreply@snappostpro.com` at 2:56 PM and contains the required one-time sign-in link.
+- The newest message has been expanded in the Gmail thread; its sign-in action is ready to open the test dashboard.
+- The latest magic link opened the authenticated live Railway dashboard for the connection-reset step.
+- The live dashboard confirms the existing test connection is currently **Connected to TradiePosts** and exposes the **Disconnect** action needed to reset the demonstrable connection flow.
+- The authenticated dashboard is stable, with the Facebook connection card directly below the saved logo card and the existing TradiePosts connection ready to reset before starting the screen recording.
+- Dashboard search confirmed one exact **Disconnect** control associated with the existing TradiePosts connection; no other connection action was identified.
+- The connection-reset target remains the single **Disconnect** action on the TradiePosts Facebook card; no post, subscription, or account data will be changed.
+- The browser viewport now exposes that exact **Disconnect** control on the existing Facebook card, immediately above Post history.
+- The approved **Disconnect** action was invoked on the existing TradiePosts connection; the dashboard is now being checked for its disconnected state before recording begins.
+- The live dashboard confirmed **Disconnected** and now displays the **Connect Facebook** action. It is ready to begin the recording at the exact start of the required Facebook business connection flow.

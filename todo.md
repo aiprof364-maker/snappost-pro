@@ -266,6 +266,8 @@
 - [ ] Confirm the required Meta permissions and App Review instructions
 - [ ] Submit the requested permissions for Meta App Review
 - [ ] Record the submission status and follow-up requirements
+- [ ] Record Part 2 of the Meta evidence: Facebook business connection, Airprof Studios selection, TradiePosts Page selection, successful branded-photo publish, and the live Page post
+- [ ] Combine Part 1 and Part 2 into one unlisted YouTube video before submitting App Review
 
 ## Facebook Permission Configuration Blocker (Current)
 - [x] Verify the correct Page-publishing Meta app: SnapPostPro Publishing (App ID 1405328174824025)

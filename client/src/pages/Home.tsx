@@ -186,7 +186,7 @@ export default function Home() {
               </div>
              <div className="mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl ring-1 ring-border">
                <img
-                  src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663362253705/HqsrxLUptFBrYnTU.jpg"
+                  src="https://res.cloudinary.com/dolcbe5sg/image/upload/v1786654916/snappost-pro/1-posts/1786654916052/branded_0a94e884.jpg"
                  alt="Professional deck project with contractor branding logo"
                   className="h-full w-full object-cover"
                   loading="lazy"
@@ -274,12 +274,20 @@ export default function Home() {
           </div>
           <div className="mx-auto mt-12 max-w-4xl">
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-             <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663362253705/kEZqIoIrnjcXJQsR.jpg"
-               alt="Before and after: a raw job-site photo on the left transformed into a clean, branded social post with a caption on the right"
-                className="w-full"
-                loading="lazy"
-              />
+              <div className="grid grid-cols-2">
+                <img
+                  src="https://res.cloudinary.com/dolcbe5sg/image/upload/v1786654911/snappost-pro/1-posts/1786654908955-original_ecd01871.png"
+                  alt="Raw job-site photo before SnapPost Pro branding"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+                <img
+                  src="https://res.cloudinary.com/dolcbe5sg/image/upload/v1786654916/snappost-pro/1-posts/1786654916052/branded_0a94e884.jpg"
+                  alt="The same job-site photo prepared as a branded SnapPost Pro post"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
               <div className="flex items-center justify-center gap-2 text-muted-foreground">

@@ -303,6 +303,16 @@
 - [x] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
   - Verified live on 13 August 2026: logged-out dashboard access redirects to the email sign-in screen and stays logged out.
 
+## Final Railway Runtime Independence Audit — 14 August 2026
+- [ ] Inventory every currently deployed Manus import, environment variable, endpoint, storage route, and scheduled-job reference
+- [ ] Remove or isolate any code path required by live Railway operations that still calls a Manus service
+- [ ] Verify core live functions continue with Manus runtime variables and routes absent: email sign-in, Starter entitlement, upload, branding, Facebook publish, and scheduled email jobs
+
+## Active Starter Persistence Regression — 14 August 2026
+- [ ] Diagnose why the same authenticated account briefly displayed Starter with post history, logo, and TradiePosts connection, then reloaded as Free with empty dashboard data
+- [ ] Correct the proven Stripe reconciliation, customer linkage, or session/account-data defect without granting unverified access
+- [ ] Verify stable live Starter access with `6 / 30`, persisted history, logo, and Facebook connection across repeated refreshes
+
 ## Independent Sign-In Recovery (Current)
 - [x] Diagnose and correct independent Resend magic-link delivery for the live Railway app
   - Added the required Resend DKIM, MX, and SPF records in Cloudflare; Resend verified `snappostpro.com` on 13 August 2026.
@@ -327,6 +337,11 @@
   - New post creation now invalidates both post history and `account.overview`, so the count refreshes as soon as a draft consumes allowance.
 - [ ] Add regression coverage and verify the live dashboard reflects the new post count
   - Production recheck after the successful post now correctly shows `6 / 30 posts this month`; the next post creation will confirm the newly deployed automatic in-page refresh.
+
+## Active Starter Persistence Regression — 14 August 2026
+- [ ] Diagnose why the same authenticated account briefly displayed Starter with post history, logo, and TradiePosts connection, then reloaded as Free with empty dashboard data
+- [ ] Correct the proven Stripe reconciliation, customer linkage, or session/account-data defect without granting unverified access
+- [ ] Verify stable live Starter access with `6 / 30`, persisted history, logo, and Facebook connection across repeated refreshes
 
 ## Paid Starter Entitlement Correction — 13 August 2026
 - [x] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record

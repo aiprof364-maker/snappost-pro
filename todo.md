@@ -312,6 +312,10 @@
   - Fixed the protected-page unauthenticated redirect race and verified live on 13 August 2026: dashboard Logout now opens `https://snappostpro.com/` with **Log in** and **Get started** visible, and no automatic re-authentication.
 
 ## Live Upload Regression — 13 August 2026
-- [ ] Diagnose the reported production failure when a user selects a job-site photo for a new post
-- [ ] Repair the upload flow without changing independent authentication, Facebook connection behavior, or existing post history
-- [ ] Add regression coverage and verify a live Railway photo upload succeeds before resuming Meta App Review recording
+- [x] Diagnose the reported production failure when a user selects a job-site photo for a new post
+  - The test account is correctly reconciled as `free` because its recorded Stripe subscription is `canceled`; it has already created 5 posts against the 3-post free allowance. The file control was intentionally disabled by this entitlement state, but previously gave no clear explanation.
+- [x] Repair the upload flow without changing independent authentication, Facebook connection behavior, or existing post history
+  - The disabled upload control now states **Upload limit reached** and displays the exact allowance message plus the appropriate pricing action. Key files: `client/src/components/UploadCard.tsx`, `client/src/pages/Dashboard.tsx`, `shared/uploadLimit.ts`.
+- [x] Add regression coverage for the exact upload-limit explanation
+  - `shared/uploadLimit.test.ts` covers available capacity plus Free, Starter, and Pro monthly-cap messages; the full test suite and TypeScript validation pass.
+- [ ] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording

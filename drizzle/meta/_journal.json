@@ -50,6 +50,13 @@
       "when": 1786580411044,
       "tag": "0006_amused_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1786653918091,
+      "tag": "0007_panoramic_blue_shield",
+      "breakpoints": true
     }
   ]
 }

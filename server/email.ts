@@ -21,7 +21,7 @@ function getResendClient(): Resend {
 
 export async function sendMagicSignInLink(email: string, signInUrl: string) {
   const resend = getResendClient();
-  return resend.emails.send({
+  const result = await resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
     subject: "Your secure SnapPost Pro sign-in link",
@@ -34,6 +34,12 @@ export async function sendMagicSignInLink(email: string, signInUrl: string) {
       </div>
     `,
   });
+
+  if (result.error || !result.data?.id) {
+    throw new Error(result.error?.message ?? "Resend did not accept the sign-in email.");
+  }
+
+  return result.data;
 }
 
 export async function sendPurchaseConfirmation(

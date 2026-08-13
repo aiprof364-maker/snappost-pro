@@ -297,3 +297,7 @@
 - [ ] Replace Manus OAuth with independent Railway-hosted authentication so login and logout never involve Manus
 - [ ] Verify the live app continues to operate when all Manus runtime environment variables and routes are absent
 - [ ] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
+
+## Independent Sign-In Recovery (Current)
+- [ ] Diagnose and correct independent Resend magic-link delivery for the live Railway app
+- [ ] Add a safe visible resend-link action with rate limiting and user-facing delivery guidance

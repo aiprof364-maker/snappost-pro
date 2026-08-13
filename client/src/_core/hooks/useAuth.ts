@@ -15,6 +15,13 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
   const utils = trpc.useUtils();
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.pathname === "/") {
+      window.sessionStorage.removeItem(INTENTIONAL_LOGOUT_STORAGE_KEY);
+    }
+  }, []);
+
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,

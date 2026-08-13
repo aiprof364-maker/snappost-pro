@@ -84,5 +84,8 @@ describe("auth.logout", () => {
       'window.sessionStorage.getItem(INTENTIONAL_LOGOUT_STORAGE_KEY) === "true"'
     );
     expect(authHook).toContain('window.location.assign("/");');
+    expect(authHook).toContain(
+      'window.sessionStorage.removeItem(INTENTIONAL_LOGOUT_STORAGE_KEY);'
+    );
   });
 });

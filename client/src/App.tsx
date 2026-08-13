@@ -15,6 +15,7 @@ import Changelog from "./pages/Changelog";
 import Privacy from "./pages/Privacy";
 import DeleteAccount from "./pages/DeleteAccount";
 import VerifyEmail from "./pages/VerifyEmail";
+import Login from "./pages/Login";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
       <Route path={"/privacy"} component={Privacy} />
       <Route path={"/delete-account"} component={DeleteAccount} />
       <Route path={"/verify-email"} component={VerifyEmail} />
+      <Route path={"/login"} component={Login} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

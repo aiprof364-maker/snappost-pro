@@ -32,10 +32,9 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
+import { registerAuthRoutes } from "../authRoutes";
 import { registerStorageProxy } from "./storageProxy";
 import { registerIntegrationRoutes } from "../integrationRoutes";
-import { registerScheduledRoutes, registerOnboardingRoute } from "../scheduledRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -68,13 +67,9 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
+  registerAuthRoutes(app);
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);
-  // Scheduled email routes (must be before Vite/static fallthrough)
-  registerScheduledRoutes(app);
-  registerOnboardingRoute(app);
-  console.log("[Scheduled] Onboarding endpoint available at /api/scheduled/onboarding-sequence");
   // tRPC API
   app.use(
     "/api/trpc",

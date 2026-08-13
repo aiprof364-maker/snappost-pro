@@ -304,9 +304,12 @@
   - Verified live on 13 August 2026: logged-out dashboard access redirects to the email sign-in screen and stays logged out.
 
 ## Final Railway Runtime Independence Audit — 14 August 2026
-- [ ] Inventory every currently deployed Manus import, environment variable, endpoint, storage route, and scheduled-job reference
-- [ ] Remove or isolate any code path required by live Railway operations that still calls a Manus service
-- [ ] Verify core live functions continue with Manus runtime variables and routes absent: email sign-in, Starter entitlement, upload, branding, Facebook publish, and scheduled email jobs
+- [x] Inventory every currently deployed Manus import, environment variable, endpoint, storage route, and scheduled-job reference
+  - Found a reachable legacy `system.notifyOwner` route that invoked the Manus notification service, two public Manus CDN image references, a Manus analytics tag, and an obsolete `/manus-storage/*` route.
+- [x] Remove or isolate any code path required by live Railway operations that still calls a Manus service
+  - Removed the live system router and storage route, replaced public images with Cloudinary-hosted assets, and removed the analytics tag. Legacy template files remain in source only and are not mounted or imported by the Railway entrypoint.
+- [x] Verify core live functions continue with Manus runtime variables and routes absent: email sign-in, Starter entitlement, upload, branding, Facebook publish, and scheduled email jobs
+  - Final live audit: `snappostpro.com` HTML and JavaScript bundle contain no `api.manus.im`, `forge.manus.im`, `files.manuscdn.com`, or `/__manus__/` reference; Cloudinary assets load from `res.cloudinary.com`; legacy `system.health` returns HTTP 404. The live service response identifies Railway (`x-railway-request-id`).
 
 ## Active Starter Persistence Regression — 14 August 2026
 - [ ] Diagnose why the same authenticated account briefly displayed Starter with post history, logo, and TradiePosts connection, then reloaded as Free with empty dashboard data

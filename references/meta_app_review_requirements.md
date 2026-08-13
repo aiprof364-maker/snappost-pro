@@ -85,3 +85,4 @@ Before submitting, verify that the screen recording shows the complete Facebook 
 - The browser viewport now exposes that exact **Disconnect** control on the existing Facebook card, immediately above Post history.
 - The approved **Disconnect** action was invoked on the existing TradiePosts connection; the dashboard is now being checked for its disconnected state before recording begins.
 - The live dashboard confirmed **Disconnected** and now displays the **Connect Facebook** action. It is ready to begin the recording at the exact start of the required Facebook business connection flow.
+- Live subscription validation on 13 August 2026: the dashboard now shows **Starter plan**, **Active**, and **5 / 30 posts this month**. The photo-upload control is enabled and the existing TradiePosts Facebook connection is available for the final upload-and-publish evidence flow.

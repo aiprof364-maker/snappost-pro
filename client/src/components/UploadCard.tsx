@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { refreshPostCreationQueries } from "@/lib/postQueryInvalidation";
 import { getFacebookPostUrl } from "@shared/facebookPost";
 import type { UploadLimitNotice } from "@shared/uploadLimit";
 import { CheckCircle2, ExternalLink, Loader2, Share2, Sparkles, Upload } from "lucide-react";
@@ -55,7 +56,10 @@ export default function UploadCard({
       setCaption(post.caption ?? "");
       setBrandedUrl(post.brandedImageUrl ?? null);
       completeFirstPost.mutate();
-      utils.posts.list.invalidate();
+      refreshPostCreationQueries({
+        invalidatePosts: () => utils.posts.list.invalidate(),
+        invalidateAccountOverview: () => utils.account.overview.invalidate(),
+      });
       onCreated?.();
       toast.success("Caption written and photo branded.");
     },

@@ -24,3 +24,6 @@
 - SnapPost Pro accepted the magic-link request for `aiprof364@gmail.com` and displayed its 15-minute expiry confirmation.
 - The message arrived in Gmail from `SnapPost Pro <noreply@snappostpro.com>`.
 - The email link opened `https://snappostpro.com/dashboard` and created an authenticated application session for the independent email account. The live dashboard identifies the user as `AIProf` and does not use Manus authentication.
+- After the logout-redirect regression fix was pushed to GitHub, the Railway production login screen accepted a fresh magic-link request and displayed the 15-minute expiry confirmation.
+- The fresh post-deployment magic-link email arrived in the designated Gmail inbox from `SnapPost Pro <noreply@snappostpro.com>`.
+- The fresh magic link authenticated the user into the live Railway dashboard, confirming the deployed email sign-in path remained operational after the redirect-race change.

@@ -70,4 +70,19 @@ describe("auth.logout", () => {
 
     expect(clientBootstrap).not.toContain("window.location.href = getLoginUrl();");
   });
+
+  it("marks intentional logout before a protected page can trigger an unauthenticated redirect", () => {
+    const authHook = readFileSync(
+      resolve(process.cwd(), "client/src/_core/hooks/useAuth.ts"),
+      "utf8"
+    );
+
+    expect(authHook).toContain(
+      'window.sessionStorage.setItem(INTENTIONAL_LOGOUT_STORAGE_KEY, "true");'
+    );
+    expect(authHook).toContain(
+      'window.sessionStorage.getItem(INTENTIONAL_LOGOUT_STORAGE_KEY) === "true"'
+    );
+    expect(authHook).toContain('window.location.assign("/");');
+  });
 });

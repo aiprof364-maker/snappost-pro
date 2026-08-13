@@ -8,6 +8,8 @@ type UseAuthOptions = {
   redirectPath?: string;
 };
 
+const INTENTIONAL_LOGOUT_STORAGE_KEY = "snappost-intentional-logout";
+
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
@@ -25,6 +27,8 @@ export function useAuth(options?: UseAuthOptions) {
   });
 
   const logout = useCallback(async () => {
+    window.sessionStorage.setItem(INTENTIONAL_LOGOUT_STORAGE_KEY, "true");
+
     try {
       await logoutMutation.mutateAsync();
       utils.auth.me.setData(undefined, null);
@@ -35,8 +39,10 @@ export function useAuth(options?: UseAuthOptions) {
         error.data?.code === "UNAUTHORIZED"
       ) {
         utils.auth.me.setData(undefined, null);
+        window.location.assign("/");
         return;
       }
+      window.sessionStorage.removeItem(INTENTIONAL_LOGOUT_STORAGE_KEY);
       throw error;
     }
   }, [logoutMutation, utils]);
@@ -65,6 +71,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem(INTENTIONAL_LOGOUT_STORAGE_KEY) === "true") return;
     if (window.location.pathname === redirectPath) return;
 
     window.location.href = redirectPath

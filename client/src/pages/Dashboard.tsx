@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { isDashboardDataLoading } from "@/lib/dashboardDataState";
 import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import {
@@ -117,7 +118,13 @@ export default function Dashboard() {
     }
   }, [utils]);
 
-  if (loading || !isAuthenticated) {
+  if (
+    isDashboardDataLoading({
+      authLoading: loading,
+      isAuthenticated,
+      overviewLoading: overview.isLoading,
+    })
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />

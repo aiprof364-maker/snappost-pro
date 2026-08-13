@@ -296,10 +296,13 @@
   - Verified live on 13 August 2026: logout opens `/login?next=%2Fdashboard`; a direct request to `/dashboard` remains at the sign-in screen with no automatic re-authentication.
 
 ## Zero Manus Runtime Authority (Current)
-- [ ] Inventory every remaining Manus runtime dependency in authentication, API helpers, storage, scheduled work, and client configuration
+- [x] Inventory every remaining Manus runtime dependency in authentication, API helpers, storage, scheduled work, and client configuration
+  - Completed by the 14 August 2026 Railway runtime audit; active Manus notification, analytics, asset, and legacy storage route dependencies were removed.
 - [x] Replace Manus OAuth with independent Railway-hosted authentication so login and logout never involve Manus
   - Verified live on 13 August 2026: the independent email sign-in screen, inbox delivery, dashboard session, and logout flow worked without Manus authentication.
 - [ ] Verify the live app continues to operate when all Manus runtime environment variables and routes are absent
+  - Static and route audit complete: the deployed HTML and JavaScript have no Manus endpoint or asset reference, and the previous live Manus system route returns HTTP 404.
+  - Still required: fresh post-removal live evidence for passwordless sign-in, Starter dashboard load, photo upload and branding, Facebook publish, scheduled email behavior, and Railway environment-variable absence.
 - [x] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
   - Verified live on 13 August 2026: logged-out dashboard access redirects to the email sign-in screen and stays logged out.
 
@@ -310,6 +313,8 @@
   - Removed the live system router and storage route, replaced public images with Cloudinary-hosted assets, and removed the analytics tag. Legacy template files remain in source only and are not mounted or imported by the Railway entrypoint.
 - [x] Verify core live functions continue with Manus runtime variables and routes absent: email sign-in, Starter entitlement, upload, branding, Facebook publish, and scheduled email jobs
   - Final live audit: `snappostpro.com` HTML and JavaScript bundle contain no `api.manus.im`, `forge.manus.im`, `files.manuscdn.com`, or `/__manus__/` reference; Cloudinary assets load from `res.cloudinary.com`; legacy `system.health` returns HTTP 404. The live service response identifies Railway (`x-railway-request-id`).
+- [ ] Re-test every core Railway flow after the Manus-removal deployment: passwordless sign-in, Starter dashboard load, photo upload and branding, Facebook publish, and scheduled email behavior
+- [ ] Audit Railway production configuration to confirm the removed Manus environment variables are absent or unused by the live application
 
 ## Active Starter Persistence Regression — 14 August 2026
 - [ ] Diagnose why the same authenticated account briefly displayed Starter with post history, logo, and TradiePosts connection, then reloaded as Free with empty dashboard data

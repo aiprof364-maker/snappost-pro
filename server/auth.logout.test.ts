@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { SESSION_COOKIE } from "./auth";
@@ -58,5 +60,14 @@ describe("auth.logout", () => {
       httpOnly: true,
       path: "/",
     });
+  });
+
+  it("does not restore the legacy global unauthenticated redirect that can race intentional logout", () => {
+    const clientBootstrap = readFileSync(
+      resolve(process.cwd(), "client/src/main.tsx"),
+      "utf8"
+    );
+
+    expect(clientBootstrap).not.toContain("window.location.href = getLoginUrl();");
   });
 });

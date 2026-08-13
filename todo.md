@@ -290,14 +290,20 @@
 - [x] Prevent Starter subscribers from receiving Pro plan display or Pro-only access unless Stripe confirms an active Pro subscription
 - [x] Add automated entitlement coverage for Starter, Pro, inactive, and cancelled subscription states
 - [x] Redirect every successful logout to the SnapPost Pro home page instead of a 404 route
-- [ ] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
+- [x] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
+  - Verified live on 13 August 2026: logout opens `/login?next=%2Fdashboard`; a direct request to `/dashboard` remains at the sign-in screen with no automatic re-authentication.
 
 ## Zero Manus Runtime Authority (Current)
 - [ ] Inventory every remaining Manus runtime dependency in authentication, API helpers, storage, scheduled work, and client configuration
-- [ ] Replace Manus OAuth with independent Railway-hosted authentication so login and logout never involve Manus
+- [x] Replace Manus OAuth with independent Railway-hosted authentication so login and logout never involve Manus
+  - Verified live on 13 August 2026: the independent email sign-in screen, inbox delivery, dashboard session, and logout flow worked without Manus authentication.
 - [ ] Verify the live app continues to operate when all Manus runtime environment variables and routes are absent
-- [ ] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
+- [x] Prevent the logged-out home page from automatically restarting OAuth after an intentional logout
+  - Verified live on 13 August 2026: logged-out dashboard access redirects to the email sign-in screen and stays logged out.
 
 ## Independent Sign-In Recovery (Current)
-- [ ] Diagnose and correct independent Resend magic-link delivery for the live Railway app
+- [x] Diagnose and correct independent Resend magic-link delivery for the live Railway app
+  - Added the required Resend DKIM, MX, and SPF records in Cloudflare; Resend verified `snappostpro.com` on 13 August 2026.
+  - Live test: `noreply@snappostpro.com` delivered the 15-minute magic link to `aiprof364@gmail.com`, and that link opened the authenticated Railway-hosted dashboard.
 - [ ] Add a safe visible resend-link action with rate limiting and user-facing delivery guidance
+- [ ] Send a user to the public SnapPost Pro home page after logout while ensuring no automatic re-authentication loop occurs

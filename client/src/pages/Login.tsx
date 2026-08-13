@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Loader2, Mail, ShieldCheck } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -9,17 +9,31 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [message, setMessage] = useState("");
+  const [cooldown, setCooldown] = useState(0);
   const query = new URLSearchParams(window.location.search);
   const next = query.get("next") || "/dashboard";
   const requestLink = trpc.auth.requestSignInLink.useMutation({
-    onSuccess: () => setSent(true),
+    onSuccess: () => {
+      setSent(true);
+      setCooldown(60);
+    },
     onError: error => setMessage(error.message),
   });
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => setCooldown(value => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
+
+  const requestSignInLink = () => {
     setMessage("");
     requestLink.mutate({ email, origin: window.location.origin, next });
+  };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    requestSignInLink();
   };
 
   return (
@@ -31,7 +45,7 @@ export default function Login() {
         <p className="mt-2 text-sm leading-6 text-slate-600">Enter your email and we’ll send a one-time sign-in link. No Manus account is needed.</p>
         {sent ? (
           <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950">
-            <div className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0" /><p><strong>Check your inbox.</strong><br />Your secure sign-in link expires in 15 minutes.</p></div>
+            <div className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0" /><div><p><strong>Check your inbox.</strong><br />Your secure sign-in link expires in 15 minutes.</p><p className="mt-3 text-emerald-800">No email after two minutes? Check spam, then request another link.</p><Button type="button" variant="outline" className="mt-3 border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100" disabled={cooldown > 0 || requestLink.isPending} onClick={requestSignInLink}>{cooldown > 0 ? `Resend available in ${cooldown}s` : "Resend sign-in link"}</Button>{message && <p className="mt-3 text-destructive">{message}</p>}</div></div>
           </div>
         ) : (
           <form onSubmit={submit} className="mt-7 space-y-4">

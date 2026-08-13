@@ -45,6 +45,9 @@ import { createMagicLinkToken, SESSION_COOKIE } from "./auth";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { adminRouter } from "./adminRouters";
 
+const magicLinkRequestTimes = new Map<string, number>();
+const MAGIC_LINK_COOLDOWN_MS = 60_000;
+
 /** Decode a data URL or base64 string to a Buffer. */
 function decodeBase64Image(input: string): { buffer: Buffer; mime: string } {
   const match = input.match(/^data:(.+?);base64,(.*)$/);
@@ -69,14 +72,33 @@ export const appRouter = router({
     requestSignInLink: publicProcedure
       .input(z.object({ email: z.string().email(), origin: z.string().url(), next: z.string().optional() }))
       .mutation(async ({ input }) => {
-        const token = await createMagicLinkToken(input.email);
+        const email = input.email.trim().toLowerCase();
+        const lastRequestedAt = magicLinkRequestTimes.get(email) ?? 0;
+        const remainingMs = MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastRequestedAt);
+        if (remainingMs > 0) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: `Please wait ${Math.ceil(remainingMs / 1000)} seconds before requesting another sign-in link.`,
+          });
+        }
+
+        const token = await createMagicLinkToken(email);
         const next = input.next?.startsWith("/") ? input.next : "/dashboard";
         const link = new URL("/api/auth/verify", input.origin);
         link.searchParams.set("token", token);
         link.searchParams.set("next", next);
         const { sendMagicSignInLink } = await import("./email");
-        await sendMagicSignInLink(input.email.trim().toLowerCase(), link.toString());
-        return { success: true } as const;
+        try {
+          await sendMagicSignInLink(email, link.toString());
+          magicLinkRequestTimes.set(email, Date.now());
+          return { success: true } as const;
+        } catch (error) {
+          console.error("[Auth] Magic-link email delivery failed", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "We could not send the sign-in email. Please try again shortly or contact support if it continues.",
+          });
+        }
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

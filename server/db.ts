@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, or, sql } from "drizzle-orm";
+import { createHash } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertIntegration,
@@ -14,7 +15,9 @@ import {
   contacts,
   newsletterSubscribers,
   onboardingChecklist,
+  trialClaims,
 } from "../drizzle/schema";
+import { determineTrialEligibility } from "./trialEligibility";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -137,6 +140,75 @@ export async function updateUserSubscription(
   const db = await getDb();
   if (!db) return;
   await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+function getTrialEmailHash(email: string) {
+  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+}
+
+export async function getTrialEligibility(input: {
+  userId: number;
+  email?: string | null;
+  facebookPageId?: string | null;
+  stripeCustomerId?: string | null;
+}) {
+  const db = await getDb();
+  if (!db || !input.email) {
+    return determineTrialEligibility({
+      hasStripeBillingHistory: Boolean(input.stripeCustomerId),
+      hasEmailClaim: false,
+      hasFacebookPageClaim: false,
+    });
+  }
+
+  const emailHash = getTrialEmailHash(input.email);
+  const conditions = [eq(trialClaims.emailHash, emailHash)];
+  if (input.facebookPageId) {
+    conditions.push(eq(trialClaims.facebookPageId, input.facebookPageId));
+  }
+  const claims = await db
+    .select()
+    .from(trialClaims)
+    .where(or(...conditions));
+
+  return determineTrialEligibility({
+    hasStripeBillingHistory: Boolean(input.stripeCustomerId),
+    hasEmailClaim: claims.some(claim => claim.emailHash === emailHash),
+    hasFacebookPageClaim: Boolean(
+      input.facebookPageId &&
+        claims.some(claim => claim.facebookPageId === input.facebookPageId),
+    ),
+  });
+}
+
+export async function recordTrialClaim(input: {
+  userId: number;
+  email: string;
+  facebookPageId: string;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const now = new Date();
+  await db
+    .insert(trialClaims)
+    .values({
+      userId: input.userId,
+      emailHash: getTrialEmailHash(input.email),
+      facebookPageId: input.facebookPageId,
+      stripeCustomerId: input.stripeCustomerId ?? null,
+      stripeSubscriptionId: input.stripeSubscriptionId ?? null,
+      redeemedAt: now,
+      updatedAt: now,
+    })
+    .onDuplicateKeyUpdate({
+      set: {
+        stripeCustomerId: input.stripeCustomerId ?? null,
+        stripeSubscriptionId: input.stripeSubscriptionId ?? null,
+        updatedAt: now,
+      },
+    });
 }
 
 /** Update the user's logo storage key used for branding. */

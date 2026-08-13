@@ -327,8 +327,13 @@
   - Evidence preserved: Stripe records a successful **US$19.00** payment for Starter on 9 June 2026. That subscription was marked `cancel_at_period_end` on 12 June 2026 with Stripe reason `cancellation_requested` and feedback `other`; it expired on 9 July 2026. No newer subscription exists for the linked Stripe customer. The application source contains no direct Stripe cancellation API call, so the record points to a Stripe-hosted cancellation path rather than a failed file upload or a current entitlement-mapping mismatch.
 
 ## Single 7-Day Trial Enforcement — 13 August 2026
-- [ ] Trace why both Starter and Pro currently offer a 7-day trial after a customer has already received one
-- [ ] Enforce one 7-day trial across every paid plan for the same account and Stripe customer
-- [ ] Prevent simple repeat trials through a changed email by applying a durable anti-abuse rule without blocking legitimate users
-- [ ] Assess Facebook Page linkage as a secondary duplicate-trial signal, not the sole eligibility authority
-- [ ] Test and deploy the updated Starter and Pro checkout behavior
+- [x] Trace why both Starter and Pro currently offer a 7-day trial after a customer has already received one
+  - Root cause: checkout always passed `trial_period_days: 7`, regardless of prior plan, Stripe customer history, or account identity.
+- [x] Enforce one 7-day trial across every paid plan for the same account and Stripe customer
+  - Checkout now omits the Stripe trial field once an account has Stripe billing history or an existing trial claim.
+- [x] Prevent simple repeat trials through a changed email by applying a durable anti-abuse rule without blocking legitimate users
+  - Added the `trial_claims` ledger with hashed normalized email, user, Stripe customer, and Stripe subscription identities; existing paid customers were backfilled.
+- [x] Assess Facebook Page linkage as a secondary duplicate-trial signal, not the sole eligibility authority
+  - First-time trial checkout requires a connected Facebook business Page and records its Page ID. A new email reusing that Page cannot receive a second trial; Page identity remains an additional signal rather than the only account identity.
+- [x] Test and deploy the updated Starter and Pro checkout behavior
+  - 28 Vitest tests and TypeScript validation pass. Live Railway pricing now shows this existing customer **Your introductory trial has already been used** for both Starter and Pro, and the checkout server will not create another trial for this account.

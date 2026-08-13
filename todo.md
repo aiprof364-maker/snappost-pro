@@ -306,4 +306,5 @@
   - Added the required Resend DKIM, MX, and SPF records in Cloudflare; Resend verified `snappostpro.com` on 13 August 2026.
   - Live test: `noreply@snappostpro.com` delivered the 15-minute magic link to `aiprof364@gmail.com`, and that link opened the authenticated Railway-hosted dashboard.
 - [ ] Add a safe visible resend-link action with rate limiting and user-facing delivery guidance
-- [ ] Send a user to the public SnapPost Pro home page after logout while ensuring no automatic re-authentication loop occurs
+- [x] Send a user to the public SnapPost Pro home page after logout while ensuring no automatic re-authentication loop occurs
+  - Fixed the protected-page unauthenticated redirect race and verified live on 13 August 2026: dashboard Logout now opens `https://snappostpro.com/` with **Log in** and **Get started** visible, and no automatic re-authentication.

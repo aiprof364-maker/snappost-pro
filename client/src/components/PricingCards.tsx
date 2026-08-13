@@ -42,6 +42,7 @@ export default function PricingCards() {
         const featured = id === "pro";
         const currentPlan = account.data?.plan === id && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
         const hasActivePaidPlan = account.data?.plan !== "free" && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
+        const trialEligible = !isAuthenticated || account.data?.trialEligible === true;
         return (
           <div
             key={id}
@@ -65,6 +66,11 @@ export default function PricingCards() {
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
               {plan.postsPerMonth}
+            </p>
+            <p className="mt-2 text-sm font-medium text-primary">
+              {trialEligible
+                ? "Includes one 7-day trial for first-time customers."
+                : "Your introductory trial has already been used."}
             </p>
             <ul className="mt-6 flex-1 space-y-3">
               {plan.features.map(f => (

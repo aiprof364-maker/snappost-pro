@@ -54,6 +54,24 @@ export const authTokens = mysqlTable("auth_tokens", {
 export type AuthToken = typeof authTokens.$inferSelect;
 
 /**
+ * A durable ledger of first-time trial claims. Email is stored as a SHA-256
+ * hash and a connected Facebook Page is an additional anti-abuse signal.
+ */
+export const trialClaims = mysqlTable("trial_claims", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  emailHash: varchar("emailHash", { length: 64 }).notNull().unique(),
+  facebookPageId: varchar("facebookPageId", { length: 128 }).unique(),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 128 }).unique(),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }).unique(),
+  redeemedAt: timestamp("redeemedAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TrialClaim = typeof trialClaims.$inferSelect;
+export type InsertTrialClaim = typeof trialClaims.$inferInsert;
+
+/**
  * Social integrations (Facebook pages). Stores OAuth tokens and the selected page.
  * Tokens are sensitive — never expose them to the client.
  */

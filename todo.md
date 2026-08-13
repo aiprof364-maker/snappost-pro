@@ -319,3 +319,16 @@
 - [x] Add regression coverage for the exact upload-limit explanation
   - `shared/uploadLimit.test.ts` covers available capacity plus Free, Starter, and Pro monthly-cap messages; the full test suite and TypeScript validation pass.
 - [ ] Verify a live Railway photo upload succeeds after the test account has valid active posting entitlement, before resuming Meta App Review recording
+
+## Paid Starter Entitlement Correction — 13 August 2026
+- [ ] Trace the real paid Starter subscription for `aiprof364@gmail.com` across Stripe, checkout, webhooks, and the user record
+- [ ] Correct any proven cancellation, webhook, customer-linkage, or entitlement-reconciliation defect so the real paid subscriber has the Starter 30-post allowance
+- [ ] Verify the live dashboard shows Starter and `5 / 30 posts this month`, then complete one real photo-upload test
+  - Evidence preserved: Stripe records a successful **US$19.00** payment for Starter on 9 June 2026. That subscription was marked `cancel_at_period_end` on 12 June 2026 with Stripe reason `cancellation_requested` and feedback `other`; it expired on 9 July 2026. No newer subscription exists for the linked Stripe customer. The application source contains no direct Stripe cancellation API call, so the record points to a Stripe-hosted cancellation path rather than a failed file upload or a current entitlement-mapping mismatch.
+
+## Single 7-Day Trial Enforcement — 13 August 2026
+- [ ] Trace why both Starter and Pro currently offer a 7-day trial after a customer has already received one
+- [ ] Enforce one 7-day trial across every paid plan for the same account and Stripe customer
+- [ ] Prevent simple repeat trials through a changed email by applying a durable anti-abuse rule without blocking legitimate users
+- [ ] Assess Facebook Page linkage as a secondary duplicate-trial signal, not the sole eligibility authority
+- [ ] Test and deploy the updated Starter and Pro checkout behavior

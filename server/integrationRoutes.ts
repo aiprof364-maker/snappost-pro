@@ -9,6 +9,7 @@ import {
 } from "./facebook";
 import {
   getUserByOpenId,
+  recordTrialClaim,
   updateUserSubscription,
   upsertIntegration,
   updateOnboardingStep,
@@ -150,6 +151,18 @@ export function registerIntegrationRoutes(app: Express) {
                   .limit(1);
                 const user = rows[0];
                 if (user && user.email) {
+                  if (
+                    session.metadata?.trialEligible === "true" &&
+                    session.metadata?.facebookPageId
+                  ) {
+                    await recordTrialClaim({
+                      userId,
+                      email: user.email,
+                      facebookPageId: session.metadata.facebookPageId,
+                      stripeCustomerId: session.customer ?? undefined,
+                      stripeSubscriptionId: session.subscription ?? undefined,
+                    });
+                  }
                   // Send purchase confirmation email
                   await sendPurchaseConfirmation(
                     user.email,

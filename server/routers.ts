@@ -20,6 +20,7 @@ import {
   deleteIntegration,
   getIntegration,
   getPostById,
+  getTrialEligibility,
   getUserById,
   getUserPosts,
   updatePost,
@@ -43,6 +44,7 @@ import {
 } from "./stripe";
 import { createMagicLinkToken, SESSION_COOKIE } from "./auth";
 import { storageGetSignedUrl, storagePut } from "./storage";
+import { getCheckoutTrialData } from "./trialEligibility";
 import { adminRouter } from "./adminRouters";
 
 const magicLinkRequestTimes = new Map<string, number>();
@@ -150,11 +152,18 @@ export const appRouter = router({
       const user = await reconcileUserSubscription(await getUserById(ctx.user.id));
       const integration = await getIntegration(ctx.user.id, "facebook");
       const plan = (user?.plan ?? "free") as "free" | PlanId;
+      const trial = await getTrialEligibility({
+        userId: ctx.user.id,
+        email: user?.email,
+        facebookPageId: integration?.pageId,
+        stripeCustomerId: user?.stripeCustomerId,
+      });
       const used = await countUserPostsSince(ctx.user.id, startOfMonth());
       const limit = PLAN_POST_LIMITS[plan];
       return {
         plan,
         subscriptionStatus: user?.subscriptionStatus ?? "none",
+        trialEligible: trial.eligible,
         usage: { used, limit },
         hasLogo: Boolean(user?.logoKey),
         facebook: integration
@@ -459,16 +468,35 @@ export const appRouter = router({
             message: `You already have an active ${user.plan} subscription. Use Manage subscription to change your plan.`,
           });
         }
+        const integration = await getIntegration(ctx.user.id, "facebook");
+        const trial = await getTrialEligibility({
+          userId: ctx.user.id,
+          email: user?.email,
+          facebookPageId: integration?.pageId,
+          stripeCustomerId: user?.stripeCustomerId,
+        });
+        if (trial.eligible && !integration?.pageId) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Connect your Facebook business Page before starting your one 7-day trial. This protects the trial from duplicate claims.",
+          });
+        }
         console.log(`[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`);
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
           line_items: [{ price: priceId, quantity: 1 }],
-          customer_email: user?.email ?? undefined,
+          ...(user?.stripeCustomerId
+            ? { customer: user.stripeCustomerId }
+            : { customer_email: user?.email ?? undefined }),
           client_reference_id: String(ctx.user.id),
-          metadata: { userId: String(ctx.user.id), plan: input.plan },
-          subscription_data: {
-            trial_period_days: 7,
+          metadata: {
+            userId: String(ctx.user.id),
+            plan: input.plan,
+            trialEligible: String(trial.eligible),
+            facebookPageId: integration?.pageId ?? "",
           },
+          subscription_data: getCheckoutTrialData(trial.eligible),
           success_url: `${input.origin}/dashboard?checkout=success`,
           cancel_url: `${input.origin}/pricing?checkout=cancel`,
         });

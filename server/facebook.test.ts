@@ -8,11 +8,10 @@ describe("facebook scopes", () => {
       "pages_manage_posts",
       "pages_read_engagement",
       "pages_show_list",
-      "pages_manage_metadata",
     ]);
   });
 
   it("does not include any extra permissions", () => {
-    expect(FACEBOOK_SCOPES).toHaveLength(5);
+    expect(FACEBOOK_SCOPES).toHaveLength(4);
   });
 });

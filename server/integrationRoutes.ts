@@ -5,7 +5,6 @@ import { parse as parseCookieHeader } from "cookie";
 import {
   exchangeCodeForToken,
   getLongLivedToken,
-  listPages,
 } from "./facebook";
 import {
   getUserByOpenId,
@@ -63,28 +62,13 @@ export function registerIntegrationRoutes(app: Express) {
       const shortToken = await exchangeCodeForToken(code, redirectUri);
       const longToken = await getLongLivedToken(shortToken).catch(() => shortToken);
 
-      // Auto-select the first page if exactly one is available.
-      let pageId: string | undefined;
-      let pageName: string | undefined;
-      let pageAccessToken: string | undefined;
-      try {
-        const pages = await listPages(longToken);
-        if (pages.length === 1) {
-          pageId = pages[0].id;
-          pageName = pages[0].name;
-          pageAccessToken = pages[0].access_token;
-        }
-      } catch {
-        /* ignore page listing errors; user can select later */
-      }
-
       await upsertIntegration({
         userId,
         provider: "facebook",
         accessToken: longToken,
-        pageId,
-        pageName,
-        pageAccessToken,
+        pageId: null,
+        pageName: null,
+        pageAccessToken: null,
         status: "connected",
       });
       await updateOnboardingStep(userId, "facebookConnected", true);

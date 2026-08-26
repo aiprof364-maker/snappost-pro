@@ -4,6 +4,7 @@ const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET ?? "";
 
 /** Minimum permissions for contractor-selected Facebook Page listing and publishing. */
 export const FACEBOOK_SCOPES = [
+  "business_management",
   "pages_manage_posts",
   "pages_show_list",
   // Read only the permalink for the exact post SnapPost Pro just created.
@@ -70,6 +71,53 @@ export type FacebookPage = {
   access_token: string;
 };
 
+export type FacebookBusiness = {
+  id: string;
+  name: string;
+};
+
+type FacebookBusinessPage = Pick<FacebookPage, "id" | "name">;
+
+/** List Meta business portfolios administered by the authenticated contractor. */
+export async function listBusinesses(userToken: string): Promise<FacebookBusiness[]> {
+  const url = new URL(`${GRAPH}/me/businesses`);
+  url.searchParams.set("access_token", userToken);
+  url.searchParams.set("fields", "id,name");
+
+  const resp = await fetch(url);
+  const data = (await resp.json()) as { data?: FacebookBusiness[]; error?: any };
+  if (!resp.ok) {
+    throw new Error(`Facebook list businesses failed: ${data.error?.message ?? resp.status}`);
+  }
+  return data.data ?? [];
+}
+
+/** List Page assets owned by the selected business portfolio. */
+export async function listBusinessPages(
+  businessId: string,
+  userToken: string,
+): Promise<FacebookBusinessPage[]> {
+  const url = new URL(`${GRAPH}/${businessId}/owned_pages`);
+  url.searchParams.set("access_token", userToken);
+  url.searchParams.set("fields", "id,name");
+
+  const resp = await fetch(url);
+  const data = (await resp.json()) as { data?: FacebookBusinessPage[]; error?: any };
+  if (!resp.ok) {
+    throw new Error(`Facebook list business Pages failed: ${data.error?.message ?? resp.status}`);
+  }
+  return data.data ?? [];
+}
+
+/** Return the OAuth Page tokens only for Pages belonging to the selected business portfolio. */
+export function filterPagesForBusiness(
+  accessiblePages: FacebookPage[],
+  businessPages: FacebookBusinessPage[],
+): FacebookPage[] {
+  const businessPageIds = new Set(businessPages.map(page => page.id));
+  return accessiblePages.filter(page => businessPageIds.has(page.id));
+}
+
 /** List the pages the user manages, with page-scoped tokens. */
 export async function listPages(userToken: string): Promise<FacebookPage[]> {
   const url = new URL(`${GRAPH}/me/accounts`);
@@ -82,6 +130,18 @@ export async function listPages(userToken: string): Promise<FacebookPage[]> {
     throw new Error(`Facebook list pages failed: ${data.error?.message ?? resp.status}`);
   }
   return data.data ?? [];
+}
+
+/** Discover publishing-ready Pages within one contractor-selected business portfolio. */
+export async function listPagesForBusiness(
+  businessId: string,
+  userToken: string,
+): Promise<FacebookPage[]> {
+  const [accessiblePages, businessPages] = await Promise.all([
+    listPages(userToken),
+    listBusinessPages(businessId, userToken),
+  ]);
+  return filterPagesForBusiness(accessiblePages, businessPages);
 }
 
 /**

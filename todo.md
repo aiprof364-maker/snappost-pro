@@ -292,7 +292,14 @@
 ## Replacement Meta Evidence Recording — 26 August 2026
 - [x] Prepare the one-piece replacement recording script covering passwordless sign-in, Facebook Login for Business, Airprof Studios and TradiePosts selection, publish, verified permalink, and live Facebook post
   - Ready-to-follow script: `/home/ubuntu/snappost-pro/references/meta_replacement_recording_script.md`.
-- [ ] Reset the current Facebook connection and record the single replacement Meta evidence video using the approved script
+- [x] Reset the current Facebook connection and record the single replacement Meta evidence video using the approved script
+  - Replacement video: `https://youtu.be/aZL6lI4PYOo` — verified public as Unlisted, 5:01 long, and independently reviewed against the required flow.
+- [x] Revise the evidence script to begin from the already authenticated SnapPost dashboard and focus only on Meta’s previously missing Facebook Login for Business grant evidence
+- [x] Prepare and submit the corrected Meta App Review form with the replacement evidence after explicit user approval
+  - Resubmission draft ID `1418013020222207` is now **Review in progress** for `pages_manage_posts`, `pages_show_list`, `business_management`, and `pages_read_engagement`. Meta’s page states that most submissions are reviewed within 20 days and may take longer if it needs more information.
+- [x] Validate and document the reviewer-accessible passwordless sign-in path required for Meta’s App Verification Details
+  - Reviewers can request their own 15-minute magic link at `https://snappostpro.com/`; no personal password or Facebook credential is supplied in the verification instructions.
+- [ ] Monitor Meta’s review response and respond only to specific reviewer questions or a decision
 
 ## Exact Facebook Permalink Verification Regression — 26 August 2026
 - [x] Remove the deprecated `link` field from exact newly published post verification and retain only the canonical `permalink_url`

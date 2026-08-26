@@ -289,6 +289,9 @@
   - Unit coverage verifies the four scopes, portfolio filtering, exact-post fields, and Graph discovery errors. Full suite, TypeScript check, and production build pass locally.
 - [ ] Deploy the correction and live-verify Airprof Studios → TradiePosts discovery, a publish, and the verified live permalink before recording replacement Meta evidence
 
+## Content Compliance
+- [x] Remove the fabricated customer testimonial section from the public landing page; do not replace it with invented reviews, ratings, names, or outcomes
+
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

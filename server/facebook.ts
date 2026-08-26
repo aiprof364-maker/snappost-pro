@@ -2,15 +2,9 @@ const GRAPH = "https://graph.facebook.com/v19.0";
 const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID ?? "";
 const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET ?? "";
 
-/**
- * Minimum permissions for contractor-selected Facebook Page publishing.
- * business_management is required by Meta's Manage everything on your Page
- * use case to enumerate business-managed Pages through /me/accounts.
- */
+/** Minimum permissions for contractor-selected Facebook Page listing and publishing. */
 export const FACEBOOK_SCOPES = [
-  "business_management",
   "pages_manage_posts",
-  "pages_read_engagement",
   "pages_show_list",
 ] as const;
 

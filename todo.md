@@ -285,9 +285,14 @@
   - The dashboard visibly asks the contractor to select a business portfolio before loading its publishing-ready Pages. The selected portfolio is used with Meta’s `owned_pages` endpoint and Page tokens are matched only from that portfolio.
   - Fresh OAuth no longer silently auto-selects or silently fails Page discovery. Graph failures display an actionable reconnect state; connection state is cleared until the user makes the explicit selections.
 - [x] Preserve minimal exact-post verification for `pages_read_engagement`
-  - The server reads only `/{new-post-id}?fields=id,permalink_url,link`, and the success UI exposes the verified live permalink.
+  - The server reads only `/{new-post-id}?fields=id,permalink_url`, and the success UI exposes the verified live permalink.
   - Unit coverage verifies the four scopes, portfolio filtering, exact-post fields, and Graph discovery errors. Full suite, TypeScript check, and production build pass locally.
-- [ ] Deploy the correction and live-verify Airprof Studios → TradiePosts discovery, a publish, and the verified live permalink before recording replacement Meta evidence
+- [x] Deploy the correction and live-verify Airprof Studios → TradiePosts discovery, a publish, and the verified live permalink before recording replacement Meta evidence
+
+## Replacement Meta Evidence Recording — 26 August 2026
+- [x] Prepare the one-piece replacement recording script covering passwordless sign-in, Facebook Login for Business, Airprof Studios and TradiePosts selection, publish, verified permalink, and live Facebook post
+  - Ready-to-follow script: `/home/ubuntu/snappost-pro/references/meta_replacement_recording_script.md`.
+- [ ] Reset the current Facebook connection and record the single replacement Meta evidence video using the approved script
 
 ## Exact Facebook Permalink Verification Regression — 26 August 2026
 - [x] Remove the deprecated `link` field from exact newly published post verification and retain only the canonical `permalink_url`

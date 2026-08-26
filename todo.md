@@ -279,6 +279,16 @@
 - [x] Verify the Facebook request contains only the required Business and Page permissions
 - [x] Verify administrator Page connection and a successful test post before App Review submission
 
+## Meta App Review Correction — Business-Portfolio Page Discovery
+- [x] Restore `business_management` and implement a visible business-portfolio → Page selection flow for business-owned Pages
+  - OAuth now requests only `business_management`, `pages_manage_posts`, `pages_show_list`, and `pages_read_engagement`.
+  - The dashboard visibly asks the contractor to select a business portfolio before loading its publishing-ready Pages. The selected portfolio is used with Meta’s `owned_pages` endpoint and Page tokens are matched only from that portfolio.
+  - Fresh OAuth no longer silently auto-selects or silently fails Page discovery. Graph failures display an actionable reconnect state; connection state is cleared until the user makes the explicit selections.
+- [x] Preserve minimal exact-post verification for `pages_read_engagement`
+  - The server reads only `/{new-post-id}?fields=id,permalink_url,link`, and the success UI exposes the verified live permalink.
+  - Unit coverage verifies the four scopes, portfolio filtering, exact-post fields, and Graph discovery errors. Full suite, TypeScript check, and production build pass locally.
+- [ ] Deploy the correction and live-verify Airprof Studios → TradiePosts discovery, a publish, and the verified live permalink before recording replacement Meta evidence
+
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

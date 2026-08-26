@@ -31,7 +31,8 @@ import {
   FACEBOOK_SCOPES,
   getPublishedPostPermalink,
   isFacebookConfigured,
-  listPages,
+  listBusinesses,
+  listPagesForBusiness,
   postPhotoToPage,
 } from "./facebook";
 import {
@@ -400,27 +401,56 @@ export const appRouter = router({
         return { url: buildFacebookAuthUrl(redirectUri, state) };
       }),
 
-    /** List pages available on the stored user token, for page selection. */
-    listPages: protectedProcedure.query(async ({ ctx }) => {
+    /** List business portfolios available to the authenticated contractor. */
+    listBusinesses: protectedProcedure.query(async ({ ctx }) => {
       const integration = await getIntegration(ctx.user.id, "facebook");
       if (!integration?.accessToken) return [];
       try {
-        const pages = await listPages(integration.accessToken);
-        return pages.map(p => ({ id: p.id, name: p.name }));
-      } catch {
-        return [];
+        return await listBusinesses(integration.accessToken);
+      } catch (error) {
+        console.error("[Facebook] Business portfolio discovery failed", error);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Facebook could not read your business portfolios. Reconnect Facebook and accept the requested business and Page access.",
+        });
       }
     }),
 
-    /** Select which page to publish to (stores the page-scoped token). */
+    /** List publishing-ready Pages inside one contractor-selected business portfolio. */
+    listPages: protectedProcedure
+      .input(z.object({ businessId: z.string().min(1) }))
+      .query(async ({ ctx, input }) => {
+        const integration = await getIntegration(ctx.user.id, "facebook");
+        if (!integration?.accessToken) return [];
+        try {
+          const pages = await listPagesForBusiness(input.businessId, integration.accessToken);
+          return pages.map(p => ({ id: p.id, name: p.name }));
+        } catch (error) {
+          console.error("[Facebook] Page discovery failed", error);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Facebook could not read Pages in this business portfolio. Reconnect Facebook and accept the requested business and Page access.",
+          });
+        }
+      }),
+
+    /** Select a business portfolio and Page, storing the page-scoped publish token. */
     selectPage: protectedProcedure
-      .input(z.object({ pageId: z.string() }))
+      .input(
+        z.object({
+          businessId: z.string().min(1),
+          businessName: z.string().min(1),
+          pageId: z.string().min(1),
+        }),
+      )
       .mutation(async ({ ctx, input }) => {
         const integration = await getIntegration(ctx.user.id, "facebook");
         if (!integration?.accessToken) {
           throw new TRPCError({ code: "PRECONDITION_FAILED" });
         }
-        const pages = await listPages(integration.accessToken);
+        const pages = await listPagesForBusiness(input.businessId, integration.accessToken);
         const page = pages.find(p => p.id === input.pageId);
         if (!page) throw new TRPCError({ code: "NOT_FOUND" });
         await upsertIntegration({

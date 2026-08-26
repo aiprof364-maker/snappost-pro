@@ -265,11 +265,14 @@ export async function upsertIntegration(data: InsertIntegration) {
     await db
       .update(integrations)
       .set({
-        accessToken: data.accessToken ?? existing.accessToken,
-        pageAccessToken: data.pageAccessToken ?? existing.pageAccessToken,
-        pageId: data.pageId ?? existing.pageId,
-        pageName: data.pageName ?? existing.pageName,
-        status: data.status ?? existing.status,
+        accessToken: data.accessToken === undefined ? existing.accessToken : data.accessToken,
+        pageAccessToken:
+          data.pageAccessToken === undefined
+            ? existing.pageAccessToken
+            : data.pageAccessToken,
+        pageId: data.pageId === undefined ? existing.pageId : data.pageId,
+        pageName: data.pageName === undefined ? existing.pageName : data.pageName,
+        status: data.status === undefined ? existing.status : data.status,
       })
       .where(eq(integrations.id, existing.id));
     return getIntegration(data.userId, data.provider ?? "facebook");

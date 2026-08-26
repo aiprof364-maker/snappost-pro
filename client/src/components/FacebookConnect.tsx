@@ -8,14 +8,25 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { CheckCircle2, Facebook, Loader2, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function FacebookConnect() {
   const utils = trpc.useUtils();
   const statusQuery = trpc.facebook.status.useQuery();
-  const pagesQuery = trpc.facebook.listPages.useQuery(undefined, {
-    enabled: Boolean(statusQuery.data?.connection),
+  const [selectedBusiness, setSelectedBusiness] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const businessesQuery = trpc.facebook.listBusinesses.useQuery(undefined, {
+    enabled: Boolean(statusQuery.data?.connection && !statusQuery.data.connection.pageId),
   });
+  const pagesQuery = trpc.facebook.listPages.useQuery(
+    { businessId: selectedBusiness?.id ?? "" },
+    {
+      enabled: Boolean(selectedBusiness?.id),
+    },
+  );
 
   const getAuthUrl = trpc.facebook.getAuthUrl.useMutation({
     onSuccess: data => {
@@ -26,7 +37,7 @@ export default function FacebookConnect() {
 
   const selectPage = trpc.facebook.selectPage.useMutation({
     onSuccess: () => {
-      toast.success("Facebook page connected.");
+      toast.success("Business portfolio and Facebook Page connected.");
       utils.facebook.status.invalidate();
       utils.account.overview.invalidate();
     },
@@ -84,30 +95,73 @@ export default function FacebookConnect() {
       ) : connection ? (
         <div className="mt-4">
           <p className="text-sm text-muted-foreground">
-            Select the page you want to post to:
+            Select your business portfolio, then the Page you want to post to:
           </p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 space-y-3">
             <Select
-              onValueChange={pageId => selectPage.mutate({ pageId })}
-              disabled={pagesQuery.isLoading || selectPage.isPending}
+              onValueChange={businessId => {
+                const business = (businessesQuery.data ?? []).find(item => item.id === businessId);
+                setSelectedBusiness(business ? { id: business.id, name: business.name } : null);
+              }}
+              disabled={businessesQuery.isLoading}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a page" />
+                <SelectValue placeholder="Choose a business portfolio" />
               </SelectTrigger>
               <SelectContent>
-                {(pagesQuery.data ?? []).map(p => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
+                {(businessesQuery.data ?? []).map(business => (
+                  <SelectItem key={business.id} value={business.id}>
+                    {business.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedBusiness && (
+              <Select
+                onValueChange={pageId =>
+                  selectPage.mutate({
+                    businessId: selectedBusiness.id,
+                    businessName: selectedBusiness.name,
+                    pageId,
+                  })
+                }
+                disabled={pagesQuery.isLoading || selectPage.isPending}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a Page" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(pagesQuery.data ?? []).map(page => (
+                    <SelectItem key={page.id} value={page.id}>
+                      {page.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          {pagesQuery.data?.length === 0 && (
+          {(businessesQuery.isError || pagesQuery.isError) && (
             <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
               <p>
-                No Pages are available with this connection yet. Reconnect to refresh
-                your Facebook permissions and Page access.
+                Facebook could not read the selected business portfolio or its Pages.
+                Reconnect and accept the requested business and Page access.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => getAuthUrl.mutate({ origin: window.location.origin })}
+                disabled={getAuthUrl.isPending}
+              >
+                {getAuthUrl.isPending ? "Opening Facebook..." : "Reconnect Facebook"}
+              </Button>
+            </div>
+          )}
+          {businessesQuery.data?.length === 0 && (
+            <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
+              <p>
+                No business portfolios are available with this connection yet. Reconnect
+                to refresh your Facebook permissions and business access.
               </p>
               <Button
                 variant="outline"
@@ -120,6 +174,11 @@ export default function FacebookConnect() {
               >
                 {getAuthUrl.isPending ? "Opening Facebook..." : "Reconnect Facebook"}
               </Button>
+            </div>
+          )}
+          {selectedBusiness && pagesQuery.data?.length === 0 && !pagesQuery.isLoading && (
+            <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
+              No Pages are available in this business portfolio with publishing access.
             </div>
           )}
         </div>

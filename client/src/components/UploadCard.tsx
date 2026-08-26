@@ -41,6 +41,7 @@ export default function UploadCard({
   const [brandedUrl, setBrandedUrl] = useState<string | null>(null);
   const [publishedPost, setPublishedPost] = useState<{
     facebookPostId: string;
+    facebookPostUrl: string;
     pageName: string;
   } | null>(null);
 
@@ -75,6 +76,7 @@ export default function UploadCard({
     onSuccess: result => {
       setPublishedPost({
         facebookPostId: result.facebookPostId,
+        facebookPostUrl: result.facebookPostUrl,
         pageName: result.pageName,
       });
       toast.success(`Posted to ${result.pageName}!`);
@@ -267,10 +269,10 @@ export default function UploadCard({
                   <div>
                     <p className="font-semibold">Posted successfully to {publishedPost.pageName}</p>
                     <p className="mt-1 text-sm text-emerald-800">
-                      Your branded job-site post is now live on Facebook.
+                      Your branded job-site post is verified live on Facebook.
                     </p>
                     <a
-                      href={getFacebookPostUrl(publishedPost.facebookPostId)}
+                      href={publishedPost.facebookPostUrl ?? getFacebookPostUrl(publishedPost.facebookPostId)}
                       target="_blank"
                       rel="noreferrer"
                       className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"

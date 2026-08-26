@@ -185,16 +185,17 @@ export async function getPublishedPostPermalink(params: {
   pageAccessToken: string;
 }): Promise<string> {
   const url = new URL(`${GRAPH}/${params.postId}`);
-  url.searchParams.set("fields", "id,permalink_url,link");
+  // `link` is deprecated for attachment nodes in supported Graph API versions.
+  // `permalink_url` is the canonical URL for the exact post we just created.
+  url.searchParams.set("fields", "id,permalink_url");
   url.searchParams.set("access_token", params.pageAccessToken);
 
   const resp = await fetch(url);
   const data = (await resp.json()) as {
     permalink_url?: string;
-    link?: string;
     error?: any;
   };
-  const permalinkUrl = data.permalink_url ?? data.link;
+  const permalinkUrl = data.permalink_url;
   if (!resp.ok || !permalinkUrl) {
     throw new Error(
       `Facebook post verification failed: ${data.error?.message ?? resp.status}`,

@@ -289,6 +289,11 @@
   - Unit coverage verifies the four scopes, portfolio filtering, exact-post fields, and Graph discovery errors. Full suite, TypeScript check, and production build pass locally.
 - [ ] Deploy the correction and live-verify Airprof Studios → TradiePosts discovery, a publish, and the verified live permalink before recording replacement Meta evidence
 
+## Exact Facebook Permalink Verification Regression — 26 August 2026
+- [x] Remove the deprecated `link` field from exact newly published post verification and retain only the canonical `permalink_url`
+  - The live failure was Graph API error `(#12) deprecate_post_aggregated_fields_for_attachment`; `link` was removed from the exact-post lookup. The regression test, full test suite, TypeScript check, and production build pass.
+- [ ] Deploy the verifier correction and publish one different existing draft to confirm a working verified-live permalink without retrying the failed post
+
 ## Content Compliance
 - [x] Remove the fabricated customer testimonial section from the public landing page; do not replace it with invented reviews, ratings, names, or outcomes
 

@@ -53,9 +53,10 @@ describe("facebook scopes", () => {
     const [request] = fetchMock.mock.calls[0];
     const url = new URL(String(request));
     expect(url.pathname).toBe("/v19.0/123_456");
-    expect(url.searchParams.get("fields")).toBe("id,permalink_url,link");
+    expect(url.searchParams.get("fields")).toBe("id,permalink_url");
     expect(url.searchParams.get("fields")).not.toContain("feed");
     expect(url.searchParams.get("fields")).not.toContain("comments");
+    expect(url.searchParams.get("fields")?.split(",")).not.toContain("link");
   });
 
   it("throws when Facebook rejects business-portfolio discovery instead of treating it as an empty result", async () => {

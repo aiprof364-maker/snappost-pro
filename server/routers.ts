@@ -29,6 +29,7 @@ import {
 } from "./db";
 import {
   FACEBOOK_SCOPES,
+  getPublishedPostPermalink,
   isFacebookConfigured,
   listPages,
   postPhotoToPage,
@@ -336,6 +337,10 @@ export const appRouter = router({
             imageUrl,
             caption: post.caption ?? "",
           });
+          const facebookPostUrl = await getPublishedPostPermalink({
+            postId: fbId,
+            pageAccessToken: integration.pageAccessToken,
+          });
           await updatePost(input.id, {
             status: "published",
             facebookPostId: fbId,
@@ -344,6 +349,7 @@ export const appRouter = router({
           return {
             success: true,
             facebookPostId: fbId,
+            facebookPostUrl,
             pageName: integration.pageName ?? "your Facebook Page",
           } as const;
         } catch (e: any) {

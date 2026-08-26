@@ -6,6 +6,8 @@ const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET ?? "";
 export const FACEBOOK_SCOPES = [
   "pages_manage_posts",
   "pages_show_list",
+  // Read only the permalink for the exact post SnapPost Pro just created.
+  "pages_read_engagement",
 ] as const;
 
 export function isFacebookConfigured(): boolean {
@@ -112,4 +114,31 @@ export async function postPhotoToPage(params: {
     );
   }
   return data.post_id ?? data.id!;
+}
+
+/**
+ * Verify the exact Page post just created and return its canonical Facebook URL.
+ * This deliberately reads no Page feed, comments, audience data, or historical content.
+ */
+export async function getPublishedPostPermalink(params: {
+  postId: string;
+  pageAccessToken: string;
+}): Promise<string> {
+  const url = new URL(`${GRAPH}/${params.postId}`);
+  url.searchParams.set("fields", "id,permalink_url,link");
+  url.searchParams.set("access_token", params.pageAccessToken);
+
+  const resp = await fetch(url);
+  const data = (await resp.json()) as {
+    permalink_url?: string;
+    link?: string;
+    error?: any;
+  };
+  const permalinkUrl = data.permalink_url ?? data.link;
+  if (!resp.ok || !permalinkUrl) {
+    throw new Error(
+      `Facebook post verification failed: ${data.error?.message ?? resp.status}`,
+    );
+  }
+  return permalinkUrl;
 }

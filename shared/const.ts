@@ -35,11 +35,10 @@ export const PLANS: Record<
     postsPerMonth: "300 posts / month",
     features: [
       "300 branded posts per month",
-      "AI captions with tone control",
+      "AI captions",
       "Logo branding overlay",
-      "Up to 5 connected Facebook pages",
-      "Priority processing",
-      "Post history & analytics",
+      "1 connected Facebook Page",
+      "Post history",
     ],
   },
 };

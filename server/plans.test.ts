@@ -17,4 +17,14 @@ describe("pricing plans", () => {
     expect(PLAN_POST_LIMITS.starter).toBe(30);
     expect(PLAN_POST_LIMITS.pro).toBe(300);
   });
+
+  it("lists only currently implemented Pro features", () => {
+    expect(PLANS.pro.features).toEqual([
+      "300 branded posts per month",
+      "AI captions",
+      "Logo branding overlay",
+      "1 connected Facebook Page",
+      "Post history",
+    ]);
+  });
 });

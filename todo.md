@@ -324,6 +324,10 @@
 - [x] Verify whether the live Stripe trial checkout requires a payment card and correct the public “No credit card required” claim if it does
   - The subscription Checkout code does not set `payment_method_collection`; Stripe documents that this setting defaults to `always` for subscription sessions. The landing page now accurately states: **7-day free trial · Card required to start · Cancel anytime**. Regression coverage, all tests, TypeScript checking, and the production build pass.
 
+## Remaining Customer-Facing Feature Claim Audit — 5 September 2026
+- [x] Remove or correct unsupported Pro pricing, FAQ, and transactional-email claims for multiple Facebook Pages, priority processing, engagement analytics, audience data, automatic scheduling, and AI caption variations
+  - Pro pricing now promises the supported 300-post allowance, AI captions, logo branding, one connected Facebook Page, and post history. The related FAQ and onboarding/purchase emails now describe only current features. All tests, TypeScript checking, and the production build pass; runtime customer-facing source contains none of the removed claims.
+
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

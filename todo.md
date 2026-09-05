@@ -299,7 +299,8 @@
   - Resubmission draft ID `1418013020222207` is now **Review in progress** for `pages_manage_posts`, `pages_show_list`, `business_management`, and `pages_read_engagement`. Meta’s page states that most submissions are reviewed within 20 days and may take longer if it needs more information.
 - [x] Validate and document the reviewer-accessible passwordless sign-in path required for Meta’s App Verification Details
   - Reviewers can request their own 15-minute magic link at `https://snappostpro.com/`; no personal password or Facebook credential is supplied in the verification instructions.
-- [ ] Monitor Meta’s review response and respond only to specific reviewer questions or a decision
+- [x] Monitor Meta’s review response and record the completed decision
+  - On 5 September 2026, Meta approved `pages_manage_posts`, `pages_show_list`, `business_management`, and `pages_read_engagement`; `public_profile` was renewed. SnapPostPro Publishing was then changed to **Published** and its dashboard has no required actions.
 
 ## Exact Facebook Permalink Verification Regression — 26 August 2026
 - [x] Remove the deprecated `link` field from exact newly published post verification and retain only the canonical `permalink_url`
@@ -309,6 +310,13 @@
 
 ## Content Compliance
 - [x] Remove the fabricated customer testimonial section from the public landing page; do not replace it with invented reviews, ratings, names, or outcomes
+
+## Post-Publication Dashboard Truthfulness — 5 September 2026
+- [x] Diagnose the live `Posts Published: 0` summary metric when the same dashboard lists multiple published posts
+  - Root cause: `SuccessDashboard` explicitly set `totalPosts` and `publishedPosts` to zero rather than reading the authenticated user’s saved post data.
+- [x] Replace placeholder dashboard metrics and unsupported premium-feature claims with truthful current-post statistics and available functionality
+  - The dashboard now derives total and published counts from `posts.list`, shows remaining current-month allowance, and removes unbuilt claims for real-time engagement, audience data, multi-Page posting, and automatic scheduling.
+- [ ] Deploy and verify the corrected dashboard metric on the live Railway site without creating a post, payment, or trial
 
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft

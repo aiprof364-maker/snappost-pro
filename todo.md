@@ -316,6 +316,8 @@
   - Root cause: `SuccessDashboard` explicitly set `totalPosts` and `publishedPosts` to zero rather than reading the authenticated user’s saved post data.
 - [x] Replace placeholder dashboard metrics and unsupported premium-feature claims with truthful current-post statistics and available functionality
   - The dashboard now derives total and published counts from `posts.list`, shows remaining current-month allowance, and removes unbuilt claims for real-time engagement, audience data, multi-Page posting, and automatic scheduling.
+- [x] Remove the remaining unsupported feature claims rendered by the separate Feature Unlock dashboard component before marketing
+  - The former premium-feature widget now lists only the four features currently implemented. Regression coverage, all tests, TypeScript checking, and the production build pass.
 - [ ] Deploy and verify the corrected dashboard metric on the live Railway site without creating a post, payment, or trial
 
 ## Draft Post Usability (Current)

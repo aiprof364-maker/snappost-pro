@@ -318,11 +318,15 @@
   - The dashboard now derives total and published counts from `posts.list`, shows remaining current-month allowance, and removes unbuilt claims for real-time engagement, audience data, multi-Page posting, and automatic scheduling.
 - [x] Remove the remaining unsupported feature claims rendered by the separate Feature Unlock dashboard component before marketing
   - The former premium-feature widget now lists only the four features currently implemented. Regression coverage, all tests, TypeScript checking, and the production build pass.
-- [ ] Deploy and verify the corrected dashboard metric on the live Railway site without creating a post, payment, or trial
+- [x] Deploy and verify the corrected dashboard metric on the live Railway site without creating a post, payment, or trial
+  - Live Railway dashboard now shows **6 Posts Published**, **10 total created**, the current month’s **30 Posts Remaining**, and only implemented product features. No post, payment, or trial was created during verification.
 
 ## Public Checkout Message Accuracy — 5 September 2026
 - [x] Verify whether the live Stripe trial checkout requires a payment card and correct the public “No credit card required” claim if it does
   - The subscription Checkout code does not set `payment_method_collection`; Stripe documents that this setting defaults to `always` for subscription sessions. The landing page now accurately states: **7-day free trial · Card required to start · Cancel anytime**. Regression coverage, all tests, TypeScript checking, and the production build pass.
+- [x] Verify public sign-in and pricing entry points without creating a checkout session
+  - Public login is reachable at `https://snappostpro.com/login?next=%2Fdashboard` and states that no Manus account is needed. Public pricing is reachable at `https://snappostpro.com/pricing` and displays the accurate trial-card and plan-feature copy.
+- [ ] Complete a fresh public-customer end-to-end connection and checkout test using a separate email and a Facebook Page controlled by that tester; this cannot be proven with the current paid account without creating a second account/relationship
 
 ## Remaining Customer-Facing Feature Claim Audit — 5 September 2026
 - [x] Remove or correct unsupported Pro pricing, FAQ, and transactional-email claims for multiple Facebook Pages, priority processing, engagement analytics, audience data, automatic scheduling, and AI caption variations

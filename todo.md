@@ -320,6 +320,10 @@
   - The former premium-feature widget now lists only the four features currently implemented. Regression coverage, all tests, TypeScript checking, and the production build pass.
 - [ ] Deploy and verify the corrected dashboard metric on the live Railway site without creating a post, payment, or trial
 
+## Public Checkout Message Accuracy — 5 September 2026
+- [x] Verify whether the live Stripe trial checkout requires a payment card and correct the public “No credit card required” claim if it does
+  - The subscription Checkout code does not set `payment_method_collection`; Stripe documents that this setting defaults to `always` for subscription sessions. The landing page now accurately states: **7-day free trial · Card required to start · Cancel anytime**. Regression coverage, all tests, TypeScript checking, and the production build pass.
+
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

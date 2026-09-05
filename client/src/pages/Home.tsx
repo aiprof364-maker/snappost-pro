@@ -14,6 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getLoginUrl } from "@/const";
+import { TRIAL_SUMMARY } from "@/lib/trialCopy";
 import {
   Camera,
   Sparkles,
@@ -153,7 +154,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              7-day free trial · No credit card required · Cancel anytime
+              {TRIAL_SUMMARY}
             </p>
           </div>
 

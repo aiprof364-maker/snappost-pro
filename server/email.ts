@@ -71,8 +71,8 @@ export async function sendPurchaseConfirmation(
             <li><strong>${details.posts} branded posts per month</strong></li>
             <li>AI-generated captions</li>
             <li>Logo branding overlay</li>
-            ${plan === "pro" ? "<li>Up to 5 Facebook pages</li>" : ""}
-            ${plan === "pro" ? "<li>Priority processing</li>" : ""}
+            <li>One connected Facebook Page</li>
+            <li>Saved post history</li>
           </ul>
         </div>
 
@@ -489,13 +489,13 @@ export async function sendOnboardingReminder24h(email: string, userName: string,
   } else if (completionPercentage < 50) {
     nextStepMessage = "Connect your Facebook page to publish posts directly.";
   } else if (completionPercentage < 100) {
-    nextStepMessage = "Publish your first post to Facebook to unlock premium features.";
+    nextStepMessage = "Publish your first post to Facebook to complete your setup.";
   }
 
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
-    subject: `${completionPercentage}% done! Just ${100 - completionPercentage}% more to unlock premium features 🚀`,
+    subject: `${completionPercentage}% done! Finish setting up SnapPost Pro`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>You're ${completionPercentage}% done, ${userName}! 🎯</h2>
@@ -512,7 +512,7 @@ export async function sendOnboardingReminder24h(email: string, userName: string,
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Next Step:</h3>
           <p><strong>${nextStepMessage}</strong></p>
-          <p style="color: #666; font-size: 14px;">Complete your setup to unlock Advanced Analytics, Multi-Page Management, Content Calendar, and AI Caption Variations.</p>
+          <p style="color: #666; font-size: 14px;">Complete your setup to start creating branded job-site posts for your connected Facebook Page.</p>
         </div>
 
         <div style="text-align: center; margin: 20px 0;">
@@ -536,25 +536,25 @@ export async function sendOnboardingReminder48h(email: string, userName: string,
   if (completionPercentage === 0) {
     encouragement = "Don't worry — it only takes 2 minutes to upload your first photo and see the magic happen.";
   } else if (completionPercentage < 100) {
-    encouragement = "You're so close! Just one more step to unlock all premium features and start scaling your marketing.";
+    encouragement = "You're so close! Just one more step to complete your setup and start creating branded job-site posts.";
   }
 
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
-    subject: `Last chance: Unlock premium features today 🔓`,
+    subject: `Finish setting up SnapPost Pro`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Almost there, ${userName}! 💪</h2>
         <p>${encouragement}</p>
         
         <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-          <h3 style="margin-top: 0; color: #856404;">🎁 What You'll Unlock:</h3>
+          <h3 style="margin-top: 0; color: #856404;">What you can do next:</h3>
           <ul style="color: #856404; margin: 10px 0;">
-            <li>📊 Advanced Analytics — Track engagement for every post</li>
-            <li>🔗 Multi-Page Management — Manage multiple Facebook pages</li>
-            <li>📅 Content Calendar — Schedule posts in advance</li>
-            <li>✨ AI Caption Variations — Get multiple caption options</li>
+            <li>Create a caption for a job-site photo</li>
+            <li>Add your business logo to the image</li>
+            <li>Publish the finished post to your connected Facebook Page</li>
+            <li>Return to saved drafts and published post links</li>
           </ul>
         </div>
 

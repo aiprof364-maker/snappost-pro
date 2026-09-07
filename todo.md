@@ -332,6 +332,18 @@
 - [x] Remove or correct unsupported Pro pricing, FAQ, and transactional-email claims for multiple Facebook Pages, priority processing, engagement analytics, audience data, automatic scheduling, and AI caption variations
   - Pro pricing now promises the supported 300-post allowance, AI captions, logo branding, one connected Facebook Page, and post history. The related FAQ and onboarding/purchase emails now describe only current features. All tests, TypeScript checking, and the production build pass; runtime customer-facing source contains none of the removed claims.
 
+## Landing-Page Before/After Conversion Visual — 5 September 2026
+- [x] Reject the initial completed-deck visual concept because it inaccurately implied SnapPost Pro cleans or completes construction work; it was never uploaded or deployed
+- [x] Verify whether production branding preserves, crops, cleans, or otherwise alters the uploaded job-site photo; replace the comparison only with an accurate same-photo branding and caption example
+  - Production preserves composition and aspect ratio, respects orientation, limits width to 1080px, and overlays the customer logo in the lower-right. It does not crop, clean, remove tools, or complete construction work.
+- [x] Update the hero mockup and before/after comparison to show the same raw job-site photo, the logo-branded version, and the real AI-caption/Facebook-ready workflow
+- [x] Replace the rejected unfinished/makeover visual with the existing Cloudinary A-frame house-and-deck pair selected by the user; no new assets were uploaded or deployed
+- [x] Use the existing image’s AIPROF logo treatment as the clearly visible branded result
+- [ ] Locate and evaluate the original before-and-after asset pair that predated the pergola images; restore it only if it accurately represents a completed job and branding-only transformation
+- [x] Restore the existing Cloudinary A-frame house-and-deck before-and-after pair; do not generate or search for new images
+  - Existing links used: raw `1786660077398-original_a79f86b3.jpg`, branded `branded_34e1526b.jpg`.
+- [ ] Deploy and visually verify the restored accurate hero and comparison mockups on the live Railway site
+
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft
 - [x] Show an immediate successful-publish confirmation with the connected Page name and a View on Facebook link

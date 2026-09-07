@@ -14,6 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getLoginUrl } from "@/const";
+import { LANDING_MOCKUP } from "@/lib/landingMockup";
 import { TRIAL_SUMMARY } from "@/lib/trialCopy";
 import {
   Camera,
@@ -117,21 +118,20 @@ export default function Home() {
         <div className="container grid gap-12 py-20 md:grid-cols-2 md:items-center md:py-28">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Marketing on
-              autopilot for trade businesses
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
+              for trade businesses
             </span>
             <h1 className="font-display mt-5 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
-              Stop writing captions.{" "}
-              <span className="text-primary">Start getting leads.</span>
+              Turn job-site photos into{" "}
+              <span className="text-primary">branded Facebook posts.</span>
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              As a solo contractor, every minute counts. SnapPost Pro turns your
-              job-site photos into professional, branded Facebook posts in
-              seconds — no writing, no design skills needed. Just take a photo
-              and post.
+              SnapPost Pro turns your completed job-site photo into a
+              logo-branded image and an AI-written caption. You review it, then
+              post it to your Facebook Page.
             </p>
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-accent)]/12 px-3 py-1 text-sm font-semibold text-[var(--brand-accent)]">
-              <Clock className="h-4 w-4" /> Save 5+ hours every week
+              <Stamp className="h-4 w-4" /> Your photo, with your logo
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {isAuthenticated ? (
@@ -169,17 +169,16 @@ export default function Home() {
               </div>
              <div className="mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl ring-1 ring-border">
                <img
-                  src="https://res.cloudinary.com/dolcbe5sg/image/upload/v1786654916/snappost-pro/1-posts/1786654916052/branded_0a94e884.jpg"
-                 alt="Professional deck project with contractor branding logo"
+                  src={LANDING_MOCKUP.brandedPhotoUrl}
+                 alt="Completed A-frame deck with Aiprof Studios logo branding"
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
               </div>
               <p className="mt-4 text-sm">
-                Fresh deck rebuild finished today — built to last through every
-                season. Proud of this one.{" "}
+                {LANDING_MOCKUP.heroCaption}{" "}
                 <span className="text-primary">
-                  #Decking #Builder #QualityWork
+                  #DeckBuild #OutdoorLiving #QualityWork
                 </span>
               </p>
               <Button className="mt-4 w-full gap-2" size="sm">
@@ -248,25 +247,25 @@ export default function Home() {
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              From plain photo to lead-winning post
+              Your photo. Your brand. Ready to post.
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Same photo, two very different results. SnapPost Pro does the
-              caption and branding for you.
+              The completed job stays exactly the same. SnapPost Pro adds your
+              logo and writes a caption for you to review before posting.
             </p>
           </div>
           <div className="mx-auto mt-12 max-w-4xl">
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
               <div className="grid grid-cols-2">
                 <img
-                  src="https://res.cloudinary.com/dolcbe5sg/image/upload/v1786654911/snappost-pro/1-posts/1786654908955-original_ecd01871.png"
-                  alt="Raw job-site photo before SnapPost Pro branding"
+                  src={LANDING_MOCKUP.originalPhotoUrl}
+                  alt="Original completed A-frame deck photo before branding"
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
                 <img
-                  src="https://res.cloudinary.com/dolcbe5sg/image/upload/v1786654916/snappost-pro/1-posts/1786654916052/branded_0a94e884.jpg"
-                  alt="The same job-site photo prepared as a branded SnapPost Pro post"
+                  src={LANDING_MOCKUP.brandedPhotoUrl}
+                  alt="The same A-frame deck photo with Aiprof Studios logo branding"
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
@@ -277,13 +276,13 @@ export default function Home() {
                 <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-semibold">
                   Before
                 </span>
-                Raw phone photo, no branding
+                Completed job photo, no branding
               </div>
               <div className="flex items-center justify-center gap-2">
                 <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                   After
                 </span>
-                Branded post with AI caption
+                Same photo, with your logo
               </div>
             </div>
           </div>

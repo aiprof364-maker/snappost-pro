@@ -32,11 +32,18 @@ export function getSessionCookieOptions(
     hostname !== "127.0.0.1" &&
     hostname !== "::1";
 
+  // Keep root and www sessions in one cookie scope. Without this normalization,
+  // a session created on snappostpro.com can survive a logout requested from
+  // www.snappostpro.com because the browser sees two different cookie domains.
+  const normalizedHostname = hostname?.startsWith("www.")
+    ? hostname.slice(4)
+    : hostname;
+
   const domain =
-    shouldSetDomain && !hostname.startsWith(".")
-      ? `.${hostname}`
+    shouldSetDomain && normalizedHostname && !normalizedHostname.startsWith(".")
+      ? `.${normalizedHostname}`
       : shouldSetDomain
-        ? hostname
+        ? normalizedHostname
         : undefined;
 
   return {

@@ -17,7 +17,11 @@ export function useAuth(options?: UseAuthOptions) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.location.pathname === "/") {
+    const isLogoutLanding =
+      window.location.pathname === "/" &&
+      new URLSearchParams(window.location.search).get("logged_out") === "1";
+
+    if (!isLogoutLanding) {
       window.sessionStorage.removeItem(INTENTIONAL_LOGOUT_STORAGE_KEY);
     }
   }, []);
@@ -38,15 +42,18 @@ export function useAuth(options?: UseAuthOptions) {
 
     try {
       await logoutMutation.mutateAsync();
+      await utils.auth.me.cancel();
       utils.auth.me.setData(undefined, null);
-      window.location.assign("/");
+      window.localStorage.removeItem("snappost-user-info");
+      window.location.replace("/?logged_out=1");
     } catch (error: unknown) {
       if (
         error instanceof TRPCClientError &&
         error.data?.code === "UNAUTHORIZED"
       ) {
         utils.auth.me.setData(undefined, null);
-        window.location.assign("/");
+        window.localStorage.removeItem("snappost-user-info");
+        window.location.replace("/?logged_out=1");
         return;
       }
       window.sessionStorage.removeItem(INTENTIONAL_LOGOUT_STORAGE_KEY);

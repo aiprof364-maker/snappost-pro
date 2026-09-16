@@ -103,7 +103,12 @@ export const appRouter = router({
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
+      ctx.res.setHeader("Cache-Control", "no-store");
+      ctx.res.clearCookie(SESSION_COOKIE, {
+        ...cookieOptions,
+        expires: new Date(0),
+        maxAge: 0,
+      });
       return { success: true } as const;
     }),
     verifyEmail: publicProcedure

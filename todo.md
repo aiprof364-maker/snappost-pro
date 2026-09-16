@@ -2,6 +2,13 @@
 
 **⚠️ IMPORTANT:** See AI_AGENT_GUIDELINES.md for rules to prevent repeated mistakes
 
+## Active Production Issue
+- [x] Diagnose why the mobile session showed the free three-post limit instead of the paid Starter entitlement, without creating a duplicate payment
+  - Stripe showed the prior Starter subscription was canceled, so the free limit was correctly enforced.
+- [x] Reconcile the confirmed paid `aiprof364@gmail.com` Starter account with its Stripe customer record and restore its 30-post allowance
+  - The owner restarted Starter through Stripe Checkout; the live dashboard now shows Starter with 30 posts/month and 3/30 used.
+- [ ] Diagnose and fix the reported logout auto-login loop so an intentional Logout remains logged out
+
 ## Database & Backend Foundation
 - [x] Add Facebook domain verification meta tag to client/index.html
 - [x] Add `posts` table to schema (image, caption, status, fbPostId, createdAt)
@@ -339,10 +346,19 @@
 - [x] Update the hero mockup and before/after comparison to show the same raw job-site photo, the logo-branded version, and the real AI-caption/Facebook-ready workflow
 - [x] Replace the rejected unfinished/makeover visual with the existing Cloudinary A-frame house-and-deck pair selected by the user; no new assets were uploaded or deployed
 - [x] Use the existing image’s AIPROF logo treatment as the clearly visible branded result
-- [ ] Locate and evaluate the original before-and-after asset pair that predated the pergola images; restore it only if it accurately represents a completed job and branding-only transformation
+- [x] Locate and evaluate the original before-and-after asset pair that predated the pergola images; restore it only if it accurately represents a completed job and branding-only transformation
 - [x] Restore the existing Cloudinary A-frame house-and-deck before-and-after pair; do not generate or search for new images
   - Existing links used: raw `1786660077398-original_a79f86b3.jpg`, branded `branded_34e1526b.jpg`.
-- [ ] Deploy and visually verify the restored accurate hero and comparison mockups on the live Railway site
+- [x] Deploy and visually verify the restored accurate hero and comparison mockups on the live Railway site
+  - Live Railway page now uses the Cloudinary A-frame branded image in the hero and the raw/branded A-frame pair in the comparison. The copy accurately states that the completed job stays the same and SnapPost Pro adds the logo and an AI caption for review before posting.
+
+## Marketing Launch — 7 September 2026
+- [x] Prepare the exact zero-budget SnapPost Pro launch sequence, using only the verified product capabilities and compliant contractor acquisition channels
+  - Gate audit completed: no currently available acquisition tactic passes all seven required conditions for a brand-new SaaS without either budget or repeated manual work. See `references/marketing_gate_audit_2026-09-07.md`.
+- [ ] Prepare a cash-funded first-sale plan: obtain the first subscriber without ad spend, then reinvest only received subscription revenue into a controlled paid-ad test with approved creative
+- [x] Prepare the cash-funded first-sale plan and single reusable product-demo video specification
+  - The plan uses one 20-second vertical product demo as the first Page post and later the first NZ$5/day, 3-day Meta Traffic campaign after a received subscription payout. See `references/cash_funded_launch_plan_2026-09-07.md`.
+- [ ] Create and configure the separate public SnapPost Pro Facebook Page under the Airprof Studios business portfolio
 
 ## Draft Post Usability (Current)
 - [x] Make draft posts in Post History reopenable so a contractor can review, edit, or publish an existing saved draft

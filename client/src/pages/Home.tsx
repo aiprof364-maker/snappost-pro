@@ -31,12 +31,12 @@ const FEATURES = [
   {
     icon: Camera,
     title: "Snap & upload",
-    desc: "Upload a job-site photo straight from your phone or desktop in seconds.",
+    desc: "Upload a photo of your completed work, product, space or result from your phone or desktop.",
   },
   {
     icon: Sparkles,
     title: "AI captions",
-    desc: "Get a ready-to-post, trade-specific caption with hashtags written for you.",
+    desc: "Get a ready-to-post caption with hashtags written for you.",
   },
   {
     icon: Stamp,
@@ -51,20 +51,47 @@ const FEATURES = [
   {
     icon: Clock,
     title: "Save hours every week",
-    desc: "No more wrestling with captions or design tools between jobs.",
+    desc: "Spend less time writing captions and preparing images for social media.",
   },
   {
     icon: ShieldCheck,
-    title: "Built for contractors",
-    desc: "Designed for builders, plumbers, sparkies, landscapers and contractors.",
+    title: "Built for local businesses",
+    desc: "Made for businesses with real work, products, spaces or results worth showing.",
   },
 ];
 
 const STEPS = [
-  { n: "1", title: "Take the photo", desc: "Snap a photo of the job you just finished — on site, from your phone." },
-  { n: "2", title: "AI writes the caption", desc: "A trade-specific caption with hashtags is generated for you instantly." },
+  { n: "1", title: "Take the photo", desc: "Take a photo of completed work, a product, a space or a result you want to share." },
+  { n: "2", title: "AI writes the caption", desc: "A caption with hashtags is generated for you to review." },
   { n: "3", title: "Logo is branded on", desc: "Your business logo is stamped onto the image automatically." },
   { n: "4", title: "Post to Facebook", desc: "Publish to your connected Facebook page in one click — or save for later." },
+];
+
+const LOCAL_BUSINESS_CATEGORIES = [
+  {
+    title: "Trades & Home Services",
+    examples: "Builders, painters, landscapers, gardeners, cleaners, window cleaners and car detailers.",
+  },
+  {
+    title: "Food & Hospitality",
+    examples: "Cafés, coffee shops, restaurants, bistros, food trucks, bakeries, cake designers and specialty food stores.",
+  },
+  {
+    title: "Beauty, Wellness & Fitness",
+    examples: "Hair salons, stylists, barbers, nails, lashes, skincare, tattoo, massage, personal training, yoga, Pilates and dance.",
+  },
+  {
+    title: "Retail & Creative Businesses",
+    examples: "Boutiques, clothing and vintage stores, florists, artisan makers, craft businesses, photographers, interior designers and home stagers.",
+  },
+  {
+    title: "Property, Events & Local Services",
+    examples: "Real estate, property management, Airbnb hosting, home organising, event planning, wedding coordination and driving instruction.",
+  },
+  {
+    title: "Pet, Care & Professional Services",
+    examples: "Dog grooming, pet businesses, boarding, daycares, training, local clinics and independent care providers.",
+  },
 ];
 
 const FAQS = [
@@ -119,16 +146,16 @@ export default function Home() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
-              for trade businesses
+              for local businesses
             </span>
             <h1 className="font-display mt-5 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
-              Turn job-site photos into{" "}
+              Turn photos of your work into{" "}
               <span className="text-primary">branded Facebook posts.</span>
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              SnapPost Pro turns your completed job-site photo into a
-              logo-branded image and an AI-written caption. You review it, then
-              post it to your Facebook Page.
+              SnapPost Pro turns a photo of your completed work, product, space
+              or result into a logo-branded image and an AI-written caption. You
+              review it, then post it to your Facebook Page.
             </p>
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-accent)]/12 px-3 py-1 text-sm font-semibold text-[var(--brand-accent)]">
               <Stamp className="h-4 w-4" /> Your photo, with your logo
@@ -217,6 +244,38 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Local businesses */}
+      <section className="py-20">
+        <div className="container">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              Built for local businesses
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              If your business has real work, products, spaces or results worth
+              showing, SnapPost Pro can help turn a photo into a branded Facebook post.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {LOCAL_BUSINESS_CATEGORIES.map(category => (
+              <div
+                key={category.title}
+                className="rounded-xl border border-border bg-card p-6"
+              >
+                <h3 className="font-semibold">{category.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {category.examples}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
+            Only upload photos you own or have permission to publish. Do not upload
+            customer, patient or client-identifying information without appropriate consent.
+          </p>
+        </div>
+      </section>
+
       {/* How it works */}
       <section className="py-20">
         <div className="container">
@@ -250,7 +309,7 @@ export default function Home() {
               Your photo. Your brand. Ready to post.
             </h2>
             <p className="mt-3 text-muted-foreground">
-              The completed job stays exactly the same. SnapPost Pro adds your
+              Your completed work stays exactly the same. SnapPost Pro adds your
               logo and writes a caption for you to review before posting.
             </p>
           </div>
@@ -337,17 +396,15 @@ export default function Home() {
           </div>
          <div className="mx-auto mt-8 max-w-2xl space-y-6 text-center">
            <p className="text-lg text-muted-foreground">
-             The average contractor spends 45 minutes crafting a single Facebook
-             post — finding the photo, writing the caption, figuring out what to
-              say.
+             Preparing a Facebook post means choosing a photo, writing a caption
+             and finding the right words to say.
            </p>
            <p className="text-2xl font-bold text-primary">
-              SnapPost Pro does it in under 60 seconds. Snap a photo on site,
-              upload it, and your professional post is ready to go.
+              SnapPost Pro gives you a logo-branded image and AI-written caption
+              to review before you publish.
            </p>
            <p className="text-lg text-muted-foreground">
-              At $19/month, that's less than one hour of your labour — every
-              single post, for the life of your subscription.
+              Keep your Facebook Page active while spending less time preparing posts.
            </p>
          </div>
         </div>
@@ -357,7 +414,7 @@ export default function Home() {
       <section className="py-20">
         <div className="container max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold sm:text-4xl">
-            Get weekly tips for contractors
+            Get weekly tips for local businesses
           </h2>
           <p className="mt-3 text-muted-foreground">
             Practical tips to grow your business and save time on social media.
@@ -393,8 +450,8 @@ export default function Home() {
               Ready to market your work effortlessly?
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
-              Join contractors who keep their Facebook page active without the
-              hassle. Upload your first photo today.
+              Keep your Facebook Page active without the hassle. Upload your first
+              photo today.
             </p>
             <div className="mt-8 flex justify-center">
               <a href={primaryCta}>

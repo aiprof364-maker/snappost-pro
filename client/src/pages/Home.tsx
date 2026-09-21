@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import PricingCards from "@/components/PricingCards";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import LocalBusinessPreviewCarousel from "@/components/LocalBusinessPreviewCarousel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -185,34 +186,8 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Visual mock */}
-          <div className="relative">
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-xl">
-              <div className="flex items-center gap-2 border-b border-border pb-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Camera className="h-4 w-4" />
-                </span>
-                <span className="text-sm font-semibold">New post preview</span>
-              </div>
-             <div className="mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl ring-1 ring-border">
-               <img
-                  src={LANDING_MOCKUP.brandedPhotoUrl}
-                 alt="Completed A-frame deck with Aiprof Studios logo branding"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <p className="mt-4 text-sm">
-                {LANDING_MOCKUP.heroCaption}{" "}
-                <span className="text-primary">
-                  #DeckBuild #OutdoorLiving #QualityWork
-                </span>
-              </p>
-              <Button className="mt-4 w-full gap-2" size="sm">
-                <Share2 className="h-4 w-4" /> Post to Facebook
-              </Button>
-            </div>
-          </div>
+          {/* Local-business example preview carousel */}
+          <LocalBusinessPreviewCarousel />
         </div>
       </section>
 

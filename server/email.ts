@@ -219,22 +219,22 @@ export async function sendOnboardingDay1(email: string, userName: string) {
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
-    subject: "Welcome to SnapPost Pro! 🚀 Here's how to get started",
+    subject: "Welcome to SnapPost Pro — create your first branded post",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Welcome to SnapPost Pro, ${userName}!</h2>
-        <p>We're excited to have you on board. Here's everything you need to know to get started:</p>
+        <p>SnapPost Pro helps local businesses turn a completed photo into a branded, caption-ready Facebook post.</p>
         
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>🎯 Getting Started in 3 Steps:</h3>
+          <h3>Getting started in 3 steps:</h3>
           <ol>
-            <li><strong>Upload a photo</strong> - Take a job site photo and upload it to SnapPost Pro</li>
-            <li><strong>AI generates caption</strong> - Our AI creates a professional caption tailored to your trade</li>
-            <li><strong>Brand & post</strong> - We add your logo, and you post to Facebook in seconds</li>
+            <li><strong>Upload a completed photo</strong> - Choose a photo of your work, product, space, or result.</li>
+            <li><strong>Review your AI caption</strong> - SnapPost Pro creates a caption you can edit before posting.</li>
+            <li><strong>Add your logo and publish</strong> - SnapPost Pro applies your logo, then you can publish to your connected Facebook Page.</li>
           </ol>
         </div>
 
-        <p><strong>💡 Pro Tip:</strong> The best results come from clear, well-lit photos of your work. Before/after shots perform especially well.</p>
+        <p><strong>Tip:</strong> Start with a clear, well-lit photo that represents your business at its best.</p>
 
         <p>Ready to create your first branded post?</p>
         <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Start Creating</a>
@@ -254,25 +254,25 @@ export async function sendOnboardingDay3(email: string, userName: string) {
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
-    subject: "💪 Keep the momentum going - Your first posts matter",
+    subject: "A simple way to prepare your next Facebook post",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>How are your first posts going, ${userName}?</h2>
-        <p>We wanted to check in and share some tips to help you get the most out of SnapPost Pro.</p>
+        <h2>Ready for your next post, ${userName}?</h2>
+        <p>Use SnapPost Pro whenever you have a completed photo you want to prepare for your Facebook Page.</p>
         
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>📸 Tips for Better Results:</h3>
+          <h3>Useful checks before you publish:</h3>
           <ul>
-            <li><strong>Post consistently</strong> - 2-3 posts per week builds momentum with your audience</li>
-            <li><strong>Use captions as-is or customize</strong> - Our AI captions are great, but feel free to add your personal touch</li>
-            <li><strong>Track engagement</strong> - Check Facebook Insights to see which posts resonate most</li>
-            <li><strong>Showcase your best work</strong> - Before/after transformations get the most engagement</li>
+            <li><strong>Choose a finished photo</strong> - Use a photo you are comfortable showing on your business Page.</li>
+            <li><strong>Make the caption yours</strong> - Review and edit the AI caption before publishing.</li>
+            <li><strong>Check your branding</strong> - Confirm that the uploaded logo is the one you want on the image.</li>
+            <li><strong>Publish when ready</strong> - Send the finished post to your connected Facebook Page.</li>
           </ul>
         </div>
 
-        <p><strong>🎁 Bonus:</strong> Your logo branding is automatically applied to every post. This builds brand recognition with every share!</p>
+        <p>Your photo stays yours. SnapPost Pro adds your logo and prepares the caption; it does not alter the finished work shown in the image.</p>
 
-        <p>Keep creating:</p>
+        <p>Open your dashboard whenever you are ready:</p>
         <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
@@ -300,7 +300,7 @@ export async function sendOnboardingDay5(email: string, userName: string, plan: 
     upgradeSection = `
       <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
         <h3 style="margin-top: 0;">Ready to post more?</h3>
-        <p>You're on the Free plan with <strong>3 posts per month</strong>. Upgrade to Starter (30 posts) or Pro (300 posts) to scale your marketing.</p>
+        <p>You're on the Free plan with <strong>3 posts per month</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p>
         <a href="https://snappostpro.com/pricing" style="background: #ffc107; color: #333; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">View Plans</a>
       </div>
     `;
@@ -309,27 +309,26 @@ export async function sendOnboardingDay5(email: string, userName: string, plan: 
   return resend.emails.send({
     from: "SnapPost Pro <noreply@snappostpro.com>",
     to: email,
-    subject: "You're crushing it! 🔥 Here's what's next",
+    subject: "Your SnapPost Pro plan and next post",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>You're doing great, ${userName}!</h2>
-        <p>By now, you've created your first branded posts and seen how easy it is to scale your Facebook marketing.</p>
+        <h2>Keep your Facebook Page up to date, ${userName}</h2>
+        <p>When you have a completed photo to share, use SnapPost Pro to add your logo, review an AI caption, and publish to your connected Facebook Page.</p>
         
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>📊 Your Current Plan:</h3>
+          <h3>Your current plan:</h3>
           <p><strong>${details.name} Plan:</strong> ${details.posts} branded posts per month</p>
           <ul>
             <li>AI-generated captions</li>
             <li>Logo branding overlay</li>
-            <li>One-click Facebook posting</li>
+            <li>One connected Facebook Page</li>
+            <li>Post history</li>
           </ul>
         </div>
 
         ${upgradeSection}
 
-        <p><strong>💬 Success Story:</strong> Contractors using SnapPost Pro consistently save 5+ hours per week on marketing while getting more leads.</p>
-
-        <p>Keep creating:</p>
+        <p>Open your dashboard to create or review a post:</p>
         <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">

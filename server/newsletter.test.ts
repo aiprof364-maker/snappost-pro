@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock Resend client
 const mockSend = vi.fn();
+const mockCreateNewsletterSubscriber = vi.fn();
+
 vi.mock("resend", () => ({
   Resend: vi.fn(() => ({
     emails: {
@@ -10,10 +12,20 @@ vi.mock("resend", () => ({
   })),
 }));
 
+vi.mock("./db", async importOriginal => {
+  const original = await importOriginal<typeof import("./db")>();
+  return {
+    ...original,
+    createNewsletterSubscriber: mockCreateNewsletterSubscriber,
+  };
+});
+
 beforeEach(() => {
   vi.resetModules();
   mockSend.mockClear();
   mockSend.mockResolvedValue({ id: "test-email-id" });
+  mockCreateNewsletterSubscriber.mockReset();
+  mockCreateNewsletterSubscriber.mockResolvedValue({ id: 1 });
   process.env.RESEND_API_KEY = "test-key";
 });
 

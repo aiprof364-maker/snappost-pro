@@ -2,7 +2,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { Camera, LogOut, Menu } from "lucide-react";
+import snapPostProLogo from "@/assets/brand/snappost-pro-logo.jpg";
+import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -21,9 +22,11 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Camera className="h-5 w-5" />
-          </span>
+          <img
+            src={snapPostProLogo}
+            alt="SnapPost Pro"
+            className="h-9 w-9 rounded-lg object-cover"
+          />
           <span className="font-display text-lg font-extrabold">SnapPost Pro</span>
         </Link>
 

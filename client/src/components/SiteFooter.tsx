@@ -1,4 +1,4 @@
-import { Camera } from "lucide-react";
+import snapPostProLogo from "@/assets/brand/snappost-pro-logo.jpg";
 import { Link } from "wouter";
 
 export default function SiteFooter() {
@@ -6,9 +6,11 @@ export default function SiteFooter() {
     <footer className="border-t border-border/60 bg-muted/30">
       <div className="container flex flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Camera className="h-4 w-4" />
-          </span>
+          <img
+            src={snapPostProLogo}
+            alt="SnapPost Pro"
+            className="h-8 w-8 rounded-lg object-cover"
+          />
           <span className="font-display font-bold">SnapPost Pro</span>
         </div>
         <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">

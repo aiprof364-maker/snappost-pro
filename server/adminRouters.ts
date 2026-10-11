@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb, getContacts, getNewsletterSubscribers, updateContactStatus } from "./db";
-import { users, posts } from "../drizzle/schema";
+import { users, posts, integrations, conversionEvents } from "../drizzle/schema";
 import { eq, gte } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 
@@ -17,6 +17,43 @@ function adminOnlyMiddleware(ctx: any) {
 }
 
 export const adminRouter = router({
+  /** All-time subscriber funnel counts for the owner dashboard. */
+  funnelOverview: protectedProcedure.query(async ({ ctx }) => {
+    adminOnlyMiddleware(ctx);
+
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    }
+
+    const [allUsers, allPosts, allIntegrations, allEvents] = await Promise.all([
+      db.select().from(users),
+      db.select().from(posts),
+      db.select().from(integrations),
+      db.select().from(conversionEvents),
+    ]);
+
+    const activePaidStatuses = new Set(["active", "trialing"]);
+    return {
+      accounts: allUsers.length,
+      freeAccounts: allUsers.filter(user => user.plan === "free").length,
+      activatedAccounts: new Set(allPosts.map(post => post.userId)).size,
+      connectedPages: new Set(
+        allIntegrations
+          .filter(integration => integration.status === "connected" && integration.pageId)
+          .map(integration => integration.userId),
+      ).size,
+      checkoutStarted: new Set(
+        allEvents
+          .filter(event => event.eventType === "checkout_started")
+          .map(event => event.userId),
+      ).size,
+      paidSubscribers: allUsers.filter(
+        user => user.plan !== "free" && activePaidStatuses.has(user.subscriptionStatus ?? "none"),
+      ).length,
+    };
+  }),
+
   /**
    * Get high-usage contractors (>70% of their plan limit).
    * Useful for identifying upsell opportunities.

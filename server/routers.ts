@@ -23,6 +23,7 @@ import {
   getUserPosts,
   updatePost,
   updateUserLogo,
+  logConversionEvent,
   upsertIntegration,
   getOrCreateOnboardingChecklist,
   updateOnboardingStep,
@@ -287,6 +288,7 @@ export const appRouter = router({
           caption,
           status: "draft",
         });
+        await logConversionEvent(ctx.user.id, "post_draft_created", { plan });
         return post;
       }),
 
@@ -352,6 +354,7 @@ export const appRouter = router({
             facebookPostId: fbId,
             errorMessage: null,
           });
+          await logConversionEvent(ctx.user.id, "post_published");
           return {
             success: true,
             facebookPostId: fbId,
@@ -466,6 +469,7 @@ export const appRouter = router({
           pageAccessToken: page.access_token,
           status: "connected",
         });
+        await logConversionEvent(ctx.user.id, "facebook_page_connected");
         return { success: true } as const;
       }),
 
@@ -546,6 +550,10 @@ export const appRouter = router({
             message: "Failed to create Stripe checkout session",
           });
         }
+        await logConversionEvent(ctx.user.id, "checkout_started", {
+          plan: input.plan,
+          trialEligible: trial.eligible,
+        });
         return { url: session.url };
       }),
 

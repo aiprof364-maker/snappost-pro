@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/accordion";
 import { getLoginUrl } from "@/const";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
-import { TRIAL_SUMMARY } from "@/lib/trialCopy";
 import {
   Camera,
   Sparkles,
@@ -120,7 +119,7 @@ const FAQS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/pricing");
+  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/dashboard");
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const subscribe = trpc.contact.subscribe.useMutation({
     onSuccess: () => {
@@ -171,7 +170,7 @@ export default function Home() {
               ) : (
                 <a href={primaryCta}>
                   <Button size="lg" className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold">
-                    Start free <ArrowRight className="h-5 w-5" />
+                    Create 3 free posts <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
               )}
@@ -182,7 +181,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              {TRIAL_SUMMARY}
+              3 free branded post drafts each month · No card required
             </p>
           </div>
 
@@ -331,7 +330,7 @@ export default function Home() {
               Simple, honest pricing
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Pick a plan and start posting today. Cancel anytime.
+              Start with 3 free branded post drafts each month. Choose a paid plan only when you need more.
             </p>
           </div>
           <div className="mt-12">
@@ -422,16 +421,16 @@ export default function Home() {
         <div className="container">
           <div className="mx-auto max-w-3xl rounded-2xl bg-primary px-8 py-12 text-center text-primary-foreground">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              Ready to market your work effortlessly?
+              Create your first branded post free.
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
-              Keep your Facebook Page active without the hassle. Upload your first
-              photo today.
+              Sign in with your email, upload your photo and logo, then review your
+              branded draft and AI-written caption. No card required.
             </p>
             <div className="mt-8 flex justify-center">
               <a href={primaryCta}>
                 <Button size="lg" variant="secondary" className="gap-2 px-8 py-6 text-base font-semibold">
-                  Get started <ArrowRight className="h-5 w-5" />
+                  Create 3 free posts <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>
             </div>

@@ -12,6 +12,7 @@ export default function Login() {
   const [cooldown, setCooldown] = useState(0);
   const query = new URLSearchParams(window.location.search);
   const next = query.get("next") || "/dashboard";
+  const isFreeStart = next === "/dashboard";
   const requestLink = trpc.auth.requestSignInLink.useMutation({
     onSuccess: () => {
       setSent(true);
@@ -41,8 +42,14 @@ export default function Login() {
       <section className="mx-auto max-w-md rounded-3xl border border-white/80 bg-white/90 p-8 shadow-xl shadow-slate-900/10 backdrop-blur">
         <Link href="/" className="text-sm font-bold text-primary">← SnapPost Pro</Link>
         <div className="mt-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Mail className="h-6 w-6" /></div>
-        <h1 className="mt-5 text-3xl font-black tracking-tight">Sign in securely</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Enter your email and we’ll send a one-time sign-in link. No Manus account is needed.</p>
+        <h1 className="mt-5 text-3xl font-black tracking-tight">
+          {isFreeStart ? "Create 3 free posts" : "Sign in securely"}
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          {isFreeStart
+            ? "No card required. Enter your email and we’ll send a secure sign-in link so you can upload a photo and create your first branded draft."
+            : "Enter your email and we’ll send a one-time sign-in link. No Manus account is needed."}
+        </p>
         {sent ? (
           <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950">
             <div className="flex gap-3"><ShieldCheck className="h-5 w-5 shrink-0" /><div><p><strong>Check your inbox.</strong><br />Your secure sign-in link expires in 15 minutes.</p><p className="mt-3 text-emerald-800">No email after two minutes? Check spam, then request another link.</p><Button type="button" variant="outline" className="mt-3 border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100" disabled={cooldown > 0 || requestLink.isPending} onClick={requestSignInLink}>{cooldown > 0 ? `Resend available in ${cooldown}s` : "Resend sign-in link"}</Button>{message && <p className="mt-3 text-destructive">{message}</p>}</div></div>

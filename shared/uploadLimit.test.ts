@@ -9,7 +9,7 @@ describe("getUploadLimitNotice", () => {
 
   it("explains a free-account lock and gives the user a pricing route", () => {
     expect(getUploadLimitNotice("free", { used: 5, limit: 3 })).toEqual({
-      message: "You've used all 3 free posts this month. Choose a plan to keep creating posts.",
+      message: "You've used all 3 free posts. Choose a plan to keep creating posts.",
       action: { href: "/pricing", label: "Choose a plan" },
     });
   });

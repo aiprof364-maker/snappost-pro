@@ -24,6 +24,10 @@ export default function AdminDashboard() {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
+  const funnel = trpc.admin.funnelOverview.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
   const contractorAnalytics = trpc.admin.contractorAnalytics.useQuery(
     { userId: selectedUserId! },
     { enabled: isAuthenticated && user?.role === "admin" && selectedUserId !== null }
@@ -71,6 +75,35 @@ export default function AdminDashboard() {
             <p className="mt-1 text-muted-foreground">
               Monitor contractor usage and email delivery.
             </p>
+          </div>
+
+          {/* Subscriber Funnel */}
+          <div className="mb-8">
+            <h2 className="font-display text-xl font-bold">Subscriber Funnel</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              All-time account and subscription progress.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                ["Accounts", funnel.data?.accounts],
+                ["Free accounts", funnel.data?.freeAccounts],
+                ["Created a draft", funnel.data?.activatedAccounts],
+                ["Connected a Page", funnel.data?.connectedPages],
+                ["Started checkout", funnel.data?.checkoutStarted],
+                ["Paid subscribers", funnel.data?.paidSubscribers],
+              ].map(([label, value]) => (
+                <Card key={label}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {funnel.isLoading ? "—" : value ?? 0}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
           {/* Email Delivery Stats */}

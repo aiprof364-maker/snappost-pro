@@ -4,7 +4,7 @@ import type { Request } from "express";
 import { parse as parseCookieHeader } from "cookie";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { authTokens, users, type User } from "../drizzle/schema";
-import { getDb } from "./db";
+import { getDb, logConversionEvent } from "./db";
 
 export const SESSION_COOKIE = "snappost_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -62,6 +62,9 @@ export async function consumeMagicLinkToken(rawToken: string) {
     lastSignedIn: new Date(),
   });
   const [created] = await db.select().from(users).where(eq(users.email, token.email)).limit(1);
+  if (created) {
+    await logConversionEvent(created.id, "free_account_created", { plan: "free" });
+  }
   return created ?? null;
 }
 

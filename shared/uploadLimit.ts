@@ -27,7 +27,7 @@ export function getUploadLimitNotice(
 
   if (plan === "free") {
     return {
-      message: `You've used all ${usage.limit} free posts this month. Choose a plan to keep creating posts.`,
+      message: `You've used all ${usage.limit} free posts. Choose a plan to keep creating posts.`,
       action: { href: "/pricing", label: "Choose a plan" },
     };
   }

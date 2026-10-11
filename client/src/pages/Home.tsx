@@ -181,7 +181,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              3 free branded post drafts each month · No card required
+              3 free branded post drafts total · No card required
             </p>
           </div>
 
@@ -330,7 +330,7 @@ export default function Home() {
               Simple, honest pricing
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Start with 3 free branded post drafts each month. Choose a paid plan only when you need more.
+              Start with 3 free branded post drafts. Choose a paid plan only when you need more.
             </p>
           </div>
           <div className="mt-12">

@@ -287,9 +287,9 @@ export async function sendOnboardingDay3(email: string, userName: string) {
 
 export async function sendOnboardingDay5(email: string, userName: string, plan: "free" | "starter" | "pro") {
   const planDetails = {
-    free: { name: "Free", posts: 3, upgrade: true },
-    starter: { name: "Starter", posts: 30, upgrade: false },
-    pro: { name: "Pro", posts: 300, upgrade: false },
+    free: { name: "Free", allowance: "3 branded posts total", upgrade: true },
+    starter: { name: "Starter", allowance: "30 branded posts per month", upgrade: false },
+    pro: { name: "Pro", allowance: "300 branded posts per month", upgrade: false },
   };
 
   const details = planDetails[plan];
@@ -300,7 +300,7 @@ export async function sendOnboardingDay5(email: string, userName: string, plan: 
     upgradeSection = `
       <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
         <h3 style="margin-top: 0;">Ready to post more?</h3>
-        <p>You're on the Free plan with <strong>3 posts per month</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p>
+        <p>You're on the Free plan with <strong>3 posts total</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p>
         <a href="https://snappostpro.com/pricing" style="background: #ffc107; color: #333; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">View Plans</a>
       </div>
     `;
@@ -317,7 +317,7 @@ export async function sendOnboardingDay5(email: string, userName: string, plan: 
         
         <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3>Your current plan:</h3>
-          <p><strong>${details.name} Plan:</strong> ${details.posts} branded posts per month</p>
+          <p><strong>${details.name} Plan:</strong> ${details.allowance}</p>
           <ul>
             <li>AI-generated captions</li>
             <li>Logo branding overlay</li>

@@ -44,11 +44,11 @@ export default function PricingCards() {
           <span className="font-display text-4xl font-extrabold">$0</span>
           <span className="text-muted-foreground">/mo</span>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">3 posts / month</p>
+        <p className="mt-2 text-sm text-muted-foreground">3 posts total</p>
         <p className="mt-2 text-sm font-medium text-primary">No card required.</p>
         <ul className="mt-6 flex-1 space-y-3">
           {[
-            "3 branded post drafts per month",
+            "3 branded post drafts total",
             "AI captions",
             "Logo branding overlay",
             "Post history",

@@ -66,6 +66,11 @@ function startOfMonth(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
+/** Free accounts receive a one-time allowance; paid plans reset monthly. */
+function usageStartForPlan(plan: "free" | PlanId): Date {
+  return plan === "free" ? new Date(0) : startOfMonth();
+}
+
 export const appRouter = router({
   admin: adminRouter,
 
@@ -163,7 +168,7 @@ export const appRouter = router({
         facebookPageId: integration?.pageId,
         stripeCustomerId: user?.stripeCustomerId,
       });
-      const used = await countUserPostsSince(ctx.user.id, startOfMonth());
+      const used = await countUserPostsSince(ctx.user.id, usageStartForPlan(plan));
       const limit = PLAN_POST_LIMITS[plan];
       return {
         plan,
@@ -217,18 +222,18 @@ export const appRouter = router({
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        // Enforce monthly plan limit (server-side).
+        // Enforce the lifetime Free limit and monthly paid-plan limits (server-side).
         const user0 = await reconcileUserSubscription(await getUserById(ctx.user.id));
         const plan = (user0?.plan ?? "free") as "free" | PlanId;
         const limit = PLAN_POST_LIMITS[plan];
         if (limit !== null) {
-          const used = await countUserPostsSince(ctx.user.id, startOfMonth());
+          const used = await countUserPostsSince(ctx.user.id, usageStartForPlan(plan));
           if (used >= limit) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message:
                 plan === "free"
-                  ? `You've reached the free limit of ${limit} posts this month. Upgrade to keep posting.`
+                  ? `You've reached the free limit of ${limit} posts. Upgrade to keep posting.`
                   : plan === "starter"
                     ? `You've reached your Starter limit of ${limit} posts this month. Upgrade to Pro (300/mo) or wait until next month.`
                     : `You've reached your monthly limit of ${limit} posts. Your allowance resets at the start of next month.`,

@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { isDashboardDataLoading } from "@/lib/dashboardDataState";
+import { trackMetaEvent } from "@/lib/metaPixel";
 import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import {
@@ -102,6 +103,7 @@ export default function Dashboard() {
     const params = new URLSearchParams(window.location.search);
     const fb = params.get("facebook");
     const checkout = params.get("checkout");
+    const accountCreated = params.get("account_created");
     if (fb === "connected") toast.success("Facebook connected.");
     else if (fb === "denied") toast.error("Facebook connection was cancelled.");
     else if (fb === "error") toast.error("Facebook connection failed.");
@@ -112,7 +114,11 @@ export default function Dashboard() {
         window.location.reload();
       }, 1500);
     }
-    if (fb || checkout) {
+    if (accountCreated === "1") {
+      trackMetaEvent("CompleteRegistration");
+      toast.success("Your free account is ready.");
+    }
+    if (fb || checkout || accountCreated) {
       window.history.replaceState({}, "", window.location.pathname);
       utils.account.overview.invalidate();
     }
@@ -145,7 +151,9 @@ export default function Dashboard() {
       ? null
       : usage.limit === null
         ? `${usage.used} posts this month · Unlimited`
-        : `${usage.used} / ${usage.limit} posts this month`;
+        : plan === "free"
+          ? `${usage.used} / ${usage.limit} free posts used`
+          : `${usage.used} / ${usage.limit} posts this month`;
   const atLimit =
     usage != null && usage.limit !== null && usage.used >= usage.limit;
   const uploadLimitNotice = getUploadLimitNotice(plan, usage);

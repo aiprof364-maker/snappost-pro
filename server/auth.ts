@@ -10,6 +10,11 @@ export const SESSION_COOKIE = "snappost_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const MAGIC_LINK_MAX_AGE_MS = 15 * 60 * 1000;
 
+export type ConsumedMagicLink = {
+  user: User;
+  accountCreated: boolean;
+};
+
 function secretKey() {
   const secret = process.env.AUTH_SESSION_SECRET || process.env.JWT_SECRET;
   if (!secret) throw new Error("AUTH_SESSION_SECRET is not configured");
@@ -41,7 +46,7 @@ export async function createMagicLinkToken(email: string) {
   return rawToken;
 }
 
-export async function consumeMagicLinkToken(rawToken: string) {
+export async function consumeMagicLinkToken(rawToken: string): Promise<ConsumedMagicLink | null> {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const [token] = await db
@@ -53,7 +58,7 @@ export async function consumeMagicLinkToken(rawToken: string) {
 
   await db.update(authTokens).set({ usedAt: new Date() }).where(eq(authTokens.id, token.id));
   const [existing] = await db.select().from(users).where(eq(users.email, token.email)).limit(1);
-  if (existing) return existing;
+  if (existing) return { user: existing, accountCreated: false };
 
   await db.insert(users).values({
     openId: independentOpenId(token.email),
@@ -64,8 +69,9 @@ export async function consumeMagicLinkToken(rawToken: string) {
   const [created] = await db.select().from(users).where(eq(users.email, token.email)).limit(1);
   if (created) {
     await logConversionEvent(created.id, "free_account_created", { plan: "free" });
+    return { user: created, accountCreated: true };
   }
-  return created ?? null;
+  return null;
 }
 
 export async function createSessionToken(user: User) {

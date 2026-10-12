@@ -1,8 +1,19 @@
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { hasMetaPixelConsent, setMetaPixelConsent } from "@/lib/metaPixel";
 import { useLocation } from "wouter";
+import { useState } from "react";
 
 export default function Privacy() {
   const [, navigate] = useLocation();
+  const [advertisingChoice, setAdvertisingChoice] = useState<"granted" | "denied">(
+    hasMetaPixelConsent() ? "granted" : "denied",
+  );
+
+  const setAdvertisingPreference = (choice: "granted" | "denied") => {
+    setMetaPixelConsent(choice);
+    setAdvertisingChoice(choice);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -23,7 +34,7 @@ export default function Privacy() {
       <div className="container max-w-3xl py-12">
         <h1 className="mb-2 text-4xl font-bold">Privacy Policy</h1>
         <p className="mb-8 text-muted-foreground">
-          Last updated: June 2026
+          Last updated: 12 October 2026
         </p>
 
         <div className="prose prose-invert max-w-none space-y-8">
@@ -35,6 +46,23 @@ export default function Privacy() {
               collect, use, disclose, and safeguard your information when you
               use our website and services.
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Cookies and Meta advertising measurement</h2>
+            <p className="text-foreground/90 leading-relaxed">
+              With your permission, we use Meta Pixel, cookies and similar technologies to collect or receive information about visits to this website and completed free-account registrations. Meta may use that information to provide measurement services and to help us target and deliver advertising.
+            </p>
+            <p className="mt-4 text-foreground/90 leading-relaxed">
+              You can decline optional advertising cookies and still use SnapPost Pro. You can also change your choice below at any time. For additional ad-targeting choices, visit <a className="text-primary underline underline-offset-4" href="https://www.aboutads.info/choices" target="_blank" rel="noreferrer">aboutads.info/choices</a> or <a className="text-primary underline underline-offset-4" href="https://www.youronlinechoices.eu/" target="_blank" rel="noreferrer">youronlinechoices.eu</a>.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+              <p className="mr-auto text-sm text-muted-foreground">
+                Optional advertising cookies: {advertisingChoice === "granted" ? "allowed" : "declined"}
+              </p>
+              <Button variant="outline" onClick={() => setAdvertisingPreference("denied")}>Decline</Button>
+              <Button onClick={() => setAdvertisingPreference("granted")}>Allow</Button>
+            </div>
           </section>
 
           <section>

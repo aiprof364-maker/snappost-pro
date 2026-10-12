@@ -14,17 +14,21 @@ export function registerAuthRoutes(app: Express) {
       return;
     }
     try {
-      const user = await consumeMagicLinkToken(token);
-      if (!user) {
+      const authResult = await consumeMagicLinkToken(token);
+      if (!authResult) {
         res.redirect(302, "/login?error=expired-link");
         return;
       }
-      const session = await createSessionToken(user);
+      const session = await createSessionToken(authResult.user);
       res.cookie(SESSION_COOKIE, session, {
         ...getSessionCookieOptions(req),
         maxAge: sessionCookieMaxAge(),
       });
-      res.redirect(302, safeReturnPath(req.query.next));
+      const redirectUrl = new URL(safeReturnPath(req.query.next), "https://snappostpro.com");
+      if (authResult.accountCreated) {
+        redirectUrl.searchParams.set("account_created", "1");
+      }
+      res.redirect(302, `${redirectUrl.pathname}${redirectUrl.search}`);
     } catch (error) {
       console.error("[Auth] Magic-link verification failed", error);
       res.redirect(302, "/login?error=sign-in-failed");

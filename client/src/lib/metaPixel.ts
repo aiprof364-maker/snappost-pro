@@ -71,8 +71,13 @@ export function initializeMetaPixel() {
   if (initialized) return true;
 
   installMetaPixelBaseCode();
+  // Meta's consent API keeps every Pixel fire paused until the visitor has made
+  // an affirmative advertising-cookie choice. The visitor has done so before
+  // this function can run.
+  window.fbq?.("consent", "revoke");
   window.fbq?.("init", META_PIXEL_ID);
   window.fbq?.("track", "PageView");
+  window.fbq?.("consent", "grant");
   initialized = true;
   return true;
 }

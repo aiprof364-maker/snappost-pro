@@ -39,8 +39,12 @@ export function setMetaPixelConsent(choice: "granted" | "denied") {
   }
 }
 
-function installMetaPixelBaseCode() {
-  if (!canUseBrowserStorage() || window.fbq) return;
+function installMetaPixelBaseCode(onLoaded: () => void) {
+  if (!canUseBrowserStorage()) return;
+  if (window.fbq) {
+    onLoaded();
+    return;
+  }
 
   const fbq = ((...args: unknown[]) => {
     if (fbq.callMethod) {
@@ -61,6 +65,7 @@ function installMetaPixelBaseCode() {
   script.async = true;
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
   script.dataset.metaPixelId = META_PIXEL_ID;
+  script.addEventListener("load", onLoaded, { once: true });
   document.head.appendChild(script);
 }
 
@@ -70,14 +75,15 @@ export function initializeMetaPixel() {
   if (!hasMetaPixelConsent()) return false;
   if (initialized) return true;
 
-  installMetaPixelBaseCode();
   // Meta's consent API keeps every Pixel fire paused until the visitor has made
-  // an affirmative advertising-cookie choice. The visitor has done so before
-  // this function can run.
+  // an affirmative advertising-cookie choice. Queue the pause before Pixel
+  // setup, then release it only after Meta's script has initialized.
+  installMetaPixelBaseCode(() => {
+    window.fbq?.("consent", "grant");
+  });
   window.fbq?.("consent", "revoke");
   window.fbq?.("init", META_PIXEL_ID);
   window.fbq?.("track", "PageView");
-  window.fbq?.("consent", "grant");
   initialized = true;
   return true;
 }

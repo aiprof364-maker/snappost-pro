@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { getNewsletterMessage, type NewsletterKind } from "./newsletterContent";
 
 /**
  * Lazy-initialize Resend client only when needed.
@@ -377,44 +378,52 @@ export async function sendContactFormNotification(
 }
 
 
-export async function sendNewsletterWelcome(email: string) {
+export class NewsletterSendError extends Error {
+  constructor(message: string, public readonly ambiguous: boolean, public readonly permanent = false) {
+    super(message);
+    this.name = "NewsletterSendError";
+  }
+}
+
+export async function sendNewsletterMessage(input: {
+  email: string;
+  unsubscribeUrl: string;
+  kind: NewsletterKind;
+  issueIndex?: number;
+  idempotencyKey: string;
+}): Promise<{ id: string }> {
   const resend = getResendClient();
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
-    to: email,
-    subject: "Welcome to SnapPost Pro Newsletter",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Welcome to SnapPost Pro! 🎉</h2>
-        
-        <p>Thanks for subscribing to our newsletter. You'll now receive:</p>
-        
-        <ul style="line-height: 1.8;">
-          <li>💡 Weekly tips to save time on social media</li>
-          <li>📊 Industry insights for tradies and contractors</li>
-          <li>🎁 Exclusive discounts and early access to new features</li>
-          <li>📱 Best practices for Facebook marketing</li>
-        </ul>
+  const message = getNewsletterMessage(input.kind, input.unsubscribeUrl, input.issueIndex);
+  // The SDK forwards request options to fetch, including this AbortSignal.
+  const options = { idempotencyKey: input.idempotencyKey, signal: AbortSignal.timeout(30_000) };
+  let result;
+  try {
+    result = await resend.emails.send({
+      from: "SnapPost Pro <noreply@snappostpro.com>",
+      to: input.email,
+      replyTo: "support@snappostpro.com",
+      ...message,
+      headers: {
+        "List-Unsubscribe": `<${input.unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    }, options);
+  } catch {
+    throw new NewsletterSendError("Newsletter transport failed; provider acceptance is unknown.", true);
+  }
+  if (result.error || !result.data?.id) {
+    const status = result.error?.statusCode;
+    const errorName = result.error?.name;
+    const ambiguous = !status || status >= 500 || errorName === "concurrent_idempotent_requests";
+    const permanent = Boolean(status && status >= 400 && status < 500 && status !== 429 && errorName !== "concurrent_idempotent_requests");
+    // Never log an API error message that may contain recipient information.
+    throw new NewsletterSendError("Resend did not confirm newsletter acceptance.", ambiguous, permanent);
+  }
+  return { id: result.data.id };
+}
 
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;">
-          <p style="margin: 0; color: #666;">
-            First email coming in 3 days. Check your inbox!
-          </p>
-        </div>
-
-        <p style="color: #666; font-size: 14px;">
-          You can unsubscribe anytime by clicking the link at the bottom of any email.
-        </p>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #999;">
-          SnapPost Pro • Marketing automation for tradies<br>
-          <a href="https://snappostpro.com" style="color: #5B4FFF; text-decoration: none;">snappostpro.com</a>
-        </p>
-      </div>
-    `,
-  });
+export async function sendNewsletterWelcome(email: string, unsubscribeUrl: string, idempotencyKey: string) {
+  return sendNewsletterMessage({ email, unsubscribeUrl, kind: "welcome", idempotencyKey });
 }
 
 export async function sendNewsletterSignupNotification(email: string, ownerEmail: string) {

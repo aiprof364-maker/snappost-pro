@@ -64,7 +64,8 @@ describe("onboarding email copy", () => {
 
     const email = lastPayload();
     expect(email.subject).toBe("Your SnapPost Pro plan and next post");
-    expect(email.html).toContain("3 posts per month");
+    expect(email.html).toContain("3 branded posts total");
+    expect(email.html).not.toContain("3 posts per month");
     expect(email.html).toContain("Starter includes 30 posts per month");
     expect(email.html).toContain("Pro includes 300 posts per month");
     expect(email.html).toContain("One connected Facebook Page");

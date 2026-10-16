@@ -18,6 +18,11 @@ import {
   trialClaims,
 } from "../drizzle/schema";
 import { determineTrialEligibility } from "./trialEligibility";
+import {
+  createNewsletterSubscription,
+  type NewsletterSubscriptionResult,
+  unsubscribeNewsletterByEmail,
+} from "./newsletterAutomation";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -348,21 +353,12 @@ export async function updateContactStatus(id: number, status: string): Promise<v
   await db.update(contacts).set({ status: status as any }).where(eq(contacts.id, id));
 }
 
-/** Create a new newsletter subscriber. */
-export async function createNewsletterSubscriber(email: string): Promise<void> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot create subscriber: database not available");
-    return;
-  }
-  try {
-    await db.insert(newsletterSubscribers).values({ email, status: "active" });
-  } catch (error) {
-    // Ignore duplicate email errors
-    if (!(error as any).message?.includes("Duplicate")) {
-      console.error("[Database] Failed to create subscriber:", error);
-    }
-  }
+/**
+ * Persist a new newsletter subscriber and return whether it was genuinely new.
+ * Unlike the legacy helper this never hides a database failure behind success.
+ */
+export async function createNewsletterSubscriber(email: string): Promise<NewsletterSubscriptionResult> {
+  return createNewsletterSubscription(email);
 }
 
 /** Get all newsletter subscribers. */
@@ -374,9 +370,7 @@ export async function getNewsletterSubscribers() {
 
 /** Unsubscribe an email from newsletter. */
 export async function unsubscribeNewsletter(email: string): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  await db.update(newsletterSubscribers).set({ status: "unsubscribed" }).where(eq(newsletterSubscribers.email, email));
+  await unsubscribeNewsletterByEmail(email);
 }
 
 /* ----------------------- Email Verification ----------------------- */

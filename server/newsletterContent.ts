@@ -1,5 +1,5 @@
-// Activation is a separate owner-reviewed release from preparing the sequence.
-export const NEWSLETTER_AUTOMATION_ENABLED = false;
+// Owner approved deployment and activation on 17 October 2026 (Auckland time).
+export const NEWSLETTER_AUTOMATION_ENABLED = true;
 
 export type NewsletterKind = 'welcome' | 'followup' | 'weekly';
 export type NewsletterIssue = { subject: string; paragraphs: string[] };

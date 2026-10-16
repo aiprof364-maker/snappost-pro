@@ -1,6 +1,6 @@
 # A1 SnapPost Pro newsletter sequence
 
-**Release status: implementation tested locally; not activated or deployed yet.**
+**Release status: owner approved deployment and activation on 17 October 2026 at 09:14 Auckland time. Activation is enabled in source; Railway rollout verification is pending.**
 
 **Validation:** 35 newsletter-specific tests pass, including 11 real local-database integration tests. These cover signup, content, sender behavior, Auckland timing, HTTP unsubscribe handling, durable processing, and compatibility with previously deployed invitation links. TypeScript passes. All test email sends are mocked; no subscriber was emailed.
 

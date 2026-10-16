@@ -1,36 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock Resend client
-const mockSend = vi.fn();
-const mockCreateNewsletterSubscriber = vi.fn();
-
-vi.mock("resend", () => ({
-  Resend: vi.fn(() => ({
-    emails: {
-      send: mockSend,
-    },
-  })),
+const mocks = vi.hoisted(() => ({
+  createSubscriber: vi.fn(),
+  immediateWelcome: vi.fn(),
+  ownerNotification: vi.fn(),
 }));
 
 vi.mock("./db", async importOriginal => {
   const original = await importOriginal<typeof import("./db")>();
-  return {
-    ...original,
-    createNewsletterSubscriber: mockCreateNewsletterSubscriber,
-  };
+  return { ...original, createNewsletterSubscriber: mocks.createSubscriber };
 });
-
-beforeEach(() => {
-  vi.resetModules();
-  mockSend.mockClear();
-  mockSend.mockResolvedValue({ id: "test-email-id" });
-  mockCreateNewsletterSubscriber.mockReset();
-  mockCreateNewsletterSubscriber.mockResolvedValue({ id: 1 });
-  process.env.RESEND_API_KEY = "test-key";
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
+vi.mock("./newsletterAutomation", () => ({
+  attemptImmediateNewsletterWelcome: mocks.immediateWelcome,
+}));
+vi.mock("./email", async importOriginal => {
+  const original = await importOriginal<typeof import("./email")>();
+  return { ...original, sendNewsletterSignupNotification: mocks.ownerNotification };
 });
 
 function createPublicCtx() {
@@ -41,34 +26,67 @@ function createPublicCtx() {
   } as any;
 }
 
+beforeEach(() => {
+  vi.resetModules();
+  mocks.createSubscriber.mockReset();
+  mocks.immediateWelcome.mockReset();
+  mocks.ownerNotification.mockReset();
+  mocks.immediateWelcome.mockResolvedValue(undefined);
+  mocks.ownerNotification.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("contact.subscribe (newsletter)", () => {
-  it("sends welcome email and notifies owner on newsletter signup", async () => {
+  it("normalizes, persists, immediately attempts welcome, and notifies owner for a new signup", async () => {
+    mocks.createSubscriber.mockResolvedValue({ created: true, subscriberId: 41 });
     const { appRouter } = await import("./routers");
-    const caller = appRouter.createCaller(createPublicCtx());
 
-    const result = await caller.contact.subscribe({ email: "contractor@example.com" });
-    expect(result).toEqual({ success: true });
+    await expect(
+      appRouter.createCaller(createPublicCtx()).contact.subscribe({ email: " CONTRACTOR@Example.COM " }),
+    ).resolves.toEqual({ success: true });
 
-    // Should have called send twice: welcome email + owner notification
-    expect(mockSend).toHaveBeenCalledTimes(2);
-
-    const welcomeCall = mockSend.mock.calls[0][0];
-    expect(welcomeCall.to).toBe("contractor@example.com");
-    expect(welcomeCall.subject).toContain("Welcome");
-
-    const ownerCall = mockSend.mock.calls[1][0];
-    expect(ownerCall.to).toBe("support@snappostpro.com");
-    expect(ownerCall.subject).toContain("contractor@example.com");
+    expect(mocks.createSubscriber).toHaveBeenCalledWith("contractor@example.com");
+    expect(mocks.immediateWelcome).toHaveBeenCalledWith(41);
+    expect(mocks.ownerNotification).toHaveBeenCalledWith(
+      "contractor@example.com",
+      "support@snappostpro.com",
+    );
   });
 
-  it("succeeds gracefully even if emails fail to send", async () => {
-    mockSend.mockRejectedValue(new Error("Resend error"));
-
+  it("does not reset or mail an existing active/unsubscribed address", async () => {
+    mocks.createSubscriber.mockResolvedValue({ created: false });
     const { appRouter } = await import("./routers");
-    const caller = appRouter.createCaller(createPublicCtx());
 
-    // Should not throw, newsletter is non-critical
-    const result = await caller.contact.subscribe({ email: "contractor@example.com" });
-    expect(result).toEqual({ success: true });
+    await expect(
+      appRouter.createCaller(createPublicCtx()).contact.subscribe({ email: "contractor@example.com" }),
+    ).resolves.toEqual({ success: true });
+
+    expect(mocks.immediateWelcome).not.toHaveBeenCalled();
+    expect(mocks.ownerNotification).not.toHaveBeenCalled();
+  });
+
+  it("keeps a persisted signup successful if the immediate attempt fails because the outbox retries it", async () => {
+    mocks.createSubscriber.mockResolvedValue({ created: true, subscriberId: 8 });
+    mocks.immediateWelcome.mockRejectedValue(new Error("provider unavailable"));
+    const { appRouter } = await import("./routers");
+
+    await expect(
+      appRouter.createCaller(createPublicCtx()).contact.subscribe({ email: "contractor@example.com" }),
+    ).resolves.toEqual({ success: true });
+    expect(mocks.ownerNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a user-facing failure rather than false success when persistence fails", async () => {
+    mocks.createSubscriber.mockRejectedValue(new Error("database unavailable"));
+    const { appRouter } = await import("./routers");
+
+    await expect(
+      appRouter.createCaller(createPublicCtx()).contact.subscribe({ email: "contractor@example.com" }),
+    ).rejects.toThrow("We could not save your newsletter subscription");
+    expect(mocks.immediateWelcome).not.toHaveBeenCalled();
+    expect(mocks.ownerNotification).not.toHaveBeenCalled();
   });
 });

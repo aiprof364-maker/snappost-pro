@@ -40,6 +40,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { COOKIE_NAME } from "@shared/const";
 import { initializeCrons } from "../cron";
+import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -93,11 +94,15 @@ async function startServer() {
     console.log(`[Server] Port ${preferredPort} unavailable, using ${port}`);
   }
 
-  // Initialize node-cron jobs (runs on Railway, not Manus)
-  initializeCrons();
-
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // Existing account automation still starts on the Railway process.
+    initializeCrons();
+    // Newsletter setup/catch-up is deliberately asynchronous and cannot block
+    // serving traffic if schema, database, or provider configuration is bad.
+    void startNewsletterAutomationAfterListen().catch(() => {
+      console.error("[Newsletter] automation startup failed");
+    });
   });
 }
 

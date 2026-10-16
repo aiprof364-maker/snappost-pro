@@ -44,6 +44,7 @@ export default function AdminLeads() {
   const newContacts = contacts.filter(c => c.status === "new");
   const repliedContacts = contacts.filter(c => c.status === "replied");
   const archivedContacts = contacts.filter(c => c.status === "archived");
+  const activeContacts = contacts.filter(c => c.status !== "archived");
 
   return (
     <div className="container py-8">
@@ -55,7 +56,7 @@ export default function AdminLeads() {
       <Tabs defaultValue="contacts" className="w-full">
         <TabsList>
           <TabsTrigger value="contacts">
-            Contact Form ({contacts.length})
+            Contact Form ({activeContacts.length})
           </TabsTrigger>
           <TabsTrigger value="subscribers">
             Newsletter ({subscribers.length})
@@ -99,13 +100,13 @@ export default function AdminLeads() {
             <div className="flex justify-center py-8">
               <Spinner />
             </div>
-          ) : contacts.length === 0 ? (
+          ) : activeContacts.length === 0 ? (
             <Card className="p-8 text-center text-gray-600">
               No contact form submissions yet.
             </Card>
           ) : (
             <div className="space-y-4">
-              {contacts.map(contact => (
+              {activeContacts.map(contact => (
                 <Card
                   key={contact.id}
                   className="p-4 cursor-pointer hover:bg-gray-50"

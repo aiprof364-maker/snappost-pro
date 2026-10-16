@@ -7,8 +7,9 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { sendContactFormNotification, sendNewsletterWelcome, sendNewsletterSignupNotification } from "./email";
+import { sendContactFormNotification, sendNewsletterSignupNotification } from "./email";
 import { createContact, createNewsletterSubscriber } from "./db";
+import { attemptImmediateNewsletterWelcome } from "./newsletterAutomation";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { generateCaption } from "./captions";
@@ -625,32 +626,46 @@ export const appRouter = router({
       }),
 
     subscribe: publicProcedure
-      .input(z.object({ email: z.string().email() }))
+      .input(z.object({ email: z.string().trim().toLowerCase().email() }))
       .mutation(async ({ input }) => {
+        const email = input.email.trim().toLowerCase();
+        let subscription;
         try {
-          const { sendNewsletterWelcome, sendNewsletterSignupNotification } = await import("./email");
-          const { createNewsletterSubscriber } = await import("./db");
-          const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
-          
-          // Save to database
-          await createNewsletterSubscriber(input.email);
-          
-          // Send welcome email to subscriber
-          await sendNewsletterWelcome(input.email).catch(err => {
-            console.error("[Newsletter] Failed to send welcome email:", err);
+          subscription = await createNewsletterSubscriber(email);
+        } catch {
+          // Do not claim a subscription succeeded unless it was persisted.
+          console.error("[Newsletter] subscription persistence failed");
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "We could not save your newsletter subscription. Please try again.",
           });
-          
-          // Notify owner of new subscriber
-          await sendNewsletterSignupNotification(input.email, ownerEmail).catch(err => {
-            console.error("[Newsletter] Failed to send owner notification:", err);
-          });
-          
-          return { success: true } as const;
-        } catch (err) {
-          console.error("[Newsletter] Subscription failed:", err);
-          // Newsletter is non-critical: don't hard-fail the visitor
+        }
+
+        // Existing active addresses are left alone and unsubscribed addresses
+        // are deliberately not reactivated through this public form.
+        if (!subscription.created || !subscription.subscriberId) {
           return { success: true } as const;
         }
+
+        // The welcome outbox row was committed atomically above. This attempts
+        // the welcome immediately when the owner-approved feature is enabled;
+        // a provider failure remains queued for the worker instead of failing
+        // the visitor's successfully persisted subscription.
+        try {
+          await attemptImmediateNewsletterWelcome(subscription.subscriberId);
+        } catch {
+          console.error("[Newsletter] immediate welcome attempt failed");
+        }
+
+        // Preserve owner notification for one newly persisted signup only.
+        const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
+        try {
+          await sendNewsletterSignupNotification(email, ownerEmail);
+        } catch {
+          console.error("[Newsletter] owner signup notification failed");
+        }
+
+        return { success: true } as const;
       }),
   }),
 

@@ -455,3 +455,15 @@
   - First-time trial checkout requires a connected Facebook business Page and records its Page ID. A new email reusing that Page cannot receive a second trial; Page identity remains an additional signal rather than the only account identity.
 - [x] Test and deploy the updated Starter and Pro checkout behavior
   - 28 Vitest tests and TypeScript validation pass. Live Railway pricing now shows this existing customer **Your introductory trial has already been used** for both Starter and Pro, and the checkout server will not create another trial for this account.
+
+## Newsletter sequence — 17 October 2026
+- [x] Replace the outdated “tradies and contractors” newsletter welcome with accurate local-business wording, describing only the photo → logo → reviewed AI caption → connected Facebook Page workflow.
+- [x] Fully write the promised 3-day follow-up and 26 evergreen weekly insights without fabricated results, discounts, daily writing, or a new mailing platform.
+- [x] Persist new newsletter signups and send one welcome, retry failed sends safely, and deliver the follow-up once at least 72 hours have elapsed using native 15-minute Railway checks.
+- [x] Schedule weekly insights on Tuesdays at 09:00 Pacific/Auckland, including daylight saving, per-subscriber issue progression, missed-run recovery, and spacing after the follow-up.
+- [x] Send only to active newsletter subscribers; do not subscribe app users automatically, replay welcomes for legacy subscribers, reset duplicate signups, or silently reactivate unsubscribed addresses.
+- [x] Implement recipient-specific unsubscribe links in HTML/plain text and RFC 8058 one-click POST handling; suppress pending and retry sends after unsubscribe.
+- [x] Add durable delivery tracking, multi-instance duplicate protection, bounded retries, and conservative handling of uncertain provider acceptance after the idempotency window.
+- [x] Validate the sequence and unsubscribe flow with mocked email delivery and a throwaway local MySQL-compatible database; preserve existing account onboarding and billing flows.
+  - 67 offline regression tests and 11 additional local-database integration tests pass; TypeScript and the production build pass. Previously deployed invitation links remain valid. No real email sent during validation.
+- [ ] Save the completed change to GitHub and verify the Railway production rollout without claiming inbox delivery from code tests alone.

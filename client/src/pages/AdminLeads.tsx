@@ -22,6 +22,12 @@ export default function AdminLeads() {
     },
   });
 
+  const archiveExampleTestContactsMutation = trpc.admin.archiveExampleTestContacts.useMutation({
+    onSuccess: () => {
+      contactsQuery.refetch();
+    },
+  });
+
   // Check admin access
   if (user?.role !== "admin") {
     return (
@@ -71,6 +77,22 @@ export default function AdminLeads() {
               <div className="text-sm text-gray-600">Archived</div>
               <div className="text-2xl font-bold">{archivedContacts.length}</div>
             </Card>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-amber-900">
+              Archive only obvious test contacts using the reserved <strong>@example.com</strong> domain.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => archiveExampleTestContactsMutation.mutate()}
+              disabled={archiveExampleTestContactsMutation.isPending}
+            >
+              {archiveExampleTestContactsMutation.isPending
+                ? "Archiving…"
+                : "Archive @example.com test contacts"}
+            </Button>
           </div>
 
           {contactsQuery.isLoading ? (

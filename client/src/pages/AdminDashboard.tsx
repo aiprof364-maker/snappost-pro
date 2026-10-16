@@ -28,6 +28,10 @@ export default function AdminDashboard() {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
+  const accountList = trpc.admin.accountList.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
   const contractorAnalytics = trpc.admin.contractorAnalytics.useQuery(
     { userId: selectedUserId! },
     { enabled: isAuthenticated && user?.role === "admin" && selectedUserId !== null }
@@ -142,6 +146,45 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Account List */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Account List</CardTitle>
+              <CardDescription>
+                Owner-only list of every account, including test accounts. Newest first.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {accountList.isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : (accountList.data ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">No accounts yet.</p>
+              ) : (
+                <div className="divide-y rounded-lg border">
+                  {(accountList.data ?? []).map(account => (
+                    <div
+                      key={account.id}
+                      className="grid gap-2 p-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{account.email || "No email recorded"}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Created {new Date(account.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="w-fit capitalize">
+                        {account.plan}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {account.role === "admin" ? "Admin" : account.subscriptionStatus || "none"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* High Usage Contractors */}
           <Card>

@@ -1,9 +1,11 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { getDb, getContacts, getNewsletterSubscribers, updateContactStatus } from "./db";
-import { contacts, users, posts, integrations, conversionEvents } from "../drizzle/schema";
+import { contacts, newsletterSubscribers, users, posts, integrations, conversionEvents } from "../drizzle/schema";
 import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
+import { sendNewsletterSignupInvitation } from "./email";
 
 /**
  * Admin-only procedures for analytics and contractor management.
@@ -268,4 +270,39 @@ export const adminRouter = router({
     adminOnlyMiddleware(ctx);
     return await getNewsletterSubscribers();
   }),
+
+  /** Sends a one-time approved invitation only to selected active non-test subscribers. */
+  sendSignupInvitations: protectedProcedure
+    .input(z.object({ emails: z.array(z.string().email()).min(1).max(10) }))
+    .mutation(async ({ ctx, input }) => {
+      adminOnlyMiddleware(ctx);
+
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      }
+
+      const requestedEmails = Array.from(new Set(input.emails.map(email => email.trim().toLowerCase())));
+      const activeSubscribers = await db
+        .select({ email: newsletterSubscribers.email })
+        .from(newsletterSubscribers)
+        .where(and(inArray(newsletterSubscribers.email, requestedEmails), eq(newsletterSubscribers.status, "active")));
+
+      const recipients = activeSubscribers
+        .map(subscriber => subscriber.email.toLowerCase())
+        .filter(email => !email.endsWith("@example.com"));
+
+      const results = await Promise.allSettled(
+        recipients.map(async email => ({ email, delivery: await sendNewsletterSignupInvitation(email) })),
+      );
+
+      const sent = results
+        .filter((result): result is PromiseFulfilledResult<{ email: string; delivery: { id: string } }> => result.status === "fulfilled")
+        .map(result => result.value.email);
+      const failed = results
+        .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+        .map(result => result.reason instanceof Error ? result.reason.message : "Email delivery failed");
+
+      return { sent, failed };
+    }),
 });

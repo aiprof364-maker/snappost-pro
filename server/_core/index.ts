@@ -34,6 +34,7 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "../authRoutes";
 import { registerIntegrationRoutes } from "../integrationRoutes";
+import { registerNewsletterRoutes } from "../newsletterRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -68,6 +69,7 @@ async function startServer() {
   registerAuthRoutes(app);
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);
+  registerNewsletterRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

@@ -1,4 +1,5 @@
-import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, datetime, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Core user table backing auth flow.
@@ -205,3 +206,70 @@ export const newsletterSubscribers = mysqlTable("newsletterSubscribers", {
 
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertNewsletterSubscriber = typeof newsletterSubscribers.$inferInsert;
+
+/**
+ * Additive state for newsletter subscribers. `welcomeEligible` distinguishes
+ * subscriptions created after automation was introduced from the pre-existing
+ * list, so legacy subscribers never receive a retroactive welcome message.
+ */
+export const newsletterSubscriberState = mysqlTable(
+  "newsletter_subscriber_state",
+  {
+    subscriberId: int("subscriberId").primaryKey(),
+    /** Opaque 32-byte-or-longer token used only to construct unsubscribe URLs. */
+    unsubscribeToken: varchar("unsubscribeToken", { length: 128 }).notNull(),
+    /** Durable activation time used for the 72-hour follow-up calculation. */
+    activationAnchor: datetime("activationAnchor").notNull(),
+    welcomeEligible: boolean("welcomeEligible").default(false).notNull(),
+    createdAt: datetime("createdAt").default(sql`CURRENT_TIMESTAMP`).notNull(),
+    updatedAt: datetime("updatedAt").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()).notNull(),
+  },
+  table => ({
+    unsubscribeTokenUnique: uniqueIndex("newsletter_state_token_uq").on(table.unsubscribeToken),
+    activationAnchorIndex: index("newsletter_state_anchor_idx").on(table.activationAnchor),
+  }),
+);
+
+export type NewsletterSubscriberState = typeof newsletterSubscriberState.$inferSelect;
+
+/**
+ * Durable, idempotent newsletter outbox. The unique subscriber/campaign key
+ * lets workers safely resume after process failures without re-queuing a send.
+ */
+export const newsletterDeliveryLedger = mysqlTable(
+  "newsletter_delivery_ledger",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    subscriberId: int("subscriberId").notNull(),
+    campaignKey: varchar("campaignKey", { length: 191 }).notNull(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    issueIndex: int("issueIndex"),
+    status: varchar("status", { length: 16 }).default("pending").notNull(),
+    attempts: int("attempts").default(0).notNull(),
+    /** Never reset: bounds retries to Resend's 24-hour idempotency window. */
+    firstAttemptAt: datetime("firstAttemptAt"),
+    lastAttemptAt: datetime("lastAttemptAt"),
+    nextAttemptAt: datetime("nextAttemptAt"),
+    sentAt: datetime("sentAt"),
+    providerMessageId: varchar("providerMessageId", { length: 191 }),
+    lastErrorClass: varchar("lastErrorClass", { length: 32 }),
+    /** Set once after an ambiguous provider outcome; clear only on accepted id. */
+    ambiguousSince: datetime("ambiguousSince"),
+    uncertainAt: datetime("uncertainAt"),
+    alertedAt: datetime("alertedAt"),
+    createdAt: datetime("createdAt").default(sql`CURRENT_TIMESTAMP`).notNull(),
+    updatedAt: datetime("updatedAt").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()).notNull(),
+  },
+  table => ({
+    subscriberCampaignUnique: uniqueIndex("newsletter_delivery_sub_campaign_uq").on(
+      table.subscriberId,
+      table.campaignKey,
+    ),
+    dispatchIndex: index("newsletter_delivery_dispatch_idx").on(
+      table.status,
+      table.nextAttemptAt,
+    ),
+  }),
+);
+
+export type NewsletterDeliveryLedger = typeof newsletterDeliveryLedger.$inferSelect;

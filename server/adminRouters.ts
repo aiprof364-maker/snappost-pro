@@ -2,7 +2,7 @@ import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb, getContacts, getNewsletterSubscribers, updateContactStatus } from "./db";
 import { users, posts, integrations, conversionEvents } from "../drizzle/schema";
-import { eq, gte } from "drizzle-orm";
+import { desc, eq, gte } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 
 /**
@@ -17,6 +17,30 @@ function adminOnlyMiddleware(ctx: any) {
 }
 
 export const adminRouter = router({
+  /** Owner-only account list for identifying real sign-ups and test accounts. */
+  accountList: protectedProcedure.query(async ({ ctx }) => {
+    adminOnlyMiddleware(ctx);
+
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    }
+
+    const allUsers = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        plan: users.plan,
+        role: users.role,
+        subscriptionStatus: users.subscriptionStatus,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt));
+
+    return allUsers;
+  }),
+
   /** All-time subscriber funnel counts for the owner dashboard. */
   funnelOverview: protectedProcedure.query(async ({ ctx }) => {
     adminOnlyMiddleware(ctx);

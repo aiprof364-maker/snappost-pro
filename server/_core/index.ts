@@ -34,12 +34,12 @@ import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "../authRoutes";
 import { registerIntegrationRoutes } from "../integrationRoutes";
+import { registerNewsletterRoutes } from "../newsletterRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { COOKIE_NAME } from "@shared/const";
 import { initializeCrons } from "../cron";
-import { registerNewsletterRoutes } from "../newsletterRoutes";
 import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
 
 function isPortAvailable(port: number): Promise<boolean> {

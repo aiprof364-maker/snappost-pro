@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { getNewsletterMessage, type NewsletterKind } from "./newsletterContent";
+import { getNewsletterUnsubscribeUrl } from "./newsletter";
 
 /**
  * Lazy-initialize Resend client only when needed.
@@ -424,6 +425,55 @@ export async function sendNewsletterMessage(input: {
 
 export async function sendNewsletterWelcome(email: string, unsubscribeUrl: string, idempotencyKey: string) {
   return sendNewsletterMessage({ email, unsubscribeUrl, kind: "welcome", idempotencyKey });
+}
+
+/** Sends the owner-approved product invitation to an active newsletter subscriber. */
+export async function sendNewsletterSignupInvitation(email: string) {
+  const resend = getResendClient();
+  const unsubscribeUrl = getNewsletterUnsubscribeUrl(email);
+  const result = await resend.emails.send({
+    from: "SnapPost Pro <noreply@snappostpro.com>",
+    to: email,
+    subject: "An easier way to post your finished work on Facebook",
+    headers: {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+    },
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.55">
+        <p>Hi,</p>
+
+        <p>You subscribed to SnapPost Pro updates, so I wanted to invite you to try the product.</p>
+
+        <p>If you use Facebook to show completed work, SnapPost Pro gives you an easier way to turn a finished-job photo into a post for your business Page:</p>
+
+        <ul>
+          <li>Upload a real completed-work photo</li>
+          <li>Add your logo watermark</li>
+          <li>Generate an AI-written caption</li>
+          <li>Review it, then publish to your selected Facebook Page</li>
+        </ul>
+
+        <p><strong>Spend less time preparing posts and more time running your business.</strong></p>
+
+        <p style="margin:28px 0">
+          <a href="https://snappostpro.com" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Start with 3 free posts</a>
+        </p>
+
+        <p>— SnapPost Pro</p>
+
+        <hr style="margin:30px 0;border:none;border-top:1px solid #ddd">
+        <p style="font-size:12px;color:#64748b">
+          You received this because you subscribed to SnapPost Pro updates. <a href="${unsubscribeUrl}" style="color:#5747e8">Unsubscribe</a>.
+        </p>
+      </div>
+    `,
+  });
+
+  if (result.error || !result.data?.id) {
+    throw new Error(result.error?.message ?? "Resend did not accept the signup invitation.");
+  }
+
+  return result.data;
 }
 
 export async function sendNewsletterSignupNotification(email: string, ownerEmail: string) {

@@ -3,11 +3,12 @@ import express from 'express';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-const checks = vi.hoisted(() => ({ validate: vi.fn(), unsubscribe: vi.fn() }));
+const checks = vi.hoisted(() => ({ validate: vi.fn(), unsubscribe: vi.fn(), unsubscribeEmail: vi.fn() }));
 vi.mock('./newsletterAutomation', () => ({
   getNewsletterAutomationHealth: () => ({ version: 'newsletter-v1', ready: true, enabled: false }),
   isValidNewsletterUnsubscribeToken: checks.validate,
   unsubscribeNewsletterByToken: checks.unsubscribe,
+  unsubscribeNewsletterByEmail: checks.unsubscribeEmail,
 }));
 let server: Server;
 let origin: string;
@@ -25,6 +26,9 @@ beforeAll(async () => {
 });
 beforeEach(() => {
   checks.validate.mockReset(); checks.unsubscribe.mockReset();
+  checks.unsubscribeEmail.mockReset();
+  checks.unsubscribeEmail.mockResolvedValue(undefined);
+  process.env.AUTH_SESSION_SECRET = 'local-offline-unsubscribe-test-secret';
   checks.validate.mockResolvedValue(true); checks.unsubscribe.mockResolvedValue(true);
 });
 afterAll(async () => { await new Promise<void>((resolve, reject) => server.close(err => err ? reject(err) : resolve())); });
@@ -68,5 +72,27 @@ describe('newsletter unsubscribe HTTP routes', () => {
   it('exposes only non-personal readiness metadata', async () => {
     const res = await fetch(`${origin}/api/newsletter/health`);
     expect(await res.json()).toEqual({ version: 'newsletter-v1', ready: true, enabled: false });
+  });
+  it('preserves previously deployed signed invitation links without scanner-triggered unsubscribes', async () => {
+    const { getNewsletterUnsubscribeUrl } = await import('./newsletter');
+    const link = new URL(getNewsletterUnsubscribeUrl('invited@example.test'));
+    const res = await fetch(`${origin}${link.pathname}${link.search}`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('Confirm unsubscribe');
+    expect(checks.unsubscribeEmail).not.toHaveBeenCalled();
+    const confirmed = await fetch(`${origin}${link.pathname}${link.search}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click',
+    });
+    expect(confirmed.status).toBe(200);
+    expect(await confirmed.text()).toBe('');
+    expect(checks.unsubscribeEmail).toHaveBeenCalledWith('invited@example.test');
+  });
+  it('rejects a signed invitation token paired with the wrong email', async () => {
+    const { getNewsletterUnsubscribeUrl } = await import('./newsletter');
+    const link = new URL(getNewsletterUnsubscribeUrl('invited@example.test'));
+    link.searchParams.set('email', 'different@example.test');
+    const res = await fetch(`${origin}${link.pathname}${link.search}`, { method: 'POST' });
+    expect(res.status).toBe(404);
+    expect(checks.unsubscribeEmail).not.toHaveBeenCalled();
   });
 });

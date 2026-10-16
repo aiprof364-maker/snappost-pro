@@ -2,11 +2,13 @@
 
 **Release status: implementation tested locally; not activated or deployed yet.**
 
-**Validation:** 65 offline regression tests and 10 additional real local-database integration tests pass. These include 32 newsletter-specific checks across signup, content, sender behavior, Auckland timing, HTTP unsubscribe handling, and durable processing. TypeScript and the production build pass. All test email sends are mocked; no subscriber was emailed.
+**Validation:** 35 newsletter-specific tests pass, including 11 real local-database integration tests. These cover signup, content, sender behavior, Auckland timing, HTTP unsubscribe handling, durable processing, and compatibility with previously deployed invitation links. TypeScript passes. All test email sends are mocked; no subscriber was emailed.
+
+The complete offline regression suite passes **67 tests**; the additional **11 database integration tests** also pass. The production build passes after integrating the concurrent invitation release. No account-onboarding or billing behavior was changed.
 
 ## A1a Audience and delivery
 
-Only addresses with `status = active` in the existing newsletter subscriber table receive these emails. App accounts are not automatically subscribed. Delivery remains with the existing Railway backend and Resend sender, `SnapPost Pro <noreply@snappostpro.com>`. No new mailing platform or Manus schedule is introduced.
+Only addresses with `status = active` in the existing newsletter subscriber table receive these emails. Reserved `@example.com` test addresses are excluded, matching the existing invitation audience. App accounts are not automatically subscribed. Delivery remains with the existing Railway backend and Resend sender, `SnapPost Pro <noreply@snappostpro.com>`, with replies sent to the published `support@snappostpro.com` address. No new mailing platform or Manus schedule is introduced.
 
 New newsletter signup receives one welcome, followed by a guide once at least 72 hours have elapsed. The follow-up check runs every 15 minutes. A failed send is retried with a stable idempotency key and recorded delivery state; an API error is not treated as a sent email.
 
@@ -19,6 +21,8 @@ The 26 weekly emails below are **evergreen practical insights, not live news**. 
 ## A1b Unsubscribe and sending safeguards
 
 Every message contains a real, recipient-specific unsubscribe link in its HTML and plain-text footer, plus RFC 8058 one-click headers. Opening the link displays a confirmation page; posting the confirmation stops newsletter sends immediately. Email-scanner GET requests do not unsubscribe someone. Unsubscribing does not cancel an account or billing emails.
+
+Previously sent product-invitation unsubscribe URLs remain valid. They use the same confirmation and POST flow. The separate admin invitation action and its approved email copy are preserved; this newsletter sequence does not automatically send or resend those invitations.
 
 Delivery records are durable in MySQL. A database lock prevents overlapping Railway workers from sending duplicates. Uncertain delivery outcomes are not automatically retried after Resend's idempotency window; stopped sends require owner review. Resend suppresses further delivery to hard-bounced or complaint addresses, but the application list is not automatically updated without a provider webhook.
 

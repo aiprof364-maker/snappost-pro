@@ -28,6 +28,18 @@ export default function AdminLeads() {
     },
   });
 
+  const [signupInviteResult, setSignupInviteResult] = useState<string | null>(null);
+  const sendSignupInvitationsMutation = trpc.admin.sendSignupInvitations.useMutation({
+    onSuccess: result => {
+      setSignupInviteResult(
+        result.failed.length > 0
+          ? `${result.sent.length} invitation(s) sent. ${result.failed.length} could not be sent.`
+          : `${result.sent.length} invitation(s) sent.`,
+      );
+    },
+    onError: () => setSignupInviteResult("The invitation could not be sent. Please try again."),
+  });
+
   // Check admin access
   if (user?.role !== "admin") {
     return (
@@ -45,6 +57,9 @@ export default function AdminLeads() {
   const repliedContacts = contacts.filter(c => c.status === "replied");
   const archivedContacts = contacts.filter(c => c.status === "archived");
   const activeContacts = contacts.filter(c => c.status !== "archived");
+  const activeNonTestSubscribers = subscribers.filter(
+    subscriber => subscriber.status === "active" && !subscriber.email.toLowerCase().endsWith("@example.com"),
+  );
 
   return (
     <div className="container py-8">
@@ -173,6 +188,29 @@ export default function AdminLeads() {
 
         {/* Newsletter Subscribers */}
         <TabsContent value="subscribers" className="space-y-4">
+          {activeNonTestSubscribers.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <div>
+                <p className="text-sm font-medium">Send approved SnapPost Pro signup invitation</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Sends only to {activeNonTestSubscribers.length} active non-test subscriber{activeNonTestSubscribers.length === 1 ? "" : "s"} and includes an unsubscribe link.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSignupInviteResult(null);
+                  sendSignupInvitationsMutation.mutate({ emails: activeNonTestSubscribers.map(subscriber => subscriber.email) });
+                }}
+                disabled={sendSignupInvitationsMutation.isPending}
+              >
+                {sendSignupInvitationsMutation.isPending
+                  ? "Sending…"
+                  : `Send to ${activeNonTestSubscribers.length} subscribers`}
+              </Button>
+              {signupInviteResult && <p className="w-full text-sm text-muted-foreground">{signupInviteResult}</p>}
+            </div>
+          )}
           {subscribersQuery.isLoading ? (
             <div className="flex justify-center py-8">
               <Spinner />

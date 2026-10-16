@@ -465,5 +465,5 @@
 - [x] Implement recipient-specific unsubscribe links in HTML/plain text and RFC 8058 one-click POST handling; suppress pending and retry sends after unsubscribe.
 - [x] Add durable delivery tracking, multi-instance duplicate protection, bounded retries, and conservative handling of uncertain provider acceptance after the idempotency window.
 - [x] Validate the sequence and unsubscribe flow with mocked email delivery and a throwaway local MySQL-compatible database; preserve existing account onboarding and billing flows.
-  - 65 offline regression tests and 10 additional local-database integration tests pass; TypeScript and the production build pass. No real email sent during validation.
+  - 67 offline regression tests and 11 additional local-database integration tests pass; TypeScript and the production build pass. Previously deployed invitation links remain valid. No real email sent during validation.
 - [ ] Save the completed change to GitHub and verify the Railway production rollout without claiming inbox delivery from code tests alone.

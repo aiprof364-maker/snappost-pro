@@ -77,6 +77,15 @@ describe.runIf(enabled && Boolean(dsn))('newsletter local MySQL integration — 
     expect(await token(first.subscriberId!)).toBe(opaque);
   });
 
+  it('never sends automated emails to reserved example.com test addresses', async () => {
+    const at = new Date('2026-10-01T00:00:00Z');
+    const result = await automation.createNewsletterSubscription('old-demo@example.com');
+    await pool.execute('UPDATE newsletter_subscriber_state SET activationAnchor=? WHERE subscriberId=?', [at, result.subscriberId!]);
+    await pool.execute('UPDATE newsletter_delivery_ledger SET nextAttemptAt=? WHERE subscriberId=?', [at, result.subscriberId!]);
+    await automation.runNewsletterAutomation({ now: tuesday });
+    expect(sends.send).not.toHaveBeenCalled();
+  });
+
   it('sends one welcome and the follow-up only at or after exactly 72 hours', async () => {
     const signup = new Date('2026-10-10T00:00:00Z');
     const id = await fixture(signup);

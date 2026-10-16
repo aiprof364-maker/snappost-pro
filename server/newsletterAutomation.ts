@@ -520,7 +520,8 @@ async function enqueueWelcomeDeliveries(
     `SELECT s.subscriberId
      FROM newsletter_subscriber_state s
      INNER JOIN newsletterSubscribers n ON n.id = s.subscriberId
-     WHERE n.status = ? AND s.welcomeEligible = 1${subscriberClause}`,
+     WHERE n.status = ? AND LOWER(n.email) NOT LIKE '%@example.com'
+       AND s.welcomeEligible = 1${subscriberClause}`,
     params,
   );
   for (const subscriber of subscribers) {
@@ -547,6 +548,7 @@ async function enqueueFollowupDeliveries(
      FROM newsletter_subscriber_state s
      INNER JOIN newsletterSubscribers n ON n.id = s.subscriberId
      WHERE n.status = ?
+       AND LOWER(n.email) NOT LIKE '%@example.com'
        AND s.activationAnchor <= ?
        AND (
          s.welcomeEligible = 0 OR EXISTS (
@@ -590,6 +592,7 @@ async function enqueueWeeklyDeliveries(
       AND f.status = ?
       AND f.sentAt <= ?
      WHERE n.status = ?
+       AND LOWER(n.email) NOT LIKE '%@example.com'
        AND NOT EXISTS (
          SELECT 1 FROM newsletter_delivery_ledger p
          WHERE p.subscriberId = s.subscriberId AND p.kind = 'weekly'
@@ -659,6 +662,7 @@ async function selectDueDeliveries(
      INNER JOIN newsletterSubscribers n ON n.id = d.subscriberId
      INNER JOIN newsletter_subscriber_state s ON s.subscriberId = d.subscriberId
      WHERE n.status = ?
+       AND LOWER(n.email) NOT LIKE '%@example.com'
        AND d.status IN (?, ?)
        AND (d.nextAttemptAt IS NULL OR d.nextAttemptAt <= ?)${subscriberClause}
      ORDER BY CASE d.kind WHEN 'welcome' THEN 1 WHEN 'followup' THEN 2 ELSE 3 END,
@@ -823,7 +827,7 @@ async function deliverOne(
     [delivery.subscriberId],
   );
   const recipient = recipients[0];
-  if (!recipient || recipient.status !== "active") {
+  if (!recipient || recipient.status !== "active" || recipient.email.toLowerCase().endsWith("@example.com")) {
     await connection.execute(
       "UPDATE newsletter_delivery_ledger SET status = ? WHERE id = ?",
       ["cancelled", delivery.id],

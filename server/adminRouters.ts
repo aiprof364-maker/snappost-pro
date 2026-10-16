@@ -1,8 +1,8 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb, getContacts, getNewsletterSubscribers, updateContactStatus } from "./db";
-import { users, posts, integrations, conversionEvents } from "../drizzle/schema";
-import { desc, eq, gte } from "drizzle-orm";
+import { contacts, users, posts, integrations, conversionEvents } from "../drizzle/schema";
+import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 
 /**
@@ -236,6 +236,30 @@ export const adminRouter = router({
       await updateContactStatus(input.id, input.status);
       return { success: true };
     }),
+
+  /** Archive only contacts using the reserved example.com test domain. */
+  archiveExampleTestContacts: protectedProcedure.mutation(async ({ ctx }) => {
+    adminOnlyMiddleware(ctx);
+
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+    }
+
+    const testContacts = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(and(like(contacts.email, "%@example.com"), ne(contacts.status, "archived")));
+
+    if (testContacts.length > 0) {
+      await db
+        .update(contacts)
+        .set({ status: "archived" })
+        .where(inArray(contacts.id, testContacts.map(contact => contact.id)));
+    }
+
+    return { archived: testContacts.length };
+  }),
 
   /**
    * Get all newsletter subscribers.

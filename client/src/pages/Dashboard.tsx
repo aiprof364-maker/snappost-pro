@@ -104,6 +104,7 @@ export default function Dashboard() {
     const fb = params.get("facebook");
     const checkout = params.get("checkout");
     const accountCreated = params.get("account_created");
+    const landing = params.get("landing");
     if (fb === "connected") toast.success("Facebook connected.");
     else if (fb === "denied") toast.error("Facebook connection was cancelled.");
     else if (fb === "error") toast.error("Facebook connection failed.");
@@ -115,7 +116,7 @@ export default function Dashboard() {
       }, 1500);
     }
     if (accountCreated === "1") {
-      trackMetaEvent("CompleteRegistration");
+      trackMetaEvent("CompleteRegistration", landing ? { landing_page: landing } : undefined);
       toast.success("Your free account is ready.");
     }
     if (fb || checkout || accountCreated) {

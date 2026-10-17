@@ -3,6 +3,13 @@ export const META_PIXEL_ID = "1579357956689832";
 const CONSENT_STORAGE_KEY = "snappost-meta-pixel-consent";
 const PENDING_EVENT_STORAGE_KEY = "snappost-pending-meta-event";
 
+type MetaEventParameters = Record<string, string | number | boolean>;
+type PendingMetaEvent = {
+  kind: "standard" | "custom";
+  name: string;
+  parameters?: MetaEventParameters;
+};
+
 type MetaPixelFunction = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
   queue: unknown[][];
@@ -88,25 +95,50 @@ export function initializeMetaPixel() {
   return true;
 }
 
-export function trackMetaEvent(eventName: "CompleteRegistration") {
+function sendMetaEvent(event: PendingMetaEvent) {
+  initializeMetaPixel();
+  if (event.kind === "custom") {
+    window.fbq?.("trackCustom", event.name, event.parameters);
+    return;
+  }
+  window.fbq?.("track", event.name, event.parameters);
+}
+
+function queueOrSendMetaEvent(event: PendingMetaEvent) {
   if (!hasMetaPixelConsent()) {
     if (canUseBrowserStorage()) {
-      window.sessionStorage.setItem(PENDING_EVENT_STORAGE_KEY, eventName);
+      window.sessionStorage.setItem(PENDING_EVENT_STORAGE_KEY, JSON.stringify(event));
     }
     return false;
   }
 
-  initializeMetaPixel();
-  window.fbq?.("track", eventName);
+  sendMetaEvent(event);
   return true;
+}
+
+export function trackMetaEvent(
+  eventName: "CompleteRegistration" | "Lead",
+  parameters?: MetaEventParameters,
+) {
+  return queueOrSendMetaEvent({ kind: "standard", name: eventName, parameters });
+}
+
+export function trackMetaCustomEvent(eventName: string, parameters?: MetaEventParameters) {
+  return queueOrSendMetaEvent({ kind: "custom", name: eventName, parameters });
 }
 
 export function flushPendingMetaEvent() {
   if (!canUseBrowserStorage() || !hasMetaPixelConsent()) return;
-  const eventName = window.sessionStorage.getItem(PENDING_EVENT_STORAGE_KEY);
-  if (eventName === "CompleteRegistration") {
-    initializeMetaPixel();
-    window.fbq?.("track", "CompleteRegistration");
+  const rawEvent = window.sessionStorage.getItem(PENDING_EVENT_STORAGE_KEY);
+  if (rawEvent) {
+    try {
+      const event = JSON.parse(rawEvent) as PendingMetaEvent;
+      if ((event.kind === "standard" || event.kind === "custom") && typeof event.name === "string") {
+        sendMetaEvent(event);
+      }
+    } catch {
+      // Ignore malformed local session data rather than preventing consent setup.
+    }
   }
   window.sessionStorage.removeItem(PENDING_EVENT_STORAGE_KEY);
 }

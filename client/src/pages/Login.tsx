@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Loader2, Mail, ShieldCheck } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { trackMetaEvent } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -12,9 +13,15 @@ export default function Login() {
   const [cooldown, setCooldown] = useState(0);
   const query = new URLSearchParams(window.location.search);
   const next = query.get("next") || "/dashboard";
-  const isFreeStart = next === "/dashboard";
+  const nextUrl = new URL(next, window.location.origin);
+  const landing = nextUrl.searchParams.get("landing");
+  const isFreeStart = nextUrl.pathname === "/dashboard";
   const requestLink = trpc.auth.requestSignInLink.useMutation({
     onSuccess: () => {
+      trackMetaEvent("Lead", {
+        lead_type: "magic_link_requested",
+        ...(landing ? { landing_page: landing } : {}),
+      });
       setSent(true);
       setCooldown(60);
     },

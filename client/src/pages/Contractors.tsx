@@ -3,6 +3,7 @@ import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
+import { trackMetaCustomEvent } from "@/lib/metaPixel";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ArrowRight, Check, Facebook, ImagePlus, PenLine, ShieldCheck, Stamp } from "lucide-react";
 import { Link } from "wouter";
@@ -44,7 +45,12 @@ const FREE_FEATURES = [
 
 export default function Contractors() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/dashboard");
+  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/dashboard?landing=contractors");
+  const trackFreeStartClick = () => {
+    if (!isAuthenticated) {
+      trackMetaCustomEvent("FreeStartCtaClicked", { landing_page: "contractors" });
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -71,7 +77,7 @@ export default function Contractors() {
                 Upload a completed-job photo. SnapPost Pro adds your logo and writes an AI caption. You review it, then publish it to your Facebook Page.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href={primaryCta}>
+                <a href={primaryCta} onClick={trackFreeStartClick}>
                   <Button size="lg" className="w-full gap-2 px-8 py-6 text-base font-bold sm:w-auto">
                     {isAuthenticated ? "Go to dashboard" : "Create 3 free posts"} <ArrowRight className="h-5 w-5" />
                   </Button>
@@ -150,7 +156,7 @@ export default function Contractors() {
                   </li>
                 ))}
               </ul>
-              <a href={primaryCta} className="mt-8 inline-flex">
+              <a href={primaryCta} className="mt-8 inline-flex" onClick={trackFreeStartClick}>
                 <Button size="lg" className="gap-2 px-7 py-6 text-base font-bold">
                   {isAuthenticated ? "Go to dashboard" : "Create 3 free posts"} <ArrowRight className="h-5 w-5" />
                 </Button>
@@ -166,7 +172,7 @@ export default function Contractors() {
               <p className="mx-auto mt-4 max-w-2xl text-base leading-7 opacity-90">
                 Create three branded Facebook posts free. You review the image and caption before anything is published.
               </p>
-              <a href={primaryCta} className="mt-8 inline-flex">
+              <a href={primaryCta} className="mt-8 inline-flex" onClick={trackFreeStartClick}>
                 <Button size="lg" variant="secondary" className="gap-2 px-8 py-6 text-base font-bold">
                   {isAuthenticated ? "Go to dashboard" : "Create 3 free posts"} <ArrowRight className="h-5 w-5" />
                 </Button>

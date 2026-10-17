@@ -18,12 +18,14 @@ import DeleteAccount from "./pages/DeleteAccount";
 import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
 import Contractors from "./pages/Contractors";
+import Hairdressers from "./pages/Hairdressers";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/contractors"} component={Contractors} />
+      <Route path={"/hairdressers"} component={Hairdressers} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/analytics"} component={Analytics} />

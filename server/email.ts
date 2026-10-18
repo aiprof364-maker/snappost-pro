@@ -2,382 +2,228 @@ import { Resend } from "resend";
 import { getNewsletterMessage, type NewsletterKind } from "./newsletterContent";
 import { getNewsletterUnsubscribeUrl } from "./newsletter";
 
-/**
- * Lazy-initialize Resend client only when needed.
- * This prevents startup errors if RESEND_API_KEY is missing.
- */
+const EMAIL_FROM = "SnapPost Pro <noreply@snappostpro.com>";
+const ALERT_FROM = "SnapPost Pro Alerts <alerts@snappostpro.com>";
+
+export type AcceptedEmail = { id: string };
+export type AccountEmailKind = "onboarding-day-1" | "onboarding-day-3" | "onboarding-day-5" | "trial-ending" | "renewal" | "purchase" | "contact-owner-alert";
+export type PurchaseConfirmationInput = {
+  email: string;
+  userName?: string | null;
+  plan: "starter" | "pro";
+  subscriptionStatus: "trialing" | "active";
+  trialEndsAt?: Date | null;
+  periodEndsAt?: Date | null;
+};
+
 let resendClient: Resend | null = null;
+
+export function getSupportReplyTo() {
+  return process.env.SUPPORT_REPLY_TO || "support@snappostpro.com";
+}
 
 function getResendClient(): Resend {
   if (!resendClient) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        "RESEND_API_KEY environment variable is not set. Email notifications will not work."
-      );
+      throw new Error("RESEND_API_KEY environment variable is not set. Email notifications will not work.");
     }
     resendClient = new Resend(apiKey);
   }
   return resendClient;
 }
 
+function escapeHtml(value: string | null | undefined) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]!);
+}
+
+function greetingName(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? escapeHtml(trimmed) : "there";
+}
+
+function dateText(value: Date | null | undefined) {
+  return value ? value.toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" }) : null;
+}
+
+function acceptedEmailId(result: unknown): AcceptedEmail {
+  const candidate = result as { data?: { id?: unknown }; id?: unknown; error?: { message?: unknown } | null };
+  const id = candidate?.data?.id ?? candidate?.id;
+  if (candidate?.error || typeof id !== "string" || !id) {
+    throw new Error(
+      typeof candidate?.error?.message === "string"
+        ? candidate.error.message
+        : "Resend did not accept the email.",
+    );
+  }
+  return { id };
+}
+
+async function sendAccountMessage(input: {
+  to: string;
+  subject: string;
+  html: string;
+  idempotencyKey?: string;
+  replyTo?: string;
+}): Promise<AcceptedEmail> {
+  const result = await getResendClient().emails.send(
+    {
+      from: EMAIL_FROM,
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+      ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    },
+    input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
+  );
+  return acceptedEmailId(result);
+}
+
+function accountFooter() {
+  return `<hr style="margin:30px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.</p>`;
+}
+
 export async function sendMagicSignInLink(email: string, signInUrl: string) {
-  const resend = getResendClient();
-  const result = await resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+  return sendAccountMessage({
     to: email,
     subject: "Your secure SnapPost Pro sign-in link",
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033">
-        <h2>Sign in to SnapPost Pro</h2>
-        <p>Use the secure link below to sign in. It expires in 15 minutes and can only be used once.</p>
-        <p style="margin:28px 0"><a href="${signInUrl}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Sign in to SnapPost Pro</a></p>
-        <p style="font-size:12px;color:#64748b">If you did not request this email, you can safely ignore it.</p>
-      </div>
-    `,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Sign in to SnapPost Pro</h2><p>Use the secure link below to sign in. It expires in 15 minutes and can only be used once.</p><p style="margin:28px 0"><a href="${escapeHtml(signInUrl)}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Sign in to SnapPost Pro</a></p><p style="font-size:12px;color:#64748b">If you did not request this email, you can safely ignore it.</p></div>`,
   });
-
-  if (result.error || !result.data?.id) {
-    throw new Error(result.error?.message ?? "Resend did not accept the sign-in email.");
-  }
-
-  return result.data;
 }
 
-export async function sendPurchaseConfirmation(
-  email: string,
-  userName: string,
-  plan: "starter" | "pro",
-  amount: number
-) {
-  const planDetails = {
-    starter: { name: "Starter", posts: 30, price: 19 },
-    pro: { name: "Pro", posts: 300, price: 29 },
-  };
+export async function sendPurchaseConfirmation(input: PurchaseConfirmationInput, idempotencyKey?: string) {
+  const details = input.plan === "pro" ? { name: "Pro", posts: 300 } : { name: "Starter", posts: 30 };
+  const trialEnd = dateText(input.trialEndsAt);
+  const periodEnd = dateText(input.periodEndsAt);
+  const statusCopy = input.subscriptionStatus === "trialing"
+    ? `<p>Your 7-day trial is active${trialEnd ? ` through <strong>${trialEnd}</strong>` : ""}. You can manage or cancel your subscription from your dashboard.</p>`
+    : `<p>Your <strong>${details.name}</strong> plan is active${periodEnd ? ` through <strong>${periodEnd}</strong>` : ""}.</p>`;
+  return sendAccountMessage({
+    to: input.email,
+    subject: `Welcome to SnapPost Pro ${details.name}`,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Welcome to SnapPost Pro, ${greetingName(input.userName)}!</h2>${statusCopy}<div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your plan includes</h3><ul><li><strong>${details.posts} branded posts per month</strong></li><li>AI-generated captions you can review and edit</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Saved post history</li></ul></div><p>Start creating a branded post when you are ready:</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
+  });
+}
 
-  const details = planDetails[plan];
-  const resend = getResendClient();
-
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendTrialExpirationWarning(email: string, userName: string | null | undefined, expirationDate: Date, idempotencyKey?: string) {
+  return sendAccountMessage({
     to: email,
-    subject: `Welcome to SnapPost Pro ${details.name}! 🎉`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Welcome to SnapPost Pro, ${userName}!</h2>
-        <p>Your subscription to the <strong>${details.name} plan</strong> is now active.</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Your Plan Details:</h3>
-          <ul>
-            <li><strong>${details.posts} branded posts per month</strong></li>
-            <li>AI-generated captions</li>
-            <li>Logo branding overlay</li>
-            <li>One connected Facebook Page</li>
-            <li>Saved post history</li>
-          </ul>
-        </div>
-
-        <p><strong>Next billing date:</strong> ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
-
-        <p>Start creating branded posts now:</p>
-        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
+    subject: "Your SnapPost Pro trial ends tomorrow",
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Your trial ends tomorrow, ${greetingName(userName)}</h2><p>Your 7-day SnapPost Pro trial ends on <strong>${dateText(expirationDate)}</strong>.</p><p>If you keep the subscription, Stripe will continue it under the plan you selected. You can manage or cancel it from your dashboard.</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Manage Subscription</a></p>${accountFooter()}</div>`,
   });
 }
 
-export async function sendTrialExpirationWarning(
-  email: string,
-  userName: string,
-  expirationDate: Date
-) {
-  const resend = getResendClient();
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendRenewalReminder(email: string, userName: string | null | undefined, plan: "starter" | "pro", renewalDate: Date, idempotencyKey?: string) {
+  const planName = plan === "pro" ? "Pro" : "Starter";
+  return sendAccountMessage({
     to: email,
-    subject: "Your free trial ends in 1 day ⏰",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Your trial ends tomorrow, ${userName}</h2>
-        <p>Your 7-day free trial of SnapPost Pro expires on <strong>${expirationDate.toLocaleDateString()}</strong>.</p>
-        
-        <p>After your trial ends, your subscription will automatically renew at the plan rate you selected.</p>
-
-        <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
-          <strong>Your subscription will continue unless you cancel.</strong>
-        </div>
-
-        <p>To manage your subscription:</p>
-        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Subscription</a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
+    subject: `Your SnapPost Pro ${planName} plan renews tomorrow`,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Subscription renewal reminder</h2><p>Your SnapPost Pro <strong>${planName}</strong> subscription renews on <strong>${dateText(renewalDate)}</strong>, ${greetingName(userName)}.</p><p>To view the current billing details or manage the subscription, open your dashboard.</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Manage Subscription</a></p>${accountFooter()}</div>`,
   });
 }
 
-export async function sendRenewalReminder(
-  email: string,
-  userName: string,
-  plan: "starter" | "pro",
-  renewalDate: Date
-) {
-  const planDetails = {
-    starter: { name: "Starter", price: 19 },
-    pro: { name: "Pro", price: 29 },
-  };
-
-  const details = planDetails[plan];
-  const resend = getResendClient();
-
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
-    to: email,
-    subject: `Your SnapPost Pro ${details.name} plan renews tomorrow`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Subscription renewal reminder</h2>
-        <p>Your SnapPost Pro <strong>${details.name}</strong> subscription renews tomorrow, <strong>${renewalDate.toLocaleDateString()}</strong>.</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Amount to be charged:</strong> $${details.price}/month</p>
-        </div>
-
-        <p>Your subscription will automatically renew unless you cancel it.</p>
-
-        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Manage Subscription</a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
-  });
-}
-
-/**
- * Send cron job error alert to admin
- */
-export async function sendCronErrorAlert(
-  jobName: string,
-  error: string,
-  timestamp: Date
-) {
-  const resend = getResendClient();
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@snappostpro.com";
-
-  return resend.emails.send({
-    from: "SnapPost Pro Alerts <alerts@snappostpro.com>",
-    to: adminEmail,
-    subject: `🚨 Cron Job Failed: ${jobName}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #dc2626;">⚠️ Cron Job Error Alert</h2>
-        
-        <div style="background: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
-          <p><strong>Job:</strong> ${jobName}</p>
-          <p><strong>Time:</strong> ${timestamp.toISOString()}</p>
-          <p><strong>Status:</strong> Failed</p>
-        </div>
-
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 12px; overflow-x: auto;">
-          <p style="margin-top: 0;"><strong>Error Details:</strong></p>
-          <pre style="white-space: pre-wrap; word-wrap: break-word;">${error}</pre>
-        </div>
-
-        <p><strong>Action Required:</strong></p>
-        <ul>
-          <li>Check Railway logs for more details</li>
-          <li>Verify database and Stripe API connectivity</li>
-          <li>Check Resend API key configuration</li>
-        </ul>
-
-        <p>This is an automated alert from SnapPost Pro's cron monitoring system.</p>
-      </div>
-    `,
-  });
-}
-
-/**
- * Export for testing purposes.
- */
-export { getResendClient };
-
-export async function sendOnboardingDay1(email: string, userName: string) {
-  const resend = getResendClient();
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendOnboardingDay1(email: string, userName: string | null | undefined, idempotencyKey?: string) {
+  return sendAccountMessage({
     to: email,
     subject: "Welcome to SnapPost Pro — create your first branded post",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Welcome to SnapPost Pro, ${userName}!</h2>
-        <p>SnapPost Pro helps local businesses turn a completed photo into a branded, caption-ready Facebook post.</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Getting started in 3 steps:</h3>
-          <ol>
-            <li><strong>Upload a completed photo</strong> - Choose a photo of your work, product, space, or result.</li>
-            <li><strong>Review your AI caption</strong> - SnapPost Pro creates a caption you can edit before posting.</li>
-            <li><strong>Add your logo and publish</strong> - SnapPost Pro applies your logo, then you can publish to your connected Facebook Page.</li>
-          </ol>
-        </div>
-
-        <p><strong>Tip:</strong> Start with a clear, well-lit photo that represents your business at its best.</p>
-
-        <p>Ready to create your first branded post?</p>
-        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Start Creating</a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Welcome to SnapPost Pro, ${greetingName(userName)}!</h2><p>SnapPost Pro helps local businesses turn a completed photo into a branded, caption-ready Facebook post.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Getting started in 3 steps</h3><ol><li><strong>Upload a completed photo</strong> — choose a photo of your work, product, space, or result.</li><li><strong>Review your AI caption</strong> — SnapPost Pro creates a caption you can edit before posting.</li><li><strong>Add your logo and publish</strong> — SnapPost Pro applies your logo, then you can publish to your connected Facebook Page.</li></ol></div><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Start Creating</a></p>${accountFooter()}</div>`,
   });
 }
 
-export async function sendOnboardingDay3(email: string, userName: string) {
-  const resend = getResendClient();
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendOnboardingDay3(email: string, userName: string | null | undefined, idempotencyKey?: string) {
+  return sendAccountMessage({
     to: email,
     subject: "A simple way to prepare your next Facebook post",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Ready for your next post, ${userName}?</h2>
-        <p>Use SnapPost Pro whenever you have a completed photo you want to prepare for your Facebook Page.</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Useful checks before you publish:</h3>
-          <ul>
-            <li><strong>Choose a finished photo</strong> - Use a photo you are comfortable showing on your business Page.</li>
-            <li><strong>Make the caption yours</strong> - Review and edit the AI caption before publishing.</li>
-            <li><strong>Check your branding</strong> - Confirm that the uploaded logo is the one you want on the image.</li>
-            <li><strong>Publish when ready</strong> - Send the finished post to your connected Facebook Page.</li>
-          </ul>
-        </div>
-
-        <p>Your photo stays yours. SnapPost Pro adds your logo and prepares the caption; it does not alter the finished work shown in the image.</p>
-
-        <p>Open your dashboard whenever you are ready:</p>
-        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Ready for your next post, ${greetingName(userName)}?</h2><p>Use SnapPost Pro whenever you have a completed photo you want to prepare for your Facebook Page.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Useful checks before you publish</h3><ul><li>Choose a finished photo you are comfortable showing on your business Page.</li><li>Review and edit the AI caption before publishing.</li><li>Confirm the uploaded logo is the one you want on the image.</li><li>Publish when ready to your connected Facebook Page.</li></ul></div><p>Your photo stays yours. SnapPost Pro adds your logo and prepares the caption; it does not alter the finished work shown in the image.</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
   });
 }
 
-export async function sendOnboardingDay5(email: string, userName: string, plan: "free" | "starter" | "pro") {
-  const planDetails = {
-    free: { name: "Free", allowance: "3 branded posts total", upgrade: true },
-    starter: { name: "Starter", allowance: "30 branded posts per month", upgrade: false },
-    pro: { name: "Pro", allowance: "300 branded posts per month", upgrade: false },
-  };
-
-  const details = planDetails[plan];
-  const resend = getResendClient();
-
-  let upgradeSection = "";
-  if (details.upgrade) {
-    upgradeSection = `
-      <div style="background: #fff3cd; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #ffc107;">
-        <h3 style="margin-top: 0;">Ready to post more?</h3>
-        <p>You're on the Free plan with <strong>3 posts total</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p>
-        <a href="https://snappostpro.com/pricing" style="background: #ffc107; color: #333; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">View Plans</a>
-      </div>
-    `;
-  }
-
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendOnboardingDay5(email: string, userName: string | null | undefined, plan: "free" | "starter" | "pro", idempotencyKey?: string) {
+  const details = plan === "free" ? { name: "Free", allowance: "3 branded posts total", upgrade: true } : plan === "pro" ? { name: "Pro", allowance: "300 branded posts per month", upgrade: false } : { name: "Starter", allowance: "30 branded posts per month", upgrade: false };
+  const upgrade = details.upgrade ? `<div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0"><h3 style="margin-top:0">Ready to post more?</h3><p>You are on the Free plan with <strong>3 posts total</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p><a href="https://snappostpro.com/pricing" style="background:#ffc107;color:#333;padding:10px 20px;border-radius:6px;text-decoration:none">View Plans</a></div>` : "";
+  return sendAccountMessage({
     to: email,
     subject: "Your SnapPost Pro plan and next post",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Keep your Facebook Page up to date, ${userName}</h2>
-        <p>When you have a completed photo to share, use SnapPost Pro to add your logo, review an AI caption, and publish to your connected Facebook Page.</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Your current plan:</h3>
-          <p><strong>${details.name} Plan:</strong> ${details.allowance}</p>
-          <ul>
-            <li>AI-generated captions</li>
-            <li>Logo branding overlay</li>
-            <li>One connected Facebook Page</li>
-            <li>Post history</li>
-          </ul>
-        </div>
-
-        ${upgradeSection}
-
-        <p>Open your dashboard to create or review a post:</p>
-        <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Keep your Facebook Page up to date, ${greetingName(userName)}</h2><p>When you have a completed photo to share, use SnapPost Pro to add your logo, review an AI caption, and publish to your connected Facebook Page.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your current plan</h3><p><strong>${details.name} Plan:</strong> ${details.allowance}</p><ul><li>AI-generated captions</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Post history</li></ul></div>${upgrade}<p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
   });
 }
 
+export async function sendAccountEmail(kind: AccountEmailKind, input: {
+  email: string;
+  userName?: string | null;
+  plan?: "free" | "starter" | "pro" | null;
+  trialEndsAt?: Date | null;
+  renewalAt?: Date | null;
+  subscriptionStatus?: "trialing" | "active" | null;
+  contact?: { name: string; email: string; message: string; ownerEmail: string };
+}, idempotencyKey: string) {
+  switch (kind) {
+    case "onboarding-day-1": return sendOnboardingDay1(input.email, input.userName, idempotencyKey);
+    case "onboarding-day-3": return sendOnboardingDay3(input.email, input.userName, idempotencyKey);
+    case "onboarding-day-5": return sendOnboardingDay5(input.email, input.userName, (input.plan ?? "free") as "free" | "starter" | "pro", idempotencyKey);
+    case "trial-ending": return sendTrialExpirationWarning(input.email, input.userName, input.trialEndsAt ?? new Date(), idempotencyKey);
+    case "renewal": return sendRenewalReminder(input.email, input.userName, (input.plan === "pro" ? "pro" : "starter"), input.renewalAt ?? new Date(), idempotencyKey);
+    case "purchase": return sendPurchaseConfirmation({
+      email: input.email,
+      userName: input.userName,
+      plan: input.plan === "pro" ? "pro" : "starter",
+      subscriptionStatus: input.subscriptionStatus === "trialing" ? "trialing" : "active",
+      trialEndsAt: input.trialEndsAt,
+      periodEndsAt: input.renewalAt,
+    }, idempotencyKey);
+    case "contact-owner-alert": {
+      if (!input.contact) throw new Error("Contact details are required");
+      return sendContactFormNotification(
+        input.contact.name,
+        input.contact.email,
+        input.contact.message,
+        input.contact.ownerEmail,
+        idempotencyKey,
+      );
+    }
+  }
+}
 
-export async function sendContactFormNotification(
-  name: string,
-  email: string,
-  message: string,
-  ownerEmail: string
-) {
-  const resend = getResendClient();
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendCronErrorAlert(jobName: string, errorClass: string, timestamp: Date) {
+  const adminEmail = process.env.ADMIN_EMAIL || "admin@snappostpro.com";
+  const result = await getResendClient().emails.send({
+    from: ALERT_FROM,
+    to: adminEmail,
+    subject: `Cron attention needed: ${escapeHtml(jobName)}`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h2>Cron job needs attention</h2><p><strong>Job:</strong> ${escapeHtml(jobName)}</p><p><strong>Time:</strong> ${escapeHtml(timestamp.toISOString())}</p><p><strong>Error class:</strong> ${escapeHtml(errorClass)}</p><p>Check the Railway logs and the relevant delivery ledger for details.</p></div>`,
+  });
+  return acceptedEmailId(result);
+}
+
+export async function sendContactFormNotification(name: string, email: string, message: string, ownerEmail: string, idempotencyKey?: string) {
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  return sendAccountMessage({
     to: ownerEmail,
-    subject: `New contact form submission from ${name}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>New Contact Form Submission</h2>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-          <p><strong>Message:</strong></p>
-          <p style="white-space: pre-wrap; background: white; padding: 10px; border-radius: 4px;">${message}</p>
-        </div>
-
-        <p><strong>Reply to:</strong> <a href="mailto:${email}">${email}</a></p>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          This is an automated notification from SnapPost Pro contact form.
-        </p>
-      </div>
-    `,
+    replyTo: email,
+    subject: `New contact form submission from ${safeName}`,
+    idempotencyKey,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h2>New Contact Form Submission</h2><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><p><strong>Name:</strong> ${safeName}</p><p><strong>Email:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a></p><p><strong>Message:</strong></p><p style="white-space:pre-wrap;background:#fff;padding:10px;border-radius:4px">${escapeHtml(message)}</p></div><p>Use Reply to respond directly to this person.</p></div>`,
   });
 }
-
 
 export class NewsletterSendError extends Error {
   constructor(message: string, public readonly ambiguous: boolean, public readonly permanent = false) {
@@ -386,29 +232,12 @@ export class NewsletterSendError extends Error {
   }
 }
 
-export async function sendNewsletterMessage(input: {
-  email: string;
-  unsubscribeUrl: string;
-  kind: NewsletterKind;
-  issueIndex?: number;
-  idempotencyKey: string;
-}): Promise<{ id: string }> {
-  const resend = getResendClient();
+export async function sendNewsletterMessage(input: { email: string; unsubscribeUrl: string; kind: NewsletterKind; issueIndex?: number; idempotencyKey: string }): Promise<{ id: string }> {
   const message = getNewsletterMessage(input.kind, input.unsubscribeUrl, input.issueIndex);
-  // The SDK forwards request options to fetch, including this AbortSignal.
   const options = { idempotencyKey: input.idempotencyKey, signal: AbortSignal.timeout(30_000) };
   let result;
   try {
-    result = await resend.emails.send({
-      from: "SnapPost Pro <noreply@snappostpro.com>",
-      to: input.email,
-      replyTo: "support@snappostpro.com",
-      ...message,
-      headers: {
-        "List-Unsubscribe": `<${input.unsubscribeUrl}>`,
-        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      },
-    }, options);
+    result = await getResendClient().emails.send({ from: EMAIL_FROM, to: input.email, replyTo: getSupportReplyTo(), ...message, headers: { "List-Unsubscribe": `<${input.unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }, options);
   } catch {
     throw new NewsletterSendError("Newsletter transport failed; provider acceptance is unknown.", true);
   }
@@ -417,7 +246,6 @@ export async function sendNewsletterMessage(input: {
     const errorName = result.error?.name;
     const ambiguous = !status || status >= 500 || errorName === "concurrent_idempotent_requests";
     const permanent = Boolean(status && status >= 400 && status < 500 && status !== 429 && errorName !== "concurrent_idempotent_requests");
-    // Never log an API error message that may contain recipient information.
     throw new NewsletterSendError("Resend did not confirm newsletter acceptance.", ambiguous, permanent);
   }
   return { id: result.data.id };
@@ -427,209 +255,38 @@ export async function sendNewsletterWelcome(email: string, unsubscribeUrl: strin
   return sendNewsletterMessage({ email, unsubscribeUrl, kind: "welcome", idempotencyKey });
 }
 
-/** Sends the owner-approved product invitation to an active newsletter subscriber. */
 export async function sendNewsletterSignupInvitation(email: string) {
-  const resend = getResendClient();
   const unsubscribeUrl = getNewsletterUnsubscribeUrl(email);
-  const result = await resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+  const result = await getResendClient().emails.send({
+    from: EMAIL_FROM,
     to: email,
-    subject: "An easier way to post your finished work on Facebook",
-    headers: {
-      "List-Unsubscribe": `<${unsubscribeUrl}>`,
-    },
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.55">
-        <p>Hi,</p>
-
-        <p>You subscribed to SnapPost Pro updates, so I wanted to invite you to try the product.</p>
-
-        <p>If you use Facebook to show completed work, SnapPost Pro gives you an easier way to turn a finished-job photo into a post for your business Page:</p>
-
-        <ul>
-          <li>Upload a real completed-work photo</li>
-          <li>Add your logo watermark</li>
-          <li>Generate an AI-written caption</li>
-          <li>Review it, then publish to your selected Facebook Page</li>
-        </ul>
-
-        <p><strong>Spend less time preparing posts and more time running your business.</strong></p>
-
-        <p style="margin:28px 0">
-          <a href="https://snappostpro.com" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Start with 3 free posts</a>
-        </p>
-
-        <p>— SnapPost Pro</p>
-
-        <hr style="margin:30px 0;border:none;border-top:1px solid #ddd">
-        <p style="font-size:12px;color:#64748b">
-          You received this because you subscribed to SnapPost Pro updates. <a href="${unsubscribeUrl}" style="color:#5747e8">Unsubscribe</a>.
-        </p>
-      </div>
-    `,
+    replyTo: getSupportReplyTo(),
+    subject: "Prepare your next Facebook post with SnapPost Pro",
+    headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.55"><p>Hi,</p><p>You subscribed to SnapPost Pro updates, so here is a closer look at the product.</p><p>When you have a completed photo of your work, product, space, or result, SnapPost Pro helps you prepare it for one selected Facebook Page:</p><ul><li>Upload your real completed photo</li><li>Add your logo overlay</li><li>Generate an AI caption you can edit</li><li>Review it, then publish when you are ready</li></ul><p style="margin:28px 0"><a href="https://snappostpro.com" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Start with 3 free posts</a></p><p>— SnapPost Pro</p><hr style="margin:30px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#64748b">You received this because you subscribed to SnapPost Pro updates. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#5747e8">Unsubscribe</a>.</p></div>`,
   });
-
-  if (result.error || !result.data?.id) {
-    throw new Error(result.error?.message ?? "Resend did not accept the signup invitation.");
-  }
-
-  return result.data;
+  return acceptedEmailId(result);
 }
 
 export async function sendNewsletterSignupNotification(email: string, ownerEmail: string) {
-  const resend = getResendClient();
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+  const safeEmail = escapeHtml(email);
+  const result = await getResendClient().emails.send({
+    from: EMAIL_FROM,
     to: ownerEmail,
-    subject: `New newsletter subscriber: ${email}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>New Newsletter Subscriber</h2>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-          <p><strong>Subscribed:</strong> ${new Date().toLocaleString()}</p>
-          <p><strong>Source:</strong> snappostpro.com</p>
-        </div>
-
-        <p style="font-size: 12px; color: #666;">
-          This is an automated notification from SnapPost Pro.
-        </p>
-      </div>
-    `,
+    subject: `New newsletter subscriber: ${safeEmail}`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h2>New Newsletter Subscriber</h2><p><strong>Email:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a></p><p><strong>Source:</strong> snappostpro.com</p></div>`,
   });
+  return acceptedEmailId(result);
 }
 
-export async function sendEmailVerification(email: string, userName: string, verificationToken: string) {
-  const resend = getResendClient();
-  const verificationUrl = `https://snappostpro.com/verify-email?token=${verificationToken}`;
-  
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
+export async function sendEmailVerification(email: string, userName: string | null | undefined, verificationToken: string) {
+  const verificationUrl = `https://snappostpro.com/verify-email?token=${encodeURIComponent(verificationToken)}`;
+  return sendAccountMessage({
     to: email,
     subject: "Verify your SnapPost Pro email",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Verify your email, ${userName}</h2>
-        <p>Welcome to SnapPost Pro! Please verify your email address to get started.</p>
-        
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-          <a href="${verificationUrl}" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">Verify Email</a>
-        </div>
-
-        <p style="color: #666; font-size: 14px;">
-          Or copy and paste this link in your browser:<br>
-          <code style="background: #f5f5f5; padding: 8px; border-radius: 4px; display: block; word-break: break-all; margin-top: 10px;">${verificationUrl}</code>
-        </p>
-
-        <p style="color: #999; font-size: 12px;">
-          This link expires in 24 hours. If you didn't sign up for SnapPost Pro, you can ignore this email.
-        </p>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #999;">
-          SnapPost Pro • Marketing automation for tradies<br>
-          <a href="https://snappostpro.com" style="color: #5B4FFF; text-decoration: none;">snappostpro.com</a>
-        </p>
-      </div>
-    `,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h2>Verify your email, ${greetingName(userName)}</h2><p>Please verify your email address to continue using SnapPost Pro.</p><p><a href="${verificationUrl}" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold">Verify Email</a></p><p style="color:#666;font-size:14px">Or copy this link into your browser:<br><code style="word-break:break-all">${verificationUrl}</code></p><p style="color:#999;font-size:12px">This link expires in 24 hours. If you did not request it, you can ignore this email.</p><hr style="margin:30px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#999">SnapPost Pro • Prepare completed photos with your logo and an editable AI caption for your Facebook Page.<br><a href="https://snappostpro.com" style="color:#5B4FFF;text-decoration:none">snappostpro.com</a></p></div>`,
   });
 }
 
-
-export async function sendOnboardingReminder24h(email: string, userName: string, completionPercentage: number) {
-  const resend = getResendClient();
-  
-  let nextStepMessage = "";
-  if (completionPercentage === 0) {
-    nextStepMessage = "Upload your first job photo to get started.";
-  } else if (completionPercentage < 50) {
-    nextStepMessage = "Connect your Facebook page to publish posts directly.";
-  } else if (completionPercentage < 100) {
-    nextStepMessage = "Publish your first post to Facebook to complete your setup.";
-  }
-
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
-    to: email,
-    subject: `${completionPercentage}% done! Finish setting up SnapPost Pro`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>You're ${completionPercentage}% done, ${userName}! 🎯</h2>
-        <p>You're making great progress on your SnapPost Pro setup. Let's finish strong!</p>
-        
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px; margin: 20px 0; color: white;">
-          <h3 style="margin-top: 0; color: white;">Setup Progress</h3>
-          <div style="background: rgba(255,255,255,0.2); border-radius: 4px; height: 8px; margin: 10px 0; overflow: hidden;">
-            <div style="background: white; height: 100%; width: ${completionPercentage}%; transition: width 0.3s;"></div>
-          </div>
-          <p style="margin: 10px 0 0 0; font-size: 14px;">${completionPercentage}% Complete</p>
-        </div>
-
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Next Step:</h3>
-          <p><strong>${nextStepMessage}</strong></p>
-          <p style="color: #666; font-size: 14px;">Complete your setup to start creating branded job-site posts for your connected Facebook Page.</p>
-        </div>
-
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">Continue Setup</a>
-        </div>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
-  });
-}
-
-export async function sendOnboardingReminder48h(email: string, userName: string, completionPercentage: number) {
-  const resend = getResendClient();
-  
-  let encouragement = "";
-  if (completionPercentage === 0) {
-    encouragement = "Don't worry — it only takes 2 minutes to upload your first photo and see the magic happen.";
-  } else if (completionPercentage < 100) {
-    encouragement = "You're so close! Just one more step to complete your setup and start creating branded job-site posts.";
-  }
-
-  return resend.emails.send({
-    from: "SnapPost Pro <noreply@snappostpro.com>",
-    to: email,
-    subject: `Finish setting up SnapPost Pro`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Almost there, ${userName}! 💪</h2>
-        <p>${encouragement}</p>
-        
-        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-          <h3 style="margin-top: 0; color: #856404;">What you can do next:</h3>
-          <ul style="color: #856404; margin: 10px 0;">
-            <li>Create a caption for a job-site photo</li>
-            <li>Add your business logo to the image</li>
-            <li>Publish the finished post to your connected Facebook Page</li>
-            <li>Return to saved drafts and published post links</li>
-          </ul>
-        </div>
-
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="https://snappostpro.com/dashboard" style="background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: bold;">Finish Setup Now</a>
-        </div>
-
-        <p style="color: #666; font-size: 14px; text-align: center;">
-          Contractors using SnapPost Pro save 5+ hours per week on marketing. Let's get you there.
-        </p>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
-        
-        <p style="font-size: 12px; color: #666;">
-          Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.
-        </p>
-      </div>
-    `,
-  });
-}
+export { getResendClient };

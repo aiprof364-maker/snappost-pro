@@ -273,3 +273,43 @@ export const newsletterDeliveryLedger = mysqlTable(
 );
 
 export type NewsletterDeliveryLedger = typeof newsletterDeliveryLedger.$inferSelect;
+
+/**
+ * Durable outbox for account, billing, onboarding, and owner-alert emails.
+ * A unique entity/campaign pair makes a provider retry or Stripe replay safe.
+ */
+export const accountEmailDelivery = mysqlTable(
+  "account_email_delivery",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId"),
+    recipientEmail: varchar("recipientEmail", { length: 320 }),
+    entityKey: varchar("entityKey", { length: 191 }).notNull(),
+    campaignKey: varchar("campaignKey", { length: 191 }).notNull(),
+    kind: varchar("kind", { length: 32 }).notNull(),
+    status: varchar("status", { length: 16 }).default("pending").notNull(),
+    attempts: int("attempts").default(0).notNull(),
+    availableAt: datetime("availableAt").notNull(),
+    nextAttemptAt: datetime("nextAttemptAt"),
+    firstAttemptAt: datetime("firstAttemptAt"),
+    lastAttemptAt: datetime("lastAttemptAt"),
+    acceptedAt: datetime("acceptedAt"),
+    providerMessageId: varchar("providerMessageId", { length: 191 }),
+    lastErrorClass: varchar("lastErrorClass", { length: 32 }),
+    metadata: text("metadata"),
+    createdAt: datetime("createdAt").default(sql`CURRENT_TIMESTAMP`).notNull(),
+    updatedAt: datetime("updatedAt").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()).notNull(),
+  },
+  table => ({
+    entityCampaignUnique: uniqueIndex("account_email_entity_campaign_uq").on(table.entityKey, table.campaignKey),
+    dispatchIndex: index("account_email_dispatch_idx").on(table.status, table.nextAttemptAt),
+    userIndex: index("account_email_user_idx").on(table.userId),
+  }),
+);
+
+export const accountEmailRollout = mysqlTable("account_email_rollout", {
+  rolloutKey: varchar("rolloutKey", { length: 64 }).primaryKey(),
+  startedAt: datetime("startedAt").notNull(),
+});
+
+export type AccountEmailDelivery = typeof accountEmailDelivery.$inferSelect;

@@ -39,7 +39,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { COOKIE_NAME } from "@shared/const";
-import { initializeCrons } from "../cron";
+import { startAccountEmailAutomationAfterListen } from "../accountEmailAutomation";
 import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -96,8 +96,11 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Existing account automation still starts on the Railway process.
-    initializeCrons();
+    // All autonomous email work is owned by this Railway process. Both workers
+    // use durable outboxes and MySQL advisory locks, not Manus scheduling.
+    void startAccountEmailAutomationAfterListen().catch(() => {
+      console.error("[Account email] automation startup failed");
+    });
     // Newsletter setup/catch-up is deliberately asynchronous and cannot block
     // serving traffic if schema, database, or provider configuration is bad.
     void startNewsletterAutomationAfterListen().catch(() => {

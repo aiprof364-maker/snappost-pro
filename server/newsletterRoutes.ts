@@ -5,6 +5,7 @@ import {
   unsubscribeNewsletterByToken,
   unsubscribeNewsletterByEmail,
 } from './newsletterAutomation';
+import { getAccountEmailAutomationHealth } from './accountEmailAutomation';
 import { isValidNewsletterUnsubscribeRequest } from './newsletter';
 
 function requestLink(req: Request): { token: string; email?: string } | null {
@@ -31,6 +32,10 @@ export function registerNewsletterRoutes(app: Express) {
   app.get('/api/newsletter/health', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.json(getNewsletterAutomationHealth());
+  });
+  app.get('/api/email/health', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(getAccountEmailAutomationHealth());
   });
   // Both current opaque URLs and earlier signed invitation URLs remain valid.
   // GET never changes status: mail-scanner visits only see the confirmation.

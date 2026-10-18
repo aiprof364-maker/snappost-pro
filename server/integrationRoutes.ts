@@ -15,11 +15,7 @@ import {
 } from "./db";
 import { entitlementFromSubscription, getStripe } from "./stripe";
 import { getSessionUser } from "./auth";
-import {
-  sendPurchaseConfirmation,
-  sendTrialExpirationWarning,
-  sendRenewalReminder,
-} from "./email";
+import { queueAccountEmail } from "./accountEmailAutomation";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -121,7 +117,9 @@ export function registerIntegrationRoutes(app: Express) {
             const entitlement = stripeSubscription
               ? entitlementFromSubscription(stripeSubscription)
               : null;
-            const plan = entitlement?.plan === "free" ? requestedPlan : entitlement?.plan;
+            const plan = entitlement?.plan === "starter" || entitlement?.plan === "pro"
+              ? entitlement.plan
+              : requestedPlan;
             if (userId) {
               const { getDb, logConversionEvent } = await import("./db");
               const db = await getDb();
@@ -147,13 +145,6 @@ export function registerIntegrationRoutes(app: Express) {
                       stripeSubscriptionId: session.subscription ?? undefined,
                     });
                   }
-                  // Send purchase confirmation email
-                  await sendPurchaseConfirmation(
-                    user.email,
-                    user.name || "Contractor",
-                    plan ?? "starter",
-                    plan === "pro" ? 29 : 19
-                  ).catch(e => console.error("[Email] Purchase confirmation failed", e));
                 }
               }
               // Log conversion event for funnel tracking
@@ -167,6 +158,33 @@ export function registerIntegrationRoutes(app: Express) {
                 stripeSubscriptionId: session.subscription ?? undefined,
                 ...(entitlement ?? {}),
               });
+              const billableStatus = stripeSubscription?.status;
+              if (
+                stripeSubscription &&
+                (billableStatus === "trialing" || billableStatus === "active") &&
+                (plan === "starter" || plan === "pro")
+              ) {
+                const trialEnd = stripeSubscription.trial_end
+                  ? new Date(stripeSubscription.trial_end * 1000)
+                  : null;
+                const periodEndSeconds = Number((stripeSubscription as any).current_period_end);
+                const renewalAt = Number.isFinite(periodEndSeconds)
+                  ? new Date(periodEndSeconds * 1000)
+                  : null;
+                await queueAccountEmail({
+                  userId,
+                  entityKey: `checkout:${session.id}`,
+                  campaignKey: "purchase:v1",
+                  kind: "purchase",
+                  metadata: {
+                    subscriptionStatus: billableStatus,
+                    trialEndsAt: trialEnd?.toISOString(),
+                    renewalAt: renewalAt?.toISOString(),
+                  },
+                });
+              } else {
+                console.error("[Stripe] Purchase email held: subscription plan could not be mapped", { eventId: event.id });
+              }
             }
             break;
           }

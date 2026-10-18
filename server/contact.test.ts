@@ -1,24 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock Resend client
-const mockSend = vi.fn();
-vi.mock("resend", () => ({
-  Resend: vi.fn(() => ({
-    emails: {
-      send: mockSend,
-    },
-  })),
+const mockQueue = vi.fn();
+const mockCreateContact = vi.fn();
+
+vi.mock("./accountEmailAutomation", () => ({
+  queueAccountEmail: mockQueue,
 }));
 
-beforeEach(() => {
-  vi.resetModules();
-  mockSend.mockClear();
-  mockSend.mockResolvedValue({ id: "test-email-id" });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+vi.mock("./db", async original => ({
+  ...(await original<typeof import("./db")>()),
+  createContact: mockCreateContact,
+}));
 
 function createPublicCtx() {
   return {
@@ -29,9 +21,17 @@ function createPublicCtx() {
 }
 
 describe("contact.submit", () => {
-  it("sends contact form notification via Resend", async () => {
-    process.env.RESEND_API_KEY = "test-key";
-    
+  beforeEach(() => {
+    vi.resetModules();
+    mockQueue.mockReset();
+    mockCreateContact.mockReset();
+    mockCreateContact.mockResolvedValue(42);
+    mockQueue.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("persists the enquiry then queues one durable owner alert", async () => {
     const { appRouter } = await import("./routers");
     const caller = appRouter.createCaller(createPublicCtx());
 
@@ -42,28 +42,31 @@ describe("contact.submit", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(mockSend).toHaveBeenCalled();
-    
-    const callArgs = mockSend.mock.calls[0][0];
-    expect(callArgs.to).toBe("support@snappostpro.com");
-    expect(callArgs.subject).toContain("John Doe");
-    expect(callArgs.html).toContain("john@example.com");
-    expect(callArgs.html).toContain("I'm interested in SnapPost Pro");
+    expect(mockCreateContact).toHaveBeenCalledWith({
+      name: "John Doe",
+      email: "john@example.com",
+      message: "I'm interested in SnapPost Pro",
+      status: "new",
+    });
+    expect(mockQueue).toHaveBeenCalledWith({
+      recipientEmail: "support@snappostpro.com",
+      entityKey: "contact:42",
+      campaignKey: "contact-owner-alert:v1",
+      kind: "contact-owner-alert",
+      metadata: { contactId: 42 },
+    });
   });
 
-  it("fails gracefully when Resend is not configured", async () => {
-    delete process.env.RESEND_API_KEY;
-    vi.resetModules();
-
+  it("reports an error only when the enquiry cannot be persisted", async () => {
+    mockCreateContact.mockResolvedValueOnce(null);
     const { appRouter } = await import("./routers");
     const caller = appRouter.createCaller(createPublicCtx());
 
-    await expect(
-      caller.contact.submit({
-        name: "Test",
-        email: "test@example.com",
-        message: "Hello",
-      }),
-    ).rejects.toThrow();
+    await expect(caller.contact.submit({
+      name: "Test",
+      email: "test@example.com",
+      message: "Hello",
+    })).rejects.toThrow();
+    expect(mockQueue).not.toHaveBeenCalled();
   });
 });

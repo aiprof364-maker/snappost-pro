@@ -321,17 +321,19 @@ export async function countUserPostsSince(
 }
 
 
-/** Create a new contact form submission. */
-export async function createContact(data: InsertContact): Promise<void> {
+/** Create a new contact form submission and return its durable identifier when available. */
+export async function createContact(data: InsertContact): Promise<number | null> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot create contact: database not available");
-    return;
+    return null;
   }
   try {
-    await db.insert(contacts).values(data);
+    const result = await db.insert(contacts).values(data).$returningId();
+    return result[0]?.id ?? null;
   } catch (error) {
     console.error("[Database] Failed to create contact:", error);
+    return null;
   }
 }
 

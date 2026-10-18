@@ -89,6 +89,7 @@ let initializationPromise: Promise<boolean> | null = null;
 let newsletterReady = false;
 let newsletterCronScheduled = false;
 let lastNewsletterSendStartedAt = 0;
+let lastNewsletterRun: { at: string; status: "ok" | "failed" | "busy"; sent: number } | null = null;
 
 /** Normalise all public newsletter addresses before the unique lookup. */
 export function normalizeNewsletterEmail(email: string): string {
@@ -114,6 +115,7 @@ export function getNewsletterAutomationHealth() {
     version: "newsletter-v1" as const,
     ready: newsletterReady && Boolean(process.env.RESEND_API_KEY),
     enabled: isNewsletterAutomationEnabled(),
+    lastRun: lastNewsletterRun,
   };
 }
 
@@ -640,11 +642,7 @@ async function markTooOldAmbiguousUncertain(
   }
 }
 
-async function selectDueDeliveries(
-  connection: PoolConnection,
-  now: Date,
-  subscriberId?: number,
-): Promise<DeliveryRow[]> {
+export function buildDueDeliveriesQuery(now: Date, subscriberId?: number) {
   const subscriberClause = subscriberId ? " AND d.subscriberId = ?" : "";
   const params: Array<string | number | Date> = [
     "active",
@@ -652,10 +650,13 @@ async function selectDueDeliveries(
     "retry",
     now,
     ...(subscriberId ? [subscriberId] : []),
-    MAX_DELIVERIES_PER_RUN,
   ];
-  const [rows] = await connection.execute<DeliveryRow[]>(
-    `SELECT d.id, d.subscriberId, d.campaignKey, d.kind, d.issueIndex, d.status,
+  // TiDB rejects a parameter marker in LIMIT on mysql2's execute/prepared
+  // statement path (ER_WRONG_ARGUMENTS 1210). This cap is a private constant,
+  // never user input, so keeping it as a literal preserves parameter binding
+  // for every value originating outside this module.
+  return {
+    sql: `SELECT d.id, d.subscriberId, d.campaignKey, d.kind, d.issueIndex, d.status,
             d.attempts, d.firstAttemptAt, d.lastAttemptAt, d.lastErrorClass, d.ambiguousSince,
             n.email, s.unsubscribeToken
      FROM newsletter_delivery_ledger d
@@ -667,7 +668,19 @@ async function selectDueDeliveries(
        AND (d.nextAttemptAt IS NULL OR d.nextAttemptAt <= ?)${subscriberClause}
      ORDER BY CASE d.kind WHEN 'welcome' THEN 1 WHEN 'followup' THEN 2 ELSE 3 END,
               d.createdAt ASC
-     LIMIT ?`,
+     LIMIT ${MAX_DELIVERIES_PER_RUN}`,
+    params,
+  };
+}
+
+async function selectDueDeliveries(
+  connection: PoolConnection,
+  now: Date,
+  subscriberId?: number,
+): Promise<DeliveryRow[]> {
+  const { sql, params } = buildDueDeliveriesQuery(now, subscriberId);
+  const [rows] = await connection.execute<DeliveryRow[]>(
+    sql,
     params,
   );
   return rows;
@@ -897,11 +910,22 @@ export async function runNewsletterAutomation(options: {
       }
       return sent;
     });
-    if (!lock.acquired) return { ran: false, sent: 0 };
-    return { ran: true, sent: lock.value ?? 0 };
-  } catch {
-    // No provider/DB error object here: errors can expose provider details.
-    console.error("[Newsletter] automation run failed");
+    if (!lock.acquired) {
+      lastNewsletterRun = { at: now.toISOString(), status: "busy", sent: 0 };
+      return { ran: false, sent: 0 };
+    }
+    const sent = lock.value ?? 0;
+    lastNewsletterRun = { at: now.toISOString(), status: "ok", sent };
+    return { ran: true, sent };
+  } catch (error) {
+    const candidate = error as { code?: unknown; errno?: unknown; sqlState?: unknown; name?: unknown };
+    const code = String(candidate?.code ?? candidate?.errno ?? candidate?.sqlState ?? candidate?.name ?? "unknown")
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .slice(0, 32) || "unknown";
+    lastNewsletterRun = { at: now.toISOString(), status: "failed", sent: 0 };
+    // Safe operational metadata only; never log SQL, recipient addresses,
+    // unsubscribe tokens, provider response bodies, or connection strings.
+    console.error("[Newsletter] automation run failed", { stage: "dispatch", code });
     return { ran: false, sent: 0 };
   }
 }

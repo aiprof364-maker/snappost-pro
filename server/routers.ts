@@ -7,11 +7,8 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
-import {
-  sendContactFormNotification,
-  sendNewsletterSignupNotification,
-} from "./email";
-import { createContact, createNewsletterSubscriber } from "./db";
+import { sendNewsletterSignupNotification } from "./email";
+import { createNewsletterSubscriber } from "./db";
 import { attemptImmediateNewsletterWelcome } from "./newsletterAutomation";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { brandImage, fetchStorageBytes } from "./branding";
@@ -671,26 +668,30 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         try {
-          const { sendContactFormNotification } = await import("./email");
           const { createContact } = await import("./db");
+          const { queueAccountEmail } = await import("./accountEmailAutomation");
           const ownerEmail =
             process.env.OWNER_EMAIL || "support@snappostpro.com";
 
-          // Save to database
-          await createContact({
+          // Persist first. Once saved, owner notification is handled by the
+          // durable outbox so an email-provider outage never asks the visitor
+          // to submit their enquiry again.
+          const contactId = await createContact({
             name: input.name,
             email: input.email,
             message: input.message,
             status: "new",
           });
-
-          // Send email notification
-          await sendContactFormNotification(
-            input.name,
-            input.email,
-            input.message,
-            ownerEmail
-          );
+          if (!contactId) {
+            throw new Error("Contact was not persisted");
+          }
+          await queueAccountEmail({
+            recipientEmail: ownerEmail,
+            entityKey: `contact:${contactId}`,
+            campaignKey: "contact-owner-alert:v1",
+            kind: "contact-owner-alert",
+            metadata: { contactId },
+          });
 
           return { success: true } as const;
         } catch (err) {

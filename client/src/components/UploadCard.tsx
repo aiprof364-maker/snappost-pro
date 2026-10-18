@@ -17,7 +17,7 @@ import {
   Share2,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -29,13 +29,6 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export type PostFlowState = {
-  photoReady: boolean;
-  captionReady: boolean;
-  published: boolean;
-  publishedPostUrl: string | null;
-};
-
 type Props = {
   facebookConnected: boolean;
   hasLogo: boolean;
@@ -43,7 +36,6 @@ type Props = {
   atLimit?: boolean;
   limitNotice?: UploadLimitNotice | null;
   onCreated?: () => void;
-  onFlowStateChange?: (state: PostFlowState) => void;
 };
 
 type StepCardProps = {
@@ -120,7 +112,6 @@ export default function UploadCard({
   atLimit = false,
   limitNotice = null,
   onCreated,
-  onFlowStateChange,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [trade, setTrade] = useState("");
@@ -196,15 +187,6 @@ export default function UploadCard({
   const photoReady = Boolean(createdId && brandedUrl);
   const captionReady = Boolean(createdId);
   const canUpload = facebookConnected && hasLogo && !atLimit;
-
-  useEffect(() => {
-    onFlowStateChange?.({
-      photoReady,
-      captionReady,
-      published: Boolean(publishedPost),
-      publishedPostUrl: publishedPost?.facebookPostUrl ?? null,
-    });
-  }, [captionReady, onFlowStateChange, photoReady, publishedPost]);
 
   const handleFile = async (file?: File) => {
     if (!file) return;

@@ -2,8 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import FacebookConnect from "@/components/FacebookConnect";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
-import UploadCard, { type PostFlowState } from "@/components/UploadCard";
-import { PostingSteps } from "@/components/PostingSteps";
+import UploadCard from "@/components/UploadCard";
 import { SuccessDashboard } from "@/components/SuccessDashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,12 +58,6 @@ export default function Dashboard() {
   const logoRef = useRef<HTMLInputElement>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [selectedCaption, setSelectedCaption] = useState("");
-  const [postFlow, setPostFlow] = useState<PostFlowState>({
-    photoReady: false,
-    captionReady: false,
-    published: false,
-    publishedPostUrl: null,
-  });
 
   const uploadLogo = trpc.account.uploadLogo.useMutation({
     onSuccess: () => {
@@ -270,16 +263,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <PostingSteps
-            facebookConnected={facebookConnected}
-            facebookPageName={overview.data?.facebook?.pageName}
-            hasLogo={hasLogo}
-            photoReady={postFlow.photoReady}
-            captionReady={postFlow.captionReady}
-            published={postFlow.published}
-            publishedPostUrl={postFlow.publishedPostUrl}
-          />
-
           {usageLabel && (
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
               <div>
@@ -432,7 +415,6 @@ export default function Dashboard() {
               emailVerified={emailVerified}
               atLimit={atLimit}
               limitNotice={uploadLimitNotice}
-              onFlowStateChange={setPostFlow}
             />
           </div>
 

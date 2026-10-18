@@ -6,8 +6,18 @@ import { trpc } from "@/lib/trpc";
 import { refreshPostCreationQueries } from "@/lib/postQueryInvalidation";
 import { getFacebookPostUrl } from "@shared/facebookPost";
 import type { UploadLimitNotice } from "@shared/uploadLimit";
-import { CheckCircle2, ExternalLink, Loader2, Share2, Sparkles, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  ImagePlus,
+  Loader2,
+  LockKeyhole,
+  MessageSquareText,
+  Send,
+  Share2,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -19,18 +29,98 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+export type PostFlowState = {
+  photoReady: boolean;
+  captionReady: boolean;
+  published: boolean;
+  publishedPostUrl: string | null;
+};
+
 type Props = {
   facebookConnected: boolean;
+  hasLogo: boolean;
+  emailVerified: boolean;
   atLimit?: boolean;
   limitNotice?: UploadLimitNotice | null;
   onCreated?: () => void;
+  onFlowStateChange?: (state: PostFlowState) => void;
 };
+
+type StepCardProps = {
+  id: string;
+  number: number;
+  title: string;
+  description: string;
+  complete?: boolean;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+};
+
+function StepCard({
+  id,
+  number,
+  title,
+  description,
+  complete = false,
+  icon,
+  children,
+}: StepCardProps) {
+  return (
+    <section
+      id={id}
+      className={`scroll-mt-6 rounded-2xl border bg-card p-5 shadow-sm transition-all sm:p-6 ${
+        complete ? "border-emerald-200" : "border-border"
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+            complete
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-primary/10 text-primary"
+          }`}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
+                Step {number}
+              </p>
+              <h3 className="mt-1 font-display text-xl font-bold">{title}</h3>
+            </div>
+            {complete && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
+                <CheckCircle2 className="h-4 w-4" /> Complete
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function LockedStep({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+      <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
+      <p>{message}</p>
+    </div>
+  );
+}
 
 export default function UploadCard({
   facebookConnected,
+  hasLogo,
+  emailVerified,
   atLimit = false,
   limitNotice = null,
   onCreated,
+  onFlowStateChange,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [trade, setTrade] = useState("");
@@ -48,7 +138,8 @@ export default function UploadCard({
   const utils = trpc.useUtils();
 
   const completeFirstPost = trpc.onboarding.completeFirstPost.useMutation();
-  const completeFirstPostPublished = trpc.onboarding.completeFirstPostPublished.useMutation();
+  const completeFirstPostPublished =
+    trpc.onboarding.completeFirstPostPublished.useMutation();
 
   const createPost = trpc.posts.create.useMutation({
     onSuccess: post => {
@@ -62,7 +153,12 @@ export default function UploadCard({
         invalidateAccountOverview: () => utils.account.overview.invalidate(),
       });
       onCreated?.();
-      toast.success("Caption written and photo branded.");
+      toast.success("Photo branded and AI caption written.");
+      window.setTimeout(() => {
+        document
+          .getElementById("caption-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     },
     onError: e => toast.error(e.message),
   });
@@ -79,23 +175,47 @@ export default function UploadCard({
         facebookPostUrl: result.facebookPostUrl,
         pageName: result.pageName,
       });
-      toast.success(`Posted to ${result.pageName}!`);
+      toast.success(`Posted successfully to ${result.pageName}!`);
       completeFirstPostPublished.mutate();
       utils.posts.list.invalidate();
+      window.setTimeout(() => {
+        document
+          .getElementById("publish-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     },
     onError: e => {
       if (e.message.includes("Facebook")) {
-        toast.error("Connect your Facebook page to publish posts.");
+        toast.error("Connect your Facebook Page to publish posts.");
       } else {
         toast.error(e.message);
       }
     },
   });
 
+  const photoReady = Boolean(createdId && brandedUrl);
+  const captionReady = Boolean(createdId);
+  const canUpload = facebookConnected && hasLogo && !atLimit;
+
+  useEffect(() => {
+    onFlowStateChange?.({
+      photoReady,
+      captionReady,
+      published: Boolean(publishedPost),
+      publishedPostUrl: publishedPost?.facebookPostUrl ?? null,
+    });
+  }, [captionReady, onFlowStateChange, photoReady, publishedPost]);
+
   const handleFile = async (file?: File) => {
     if (!file) return;
     if (atLimit) {
-      toast.error("You've reached your monthly post limit. Upgrade to continue.");
+      toast.error("You've reached your post limit. Upgrade to continue.");
+      return;
+    }
+    if (!facebookConnected || !hasLogo) {
+      toast.error(
+        "Complete Facebook connection and logo setup before creating a post."
+      );
       return;
     }
     const dataUrl = await fileToDataUrl(file);
@@ -111,181 +231,234 @@ export default function UploadCard({
     });
   };
 
+  const uploadLockMessage = !facebookConnected
+    ? "Complete Step 1 first: connect the Facebook Page where you want to publish."
+    : !hasLogo
+      ? "Complete Step 2 first: upload your business logo so every new post is branded."
+      : null;
+
   return (
-    <div id="upload-section" className="rounded-xl border border-border bg-card p-6 transition-all duration-300">
-      <h3 className="font-display text-lg font-bold">Create a new post</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Upload a job photo. We write the caption and add your logo automatically.
-      </p>
-
-      {atLimit && limitNotice ? (
-        <div
-          role="alert"
-          className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950"
-        >
-          <p className="text-sm font-medium">{limitNotice.message}</p>
-          {limitNotice.action && (
-            <a
-              href={limitNotice.action.href}
-              className="mt-2 inline-flex text-sm font-semibold underline underline-offset-4 hover:text-amber-800"
-            >
-              {limitNotice.action.label} →
-            </a>
-          )}
-        </div>
-      ) : !facebookConnected && (
-        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <p className="text-sm font-medium text-blue-900">
-            💡 <strong>Next step:</strong> Connect your Facebook page to publish posts directly from SnapPost Pro.
-          </p>
-        </div>
-      )}
-
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="trade">Your trade (optional)</Label>
-          <Input
-            id="trade"
-            placeholder="e.g. Builder, Plumber, Electrician"
-            value={trade}
-            onChange={e => setTrade(e.target.value)}
-            className="mt-1.5"
-          />
-        </div>
-        <div>
-          <Label htmlFor="tone">Caption tone (optional)</Label>
-          <Input
-            id="tone"
-            placeholder="e.g. Friendly, Professional, Proud"
-            value={tone}
-            onChange={e => setTone(e.target.value)}
-            className="mt-1.5"
-          />
-        </div>
-      </div>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={e => handleFile(e.target.files?.[0])}
-      />
-
-      <button
-        type="button"
-        onClick={() => fileRef.current?.click()}
-        className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 py-10 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-        disabled={createPost.isPending || atLimit}
+    <div className="space-y-5">
+      <StepCard
+        id="upload-section"
+        number={3}
+        title="Upload a photo"
+        description="Choose a real finished-job or business photo. We add your logo and create a new draft."
+        complete={photoReady}
+        icon={<ImagePlus className="h-6 w-6" aria-hidden="true" />}
       >
-        {atLimit ? (
-          <>
-            <span className="text-sm font-medium">Upload limit reached</span>
-            <span className="text-xs">Review the message above to continue.</span>
-          </>
-        ) : createPost.isPending ? (
-          <>
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-sm">Writing caption & branding photo…</span>
-          </>
+        {atLimit && limitNotice ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+          >
+            <p className="text-sm font-semibold">{limitNotice.message}</p>
+            {limitNotice.action && (
+              <a
+                href={limitNotice.action.href}
+                className="mt-2 inline-flex text-sm font-semibold underline underline-offset-4 hover:text-amber-800"
+              >
+                {limitNotice.action.label} →
+              </a>
+            )}
+          </div>
+        ) : uploadLockMessage ? (
+          <LockedStep message={uploadLockMessage} />
         ) : (
           <>
-            <Upload className="h-6 w-6" />
-            <span className="text-sm font-medium">Click to upload a photo</span>
-            <span className="text-xs">JPG or PNG</span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="trade">
+                  Your trade or business type{" "}
+                  <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="trade"
+                  placeholder="e.g. Builder, salon, plumber"
+                  value={trade}
+                  onChange={e => setTrade(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="tone">
+                  Caption tone{" "}
+                  <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="tone"
+                  placeholder="e.g. Friendly, professional, proud"
+                  value={tone}
+                  onChange={e => setTone(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+            </div>
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => handleFile(e.target.files?.[0])}
+            />
+
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/[0.025] py-10 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/[0.05] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={createPost.isPending || !canUpload}
+            >
+              {createPost.isPending ? (
+                <>
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                  <span className="text-base font-semibold text-foreground">
+                    Branding your photo and writing your caption…
+                  </span>
+                  <span className="text-xs">This can take a moment.</span>
+                </>
+              ) : (
+                <>
+                  <ImagePlus className="h-7 w-7 text-primary" />
+                  <span className="text-base font-semibold text-foreground">
+                    {photoReady ? "Choose a different photo" : "Choose a photo"}
+                  </span>
+                  <span className="text-xs">JPG or PNG</span>
+                </>
+              )}
+            </button>
           </>
         )}
-      </button>
 
-      {(preview || brandedUrl) && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              {brandedUrl ? "Branded image" : "Preview"}
+        {(preview || brandedUrl) && (
+          <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+            <p className="mb-3 text-sm font-semibold">
+              {photoReady ? "Your branded photo" : "Your photo"}
             </p>
             <img
               src={brandedUrl ?? preview ?? ""}
-              alt="Post"
-              className="w-full rounded-lg ring-1 ring-border"
+              alt="Your post preview"
+              className="max-h-[28rem] w-full rounded-lg object-contain ring-1 ring-border"
             />
           </div>
-          <div className="flex flex-col">
-            <Label htmlFor="caption" className="mb-2 flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> AI caption
+        )}
+      </StepCard>
+
+      <StepCard
+        id="caption-section"
+        number={4}
+        title="Review your AI caption"
+        description="Read, edit and save the caption before you decide to publish."
+        complete={captionReady}
+        icon={<MessageSquareText className="h-6 w-6" aria-hidden="true" />}
+      >
+        {!captionReady ? (
+          <LockedStep message="This unlocks after you upload a photo in Step 3." />
+        ) : (
+          <>
+            <Label
+              htmlFor="caption"
+              className="flex items-center gap-1.5 text-base font-semibold"
+            >
+              <Sparkles className="h-4 w-4 text-primary" /> Your caption
             </Label>
             <Textarea
               id="caption"
               value={caption}
               onChange={e => setCaption(e.target.value)}
               rows={7}
-              placeholder="Your caption will appear here…"
-              className="flex-1"
+              className="mt-3"
             />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!createdId || updateCaption.isPending}
-                onClick={() =>
-                  createdId &&
-                  updateCaption.mutate({ id: createdId, caption })
-                }
-              >
-                {updateCaption.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Save caption"
-                )}
-              </Button>
-              <Button
-                size="sm"
-                className="gap-1.5"
-                disabled={!createdId || !facebookConnected || publish.isPending || Boolean(publishedPost)}
-                onClick={() => createdId && publish.mutate({ id: createdId })}
-              >
-                {publish.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : publishedPost ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" /> Posted
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="h-4 w-4" /> Post to Facebook
-                  </>
-                )}
-              </Button>
-            </div>
-            {!facebookConnected && createdId && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Connect a Facebook page to publish. Your post is saved as a
-                draft in the meantime.
-              </p>
-            )}
-            {publishedPost && (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                  <div>
-                    <p className="font-semibold">Posted successfully to {publishedPost.pageName}</p>
-                    <p className="mt-1 text-sm text-emerald-800">
-                      Your branded job-site post is verified live on Facebook.
-                    </p>
-                    <a
-                      href={publishedPost.facebookPostUrl ?? getFacebookPostUrl(publishedPost.facebookPostId)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
-                    >
-                      View on Facebook <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </div>
-                </div>
+            <Button
+              variant="outline"
+              className="mt-3"
+              disabled={!createdId || updateCaption.isPending}
+              onClick={() =>
+                createdId && updateCaption.mutate({ id: createdId, caption })
+              }
+            >
+              {updateCaption.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save caption"
+              )}
+            </Button>
+          </>
+        )}
+      </StepCard>
+
+      <StepCard
+        id="publish-section"
+        number={5}
+        title="Publish to Facebook"
+        description="Your post stays a draft until you press publish."
+        complete={Boolean(publishedPost)}
+        icon={<Send className="h-6 w-6" aria-hidden="true" />}
+      >
+        {!captionReady ? (
+          <LockedStep message="This unlocks after your AI caption is ready in Step 4." />
+        ) : !emailVerified ? (
+          <LockedStep message="Verify your email using the message above before publishing to Facebook." />
+        ) : (
+          <>
+            <Button
+              size="lg"
+              className="w-full gap-2 sm:w-auto"
+              disabled={
+                !createdId ||
+                !facebookConnected ||
+                publish.isPending ||
+                Boolean(publishedPost)
+              }
+              onClick={() => createdId && publish.mutate({ id: createdId })}
+            >
+              {publish.isPending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" /> Publishing…
+                </>
+              ) : publishedPost ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5" /> Published
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-5 w-5" /> Publish to Facebook
+                </>
+              )}
+            </Button>
+            <p className="mt-3 text-sm text-muted-foreground">
+              We publish only when you press this button.
+            </p>
+          </>
+        )}
+
+        {publishedPost && (
+          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
+              <div>
+                <p className="font-semibold">
+                  Published to {publishedPost.pageName}
+                </p>
+                <p className="mt-1 text-sm text-emerald-800">
+                  Your branded image and caption are now live on Facebook.
+                </p>
+                <a
+                  href={
+                    publishedPost.facebookPostUrl ??
+                    getFacebookPostUrl(publishedPost.facebookPostId)
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
+                >
+                  View live Facebook post <ExternalLink className="h-4 w-4" />
+                </a>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </StepCard>
     </div>
   );
 }

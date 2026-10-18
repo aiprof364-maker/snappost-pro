@@ -11,7 +11,13 @@ import { CheckCircle2, Facebook, Loader2, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function FacebookConnect() {
+type FacebookConnectProps = {
+  compact?: boolean;
+};
+
+export default function FacebookConnect({
+  compact = false,
+}: FacebookConnectProps) {
   const utils = trpc.useUtils();
   const statusQuery = trpc.facebook.status.useQuery();
   const [selectedBusiness, setSelectedBusiness] = useState<{
@@ -19,13 +25,15 @@ export default function FacebookConnect() {
     name: string;
   } | null>(null);
   const businessesQuery = trpc.facebook.listBusinesses.useQuery(undefined, {
-    enabled: Boolean(statusQuery.data?.connection && !statusQuery.data.connection.pageId),
+    enabled: Boolean(
+      statusQuery.data?.connection && !statusQuery.data.connection.pageId
+    ),
   });
   const pagesQuery = trpc.facebook.listPages.useQuery(
     { businessId: selectedBusiness?.id ?? "" },
     {
       enabled: Boolean(selectedBusiness?.id),
-    },
+    }
   );
 
   const getAuthUrl = trpc.facebook.getAuthUrl.useMutation({
@@ -56,7 +64,9 @@ export default function FacebookConnect() {
   const connection = data?.connection;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div
+      className={compact ? "" : "rounded-xl border border-border bg-card p-6"}
+    >
       <div className="flex items-center gap-2">
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1877F2]/10 text-[#1877F2]">
           <Facebook className="h-5 w-5" />
@@ -100,8 +110,12 @@ export default function FacebookConnect() {
           <div className="mt-3 space-y-3">
             <Select
               onValueChange={businessId => {
-                const business = (businessesQuery.data ?? []).find(item => item.id === businessId);
-                setSelectedBusiness(business ? { id: business.id, name: business.name } : null);
+                const business = (businessesQuery.data ?? []).find(
+                  item => item.id === businessId
+                );
+                setSelectedBusiness(
+                  business ? { id: business.id, name: business.name } : null
+                );
               }}
               disabled={businessesQuery.isLoading}
             >
@@ -143,25 +157,9 @@ export default function FacebookConnect() {
           {(businessesQuery.isError || pagesQuery.isError) && (
             <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
               <p>
-                Facebook could not read the selected business portfolio or its Pages.
-                Reconnect and accept the requested business and Page access.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => getAuthUrl.mutate({ origin: window.location.origin })}
-                disabled={getAuthUrl.isPending}
-              >
-                {getAuthUrl.isPending ? "Opening Facebook..." : "Reconnect Facebook"}
-              </Button>
-            </div>
-          )}
-          {businessesQuery.data?.length === 0 && (
-            <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
-              <p>
-                No business portfolios are available with this connection yet. Reconnect
-                to refresh your Facebook permissions and business access.
+                Facebook could not read the selected business portfolio or its
+                Pages. Reconnect and accept the requested business and Page
+                access.
               </p>
               <Button
                 variant="outline"
@@ -172,15 +170,42 @@ export default function FacebookConnect() {
                 }
                 disabled={getAuthUrl.isPending}
               >
-                {getAuthUrl.isPending ? "Opening Facebook..." : "Reconnect Facebook"}
+                {getAuthUrl.isPending
+                  ? "Opening Facebook..."
+                  : "Reconnect Facebook"}
               </Button>
             </div>
           )}
-          {selectedBusiness && pagesQuery.data?.length === 0 && !pagesQuery.isLoading && (
+          {businessesQuery.data?.length === 0 && (
             <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
-              No Pages are available in this business portfolio with publishing access.
+              <p>
+                No business portfolios are available with this connection yet.
+                Reconnect to refresh your Facebook permissions and business
+                access.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() =>
+                  getAuthUrl.mutate({ origin: window.location.origin })
+                }
+                disabled={getAuthUrl.isPending}
+              >
+                {getAuthUrl.isPending
+                  ? "Opening Facebook..."
+                  : "Reconnect Facebook"}
+              </Button>
             </div>
           )}
+          {selectedBusiness &&
+            pagesQuery.data?.length === 0 &&
+            !pagesQuery.isLoading && (
+              <div className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs text-muted-foreground">
+                No Pages are available in this business portfolio with
+                publishing access.
+              </div>
+            )}
         </div>
       ) : (
         <div className="mt-4">
@@ -194,8 +219,8 @@ export default function FacebookConnect() {
               You'll need a free Facebook <strong>Page</strong> for your
               business (not just a personal profile). Don't have one? On
               Facebook, open the menu and choose{" "}
-              <strong>Pages → Create new Page</strong> — it takes about a minute,
-              then come back and connect it here.
+              <strong>Pages → Create new Page</strong> — it takes about a
+              minute, then come back and connect it here.
             </span>
           </div>
           <Button

@@ -7,7 +7,10 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { sendContactFormNotification, sendNewsletterSignupNotification } from "./email";
+import {
+  sendContactFormNotification,
+  sendNewsletterSignupNotification,
+} from "./email";
 import { createContact, createNewsletterSubscriber } from "./db";
 import { attemptImmediateNewsletterWelcome } from "./newsletterAutomation";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -78,11 +81,18 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     requestSignInLink: publicProcedure
-      .input(z.object({ email: z.string().email(), origin: z.string().url(), next: z.string().optional() }))
+      .input(
+        z.object({
+          email: z.string().email(),
+          origin: z.string().url(),
+          next: z.string().optional(),
+        })
+      )
       .mutation(async ({ input }) => {
         const email = input.email.trim().toLowerCase();
         const lastRequestedAt = magicLinkRequestTimes.get(email) ?? 0;
-        const remainingMs = MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastRequestedAt);
+        const remainingMs =
+          MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastRequestedAt);
         if (remainingMs > 0) {
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",
@@ -104,7 +114,8 @@ export const appRouter = router({
           console.error("[Auth] Magic-link email delivery failed", error);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "We could not send the sign-in email. Please try again shortly or contact support if it continues.",
+            message:
+              "We could not send the sign-in email. Please try again shortly or contact support if it continues.",
           });
         }
       }),
@@ -123,35 +134,59 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { verifyEmailToken } = await import("./db");
         const crypto = await import("crypto");
-        const tokenHash = crypto.createHash("sha256").update(input.token).digest("hex");
+        const tokenHash = crypto
+          .createHash("sha256")
+          .update(input.token)
+          .digest("hex");
         const user = await verifyEmailToken(tokenHash);
         if (!user) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired verification token" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid or expired verification token",
+          });
         }
         return { success: true, email: user.email } as const;
       }),
     resendVerificationEmail: protectedProcedure.mutation(async ({ ctx }) => {
-      const { generateEmailVerificationToken, setEmailVerificationToken, getUserById } = await import("./db");
+      const {
+        generateEmailVerificationToken,
+        setEmailVerificationToken,
+        getUserById,
+      } = await import("./db");
       const { sendEmailVerification } = await import("./email");
-      
+
       const user = await getUserById(ctx.user.id);
       if (!user || !user.email) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "User email not found" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User email not found",
+        });
       }
-      
+
       if (user.emailVerified) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Email already verified" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Email already verified",
+        });
       }
-      
-      const { token: verificationToken, hash: tokenHash } = generateEmailVerificationToken();
+
+      const { token: verificationToken, hash: tokenHash } =
+        generateEmailVerificationToken();
       await setEmailVerificationToken(ctx.user.id, tokenHash);
-      
+
       try {
-        await sendEmailVerification(user.email, user.name || "User", verificationToken);
+        await sendEmailVerification(
+          user.email,
+          user.name || "User",
+          verificationToken
+        );
         return { success: true, message: "Verification email sent" } as const;
       } catch (error) {
         console.error("[Email] Failed to send verification email:", error);
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to send verification email" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to send verification email",
+        });
       }
     }),
   }),
@@ -160,7 +195,9 @@ export const appRouter = router({
   account: router({
     /** Full account snapshot: plan, subscription, logo, facebook connection. */
     overview: protectedProcedure.query(async ({ ctx }) => {
-      const user = await reconcileUserSubscription(await getUserById(ctx.user.id));
+      const user = await reconcileUserSubscription(
+        await getUserById(ctx.user.id)
+      );
       const integration = await getIntegration(ctx.user.id, "facebook");
       const plan = (user?.plan ?? "free") as "free" | PlanId;
       const trial = await getTrialEligibility({
@@ -169,14 +206,26 @@ export const appRouter = router({
         facebookPageId: integration?.pageId,
         stripeCustomerId: user?.stripeCustomerId,
       });
-      const used = await countUserPostsSince(ctx.user.id, usageStartForPlan(plan));
+      const used = await countUserPostsSince(
+        ctx.user.id,
+        usageStartForPlan(plan)
+      );
       const limit = PLAN_POST_LIMITS[plan];
+      let logoUrl: string | null = null;
+      if (user?.logoKey) {
+        try {
+          logoUrl = await storageGetSignedUrl(user.logoKey);
+        } catch (error) {
+          console.warn("[Account] Could not create logo preview URL", error);
+        }
+      }
       return {
         plan,
         subscriptionStatus: user?.subscriptionStatus ?? "none",
         trialEligible: trial.eligible,
         usage: { used, limit },
         hasLogo: Boolean(user?.logoKey),
+        logoUrl,
         facebook: integration
           ? {
               status: integration.status,
@@ -198,7 +247,7 @@ export const appRouter = router({
         const { key } = await storagePut(
           `${ctx.user.id}-logo/logo.${ext}`,
           buffer,
-          mime,
+          mime
         );
         await updateUserLogo(ctx.user.id, key);
         return { success: true } as const;
@@ -220,15 +269,20 @@ export const appRouter = router({
           trade: z.string().max(60).optional(),
           tone: z.string().max(40).optional(),
           businessName: z.string().max(120).optional(),
-        }),
+        })
       )
       .mutation(async ({ ctx, input }) => {
         // Enforce the lifetime Free limit and monthly paid-plan limits (server-side).
-        const user0 = await reconcileUserSubscription(await getUserById(ctx.user.id));
+        const user0 = await reconcileUserSubscription(
+          await getUserById(ctx.user.id)
+        );
         const plan = (user0?.plan ?? "free") as "free" | PlanId;
         const limit = PLAN_POST_LIMITS[plan];
         if (limit !== null) {
-          const used = await countUserPostsSince(ctx.user.id, usageStartForPlan(plan));
+          const used = await countUserPostsSince(
+            ctx.user.id,
+            usageStartForPlan(plan)
+          );
           if (used >= limit) {
             throw new TRPCError({
               code: "FORBIDDEN",
@@ -249,7 +303,7 @@ export const appRouter = router({
         const original = await storagePut(
           `${ctx.user.id}-posts/${Date.now()}-original.${ext}`,
           buffer,
-          mime,
+          mime
         );
 
         // 2. Caption (uses a signed URL the model can fetch)
@@ -320,7 +374,8 @@ export const appRouter = router({
         if (!emailVerified) {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "Please verify your email before posting to Facebook. Check your inbox for the verification link.",
+            message:
+              "Please verify your email before posting to Facebook. Check your inbox for the verification link.",
           });
         }
 
@@ -343,7 +398,7 @@ export const appRouter = router({
         }
         try {
           const imageUrl = await storageGetSignedUrl(
-            post.brandedImageKey ?? post.originalImageKey!,
+            post.brandedImageKey ?? post.originalImageKey!
           );
           const fbId = await postPhotoToPage({
             pageId: integration.pageId,
@@ -438,7 +493,10 @@ export const appRouter = router({
         const integration = await getIntegration(ctx.user.id, "facebook");
         if (!integration?.accessToken) return [];
         try {
-          const pages = await listPagesForBusiness(input.businessId, integration.accessToken);
+          const pages = await listPagesForBusiness(
+            input.businessId,
+            integration.accessToken
+          );
           return pages.map(p => ({ id: p.id, name: p.name }));
         } catch (error) {
           console.error("[Facebook] Page discovery failed", error);
@@ -457,14 +515,17 @@ export const appRouter = router({
           businessId: z.string().min(1),
           businessName: z.string().min(1),
           pageId: z.string().min(1),
-        }),
+        })
       )
       .mutation(async ({ ctx, input }) => {
         const integration = await getIntegration(ctx.user.id, "facebook");
         if (!integration?.accessToken) {
           throw new TRPCError({ code: "PRECONDITION_FAILED" });
         }
-        const pages = await listPagesForBusiness(input.businessId, integration.accessToken);
+        const pages = await listPagesForBusiness(
+          input.businessId,
+          integration.accessToken
+        );
         const page = pages.find(p => p.id === input.pageId);
         if (!page) throw new TRPCError({ code: "NOT_FOUND" });
         await upsertIntegration({
@@ -492,7 +553,9 @@ export const appRouter = router({
 
     /** Create a Stripe Checkout session for a plan. */
     createCheckout: protectedProcedure
-      .input(z.object({ plan: z.enum(["starter", "pro"]), origin: z.string().url() }))
+      .input(
+        z.object({ plan: z.enum(["starter", "pro"]), origin: z.string().url() })
+      )
       .mutation(async ({ ctx, input }) => {
         const stripe = getStripe();
         if (!stripe) {
@@ -509,8 +572,16 @@ export const appRouter = router({
             message: `Missing price id for the ${input.plan} plan.`,
           });
         }
-        const user = await reconcileUserSubscription(await getUserById(ctx.user.id));
-        if (user && hasPaidEntitlement({ plan: user.plan, subscriptionStatus: user.subscriptionStatus ?? "none" })) {
+        const user = await reconcileUserSubscription(
+          await getUserById(ctx.user.id)
+        );
+        if (
+          user &&
+          hasPaidEntitlement({
+            plan: user.plan,
+            subscriptionStatus: user.subscriptionStatus ?? "none",
+          })
+        ) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message: `You already have an active ${user.plan} subscription. Use Manage subscription to change your plan.`,
@@ -530,7 +601,9 @@ export const appRouter = router({
               "Connect your Facebook business Page before starting your one 7-day trial. This protects the trial from duplicate claims.",
           });
         }
-        console.log(`[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`);
+        console.log(
+          `[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`
+        );
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
           line_items: [{ price: priceId, quantity: 1 }],
@@ -548,7 +621,10 @@ export const appRouter = router({
           success_url: `${input.origin}/dashboard?checkout=success`,
           cancel_url: `${input.origin}/pricing?checkout=cancel`,
         });
-        console.log(`[Stripe] Session created:`, { id: session.id, url: session.url });
+        console.log(`[Stripe] Session created:`, {
+          id: session.id,
+          url: session.url,
+        });
         if (!session.url) {
           console.error(`[Stripe] Session URL is null or undefined!`);
           throw new TRPCError({
@@ -591,14 +667,15 @@ export const appRouter = router({
           name: z.string().min(1).max(120),
           email: z.string().email(),
           message: z.string().min(1).max(4000),
-        }),
+        })
       )
       .mutation(async ({ input }) => {
         try {
           const { sendContactFormNotification } = await import("./email");
           const { createContact } = await import("./db");
-          const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
-          
+          const ownerEmail =
+            process.env.OWNER_EMAIL || "support@snappostpro.com";
+
           // Save to database
           await createContact({
             name: input.name,
@@ -606,7 +683,7 @@ export const appRouter = router({
             message: input.message,
             status: "new",
           });
-          
+
           // Send email notification
           await sendContactFormNotification(
             input.name,
@@ -614,7 +691,7 @@ export const appRouter = router({
             input.message,
             ownerEmail
           );
-          
+
           return { success: true } as const;
         } catch (err) {
           console.error("[Contact Form] Failed to process submission:", err);
@@ -637,7 +714,8 @@ export const appRouter = router({
           console.error("[Newsletter] subscription persistence failed");
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "We could not save your newsletter subscription. Please try again.",
+            message:
+              "We could not save your newsletter subscription. Please try again.",
           });
         }
 
@@ -692,7 +770,11 @@ export const appRouter = router({
 
     /** Mark first post as published to Facebook. */
     completeFirstPostPublished: protectedProcedure.mutation(async ({ ctx }) => {
-      return await updateOnboardingStep(ctx.user.id, "firstPostPublished", true);
+      return await updateOnboardingStep(
+        ctx.user.id,
+        "firstPostPublished",
+        true
+      );
     }),
   }),
 });

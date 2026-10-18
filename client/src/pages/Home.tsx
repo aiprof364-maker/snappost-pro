@@ -24,6 +24,7 @@ import {
   Clock,
   ShieldCheck,
   ArrowRight,
+  Check,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -61,36 +62,66 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { n: "1", title: "Take the photo", desc: "Take a photo of completed work, a product, a space or a result you want to share." },
-  { n: "2", title: "AI writes the caption", desc: "A caption with hashtags is generated for you to review." },
-  { n: "3", title: "Logo is branded on", desc: "Your business logo is stamped onto the image automatically." },
-  { n: "4", title: "Post to Facebook", desc: "Publish to your connected Facebook page in one click — or save for later." },
+  {
+    n: "1",
+    title: "Take the photo",
+    desc: "Take a photo of completed work, a product, a space or a result you want to share.",
+  },
+  {
+    n: "2",
+    title: "AI writes the caption",
+    desc: "A caption with hashtags is generated for you to review.",
+  },
+  {
+    n: "3",
+    title: "Logo is branded on",
+    desc: "Your business logo is stamped onto the image automatically.",
+  },
+  {
+    n: "4",
+    title: "Post to Facebook",
+    desc: "Publish to your connected Facebook page in one click — or save for later.",
+  },
 ];
+
+const FREE_START_FEATURES = [
+  "3 branded Facebook posts total",
+  "No card required",
+  "AI-written captions to review",
+  "Logo watermark on your image",
+  "One connected Facebook Page",
+] as const;
 
 const LOCAL_BUSINESS_CATEGORIES = [
   {
     title: "Trades & Home Services",
-    examples: "Builders, painters, landscapers, gardeners, cleaners, window cleaners and car detailers.",
+    examples:
+      "Builders, painters, landscapers, gardeners, cleaners, window cleaners and car detailers.",
   },
   {
     title: "Food & Hospitality",
-    examples: "Cafés, coffee shops, restaurants, bistros, food trucks, bakeries, cake designers and specialty food stores.",
+    examples:
+      "Cafés, coffee shops, restaurants, bistros, food trucks, bakeries, cake designers and specialty food stores.",
   },
   {
     title: "Beauty, Wellness & Fitness",
-    examples: "Hair salons, stylists, barbers, nails, lashes, skincare, tattoo, massage, personal training, yoga, Pilates and dance.",
+    examples:
+      "Hair salons, stylists, barbers, nails, lashes, skincare, tattoo, massage, personal training, yoga, Pilates and dance.",
   },
   {
     title: "Retail & Creative Businesses",
-    examples: "Boutiques, clothing and vintage stores, florists, artisan makers, craft businesses, photographers, interior designers and home stagers.",
+    examples:
+      "Boutiques, clothing and vintage stores, florists, artisan makers, craft businesses, photographers, interior designers and home stagers.",
   },
   {
     title: "Property, Events & Local Services",
-    examples: "Real estate, property management, Airbnb hosting, home organising, event planning, wedding coordination and driving instruction.",
+    examples:
+      "Real estate, property management, Airbnb hosting, home organising, event planning, wedding coordination and driving instruction.",
   },
   {
     title: "Pet, Care & Professional Services",
-    examples: "Dog grooming, pet businesses, boarding, daycares, training, local clinics and independent care providers.",
+    examples:
+      "Dog grooming, pet businesses, boarding, daycares, training, local clinics and independent care providers.",
   },
 ];
 
@@ -115,7 +146,7 @@ const FAQS = [
     q: "Which plan should I choose?",
     a: "Starter ($19/mo) suits solo operators posting a few times a week. Pro ($29/mo) provides 300 posts/month (about 10 a day) for higher-volume posting.",
   },
-]
+];
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
@@ -126,7 +157,8 @@ export default function Home() {
       toast.success("You're in! Weekly tips are on the way.");
       setNewsletterEmail("");
     },
-    onError: () => toast.error("Couldn't subscribe right now. Please try again."),
+    onError: () =>
+      toast.error("Couldn't subscribe right now. Please try again."),
   });
 
   return (
@@ -163,26 +195,69 @@ export default function Home() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {isAuthenticated ? (
                 <Link href="/dashboard">
-                  <Button size="lg" className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold">
+                  <Button
+                    size="lg"
+                    className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
+                  >
                     Go to dashboard <ArrowRight className="h-5 w-5" />
                   </Button>
                 </Link>
               ) : (
                 <a href={primaryCta}>
-                  <Button size="lg" className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold">
-                    Create 3 free posts <ArrowRight className="h-5 w-5" />
+                  <Button
+                    size="lg"
+                    className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
+                  >
+                    Start my 3 free posts <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
               )}
               <Link href="/pricing">
-                <Button size="lg" className="w-full sm:w-auto px-8 py-6 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto px-8 py-6 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+                >
                   View pricing
                 </Button>
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              3 free branded post drafts total · No card required
+              3 posts total · No card required · Publish to one connected
+              Facebook Page
             </p>
+            <div className="mt-5 max-w-xl rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-6">
+              <h2 className="text-lg font-bold">Your free start includes</h2>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {FREE_START_FEATURES.map(feature => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-3 text-sm leading-6"
+                  >
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              {isAuthenticated ? (
+                <Link href="/dashboard" className="mt-5 inline-flex">
+                  <Button
+                    size="lg"
+                    className="gap-2 px-7 py-6 text-base font-bold"
+                  >
+                    Go to dashboard <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <a href={primaryCta} className="mt-5 inline-flex">
+                  <Button
+                    size="lg"
+                    className="gap-2 px-7 py-6 text-base font-bold"
+                  >
+                    Start my 3 free posts <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Local-business example preview carousel */}
@@ -191,7 +266,10 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section id="features" className="border-t border-border/60 bg-muted/20 py-20">
+      <section
+        id="features"
+        className="border-t border-border/60 bg-muted/20 py-20"
+      >
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -227,7 +305,8 @@ export default function Home() {
             </h2>
             <p className="mt-3 text-muted-foreground">
               If your business has real work, products, spaces or results worth
-              showing, SnapPost Pro can help turn a photo into a branded Facebook post.
+              showing, SnapPost Pro can help turn a photo into a branded
+              Facebook post.
             </p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -244,8 +323,9 @@ export default function Home() {
             ))}
           </div>
           <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
-            Only upload photos you own or have permission to publish. Do not upload
-            customer, patient or client-identifying information without appropriate consent.
+            Only upload photos you own or have permission to publish. Do not
+            upload customer, patient or client-identifying information without
+            appropriate consent.
           </p>
         </div>
       </section>
@@ -323,14 +403,18 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="border-t border-border/60 bg-muted/20 py-20">
+      <section
+        id="pricing"
+        className="border-t border-border/60 bg-muted/20 py-20"
+      >
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
               Simple, honest pricing
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Start with 3 free branded post drafts. Choose a paid plan only when you need more.
+              Start with 3 free branded Facebook posts. Choose a paid plan only
+              when you need more.
             </p>
           </div>
           <div className="mt-12">
@@ -360,27 +444,28 @@ export default function Home() {
         </div>
       </section>
 
-     {/* Cost transparency */}
-     <section className="border-t border-border/60 bg-muted/20 py-20">
-       <div className="container max-w-3xl">
-         <div className="text-center">
-           <h2 className="font-display text-3xl font-bold sm:text-4xl">
+      {/* Cost transparency */}
+      <section className="border-t border-border/60 bg-muted/20 py-20">
+        <div className="container max-w-3xl">
+          <div className="text-center">
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
               What's your time worth?
-           </h2>
+            </h2>
           </div>
-         <div className="mx-auto mt-8 max-w-2xl space-y-6 text-center">
-           <p className="text-lg text-muted-foreground">
-             Preparing a Facebook post means choosing a photo, writing a caption
-             and finding the right words to say.
-           </p>
-           <p className="text-2xl font-bold text-primary">
+          <div className="mx-auto mt-8 max-w-2xl space-y-6 text-center">
+            <p className="text-lg text-muted-foreground">
+              Preparing a Facebook post means choosing a photo, writing a
+              caption and finding the right words to say.
+            </p>
+            <p className="text-2xl font-bold text-primary">
               SnapPost Pro gives you a logo-branded image and AI-written caption
               to review before you publish.
-           </p>
-           <p className="text-lg text-muted-foreground">
-              Keep your Facebook Page active while spending less time preparing posts.
-           </p>
-         </div>
+            </p>
+            <p className="text-lg text-muted-foreground">
+              Keep your Facebook Page active while spending less time preparing
+              posts.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -398,7 +483,8 @@ export default function Home() {
             className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
             onSubmit={e => {
               e.preventDefault();
-              if (newsletterEmail.trim()) subscribe.mutate({ email: newsletterEmail.trim() });
+              if (newsletterEmail.trim())
+                subscribe.mutate({ email: newsletterEmail.trim() });
             }}
           >
             <Input
@@ -424,13 +510,18 @@ export default function Home() {
               Create your first branded post free.
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
-              Sign in with your email, upload your photo and logo, then review your
-              branded draft and AI-written caption. No card required.
+              Start free with your email, upload your photo and logo, then
+              review your branded image and AI-written caption. No card
+              required.
             </p>
             <div className="mt-8 flex justify-center">
               <a href={primaryCta}>
-                <Button size="lg" variant="secondary" className="gap-2 px-8 py-6 text-base font-semibold">
-                  Create 3 free posts <ArrowRight className="h-5 w-5" />
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="gap-2 px-8 py-6 text-base font-semibold"
+                >
+                  Start my 3 free posts <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>
             </div>

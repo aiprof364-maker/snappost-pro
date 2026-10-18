@@ -33,7 +33,7 @@ describe("account email copy", () => {
     expect(message.subject).toBe("Welcome to SnapPost Pro Starter");
     expect(message.html).toContain("7-day trial is active");
     expect(message.html).not.toContain("Next billing date");
-    expect(message.replyTo).toBe("support@snappostpro.com");
+    expect(message.replyTo).toBe("admin@snappostpro.com");
   });
 
   it("uses the local-business verification description", async () => {

@@ -52,7 +52,7 @@ describe("contact.subscribe (newsletter)", () => {
     expect(mocks.immediateWelcome).toHaveBeenCalledWith(41);
     expect(mocks.ownerNotification).toHaveBeenCalledWith(
       "contractor@example.com",
-      "support@snappostpro.com",
+      "admin@snappostpro.com",
     );
   });
 

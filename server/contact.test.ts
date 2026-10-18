@@ -49,7 +49,7 @@ describe("contact.submit", () => {
       status: "new",
     });
     expect(mockQueue).toHaveBeenCalledWith({
-      recipientEmail: "support@snappostpro.com",
+      recipientEmail: "admin@snappostpro.com",
       entityKey: "contact:42",
       campaignKey: "contact-owner-alert:v1",
       kind: "contact-owner-alert",

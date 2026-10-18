@@ -671,7 +671,7 @@ export const appRouter = router({
           const { createContact } = await import("./db");
           const { queueAccountEmail } = await import("./accountEmailAutomation");
           const ownerEmail =
-            process.env.OWNER_EMAIL || "support@snappostpro.com";
+            process.env.OWNER_EMAIL || "admin@snappostpro.com";
 
           // Persist first. Once saved, owner notification is handled by the
           // durable outbox so an email-provider outage never asks the visitor
@@ -737,7 +737,7 @@ export const appRouter = router({
         }
 
         // Preserve owner notification for one newly persisted signup only.
-        const ownerEmail = process.env.OWNER_EMAIL || "support@snappostpro.com";
+        const ownerEmail = process.env.OWNER_EMAIL || "admin@snappostpro.com";
         try {
           await sendNewsletterSignupNotification(email, ownerEmail);
         } catch {

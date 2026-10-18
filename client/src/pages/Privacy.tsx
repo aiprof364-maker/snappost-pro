@@ -202,7 +202,7 @@ export default function Privacy() {
             <div className="mt-4 rounded-lg bg-card border border-border p-4">
               <p className="font-semibold">SnapPost Pro</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Email: support@snappostpro.com
+                Email: admin@snappostpro.com
               </p>
             </div>
           </section>

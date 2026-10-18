@@ -69,8 +69,8 @@ export default function DeleteAccount() {
             <h2 className="text-lg font-semibold mb-4">Need Help?</h2>
             <p className="text-sm text-muted-foreground mb-4">
               If you have questions about data deletion or need assistance, please contact our support team at{" "}
-              <a href="mailto:support@snappostpro.com" className="text-primary underline">
-                support@snappostpro.com
+              <a href="mailto:admin@snappostpro.com" className="text-primary underline">
+                admin@snappostpro.com
               </a>
             </p>
           </div>

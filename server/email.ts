@@ -19,7 +19,7 @@ export type PurchaseConfirmationInput = {
 let resendClient: Resend | null = null;
 
 export function getSupportReplyTo() {
-  return process.env.SUPPORT_REPLY_TO || "support@snappostpro.com";
+  return process.env.SUPPORT_REPLY_TO || "admin@snappostpro.com";
 }
 
 function getResendClient(): Resend {

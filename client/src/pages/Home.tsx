@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import PricingCards from "@/components/PricingCards";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
-import LocalBusinessPreviewCarousel from "@/components/LocalBusinessPreviewCarousel";
+import ResultsFirstHero from "@/components/ResultsFirstHero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +15,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getLoginUrl } from "@/const";
-import { LANDING_MOCKUP } from "@/lib/landingMockup";
 import {
   Camera,
   Sparkles,
@@ -181,13 +180,12 @@ export default function Home() {
               for local businesses
             </span>
             <h1 className="font-display mt-5 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
-              Turn photos of your work into{" "}
-              <span className="text-primary">branded Facebook posts.</span>
+              Your work already looks good. Make it{" "}
+              <span className="text-primary">ready for Facebook.</span>
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              SnapPost Pro turns a photo of your completed work, product, space
-              or result into a logo-branded image and an AI-written caption. You
-              review it, then post it to your Facebook Page.
+              Upload a real photo. Add your logo. Review an AI-written caption.
+              Publish to your Facebook Page when you are ready.
             </p>
             <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
               <span>Upload a photo</span>
@@ -245,8 +243,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Local-business example preview carousel */}
-          <LocalBusinessPreviewCarousel />
+          {/* Real photo-to-branded-photo-to-caption transformation */}
+          <ResultsFirstHero />
         </div>
       </section>
 
@@ -336,53 +334,6 @@ export default function Home() {
                 <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Before / After */}
-      <section className="border-t border-border/60 bg-muted/20 py-20">
-        <div className="container">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              Your photo. Your brand. Ready to post.
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Your completed work stays exactly the same. SnapPost Pro adds your
-              logo and writes a caption for you to review before posting.
-            </p>
-          </div>
-          <div className="mx-auto mt-12 max-w-4xl">
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-              <div className="grid grid-cols-2">
-                <img
-                  src={LANDING_MOCKUP.originalPhotoUrl}
-                  alt="Original completed A-frame deck photo before branding"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-                <img
-                  src={LANDING_MOCKUP.brandedPhotoUrl}
-                  alt="The same A-frame deck photo with Aiprof Studios logo branding"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
-              <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-semibold">
-                  Before
-                </span>
-                Completed job photo, no branding
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                  After
-                </span>
-                Same photo, with your logo
-              </div>
-            </div>
           </div>
         </div>
       </section>

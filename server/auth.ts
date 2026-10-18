@@ -15,6 +15,10 @@ export type ConsumedMagicLink = {
   accountCreated: boolean;
 };
 
+export type MagicLinkAttribution = {
+  landing?: "contractors" | "hairdressers";
+};
+
 function secretKey() {
   const secret = process.env.AUTH_SESSION_SECRET || process.env.JWT_SECRET;
   if (!secret) throw new Error("AUTH_SESSION_SECRET is not configured");
@@ -46,29 +50,74 @@ export async function createMagicLinkToken(email: string) {
   return rawToken;
 }
 
-export async function consumeMagicLinkToken(rawToken: string): Promise<ConsumedMagicLink | null> {
+export async function consumeMagicLinkToken(
+  rawToken: string,
+  attribution: MagicLinkAttribution = {}
+): Promise<ConsumedMagicLink | null> {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const [token] = await db
     .select()
     .from(authTokens)
-    .where(and(eq(authTokens.tokenHash, hash(rawToken)), isNull(authTokens.usedAt), gt(authTokens.expiresAt, new Date())))
+    .where(
+      and(
+        eq(authTokens.tokenHash, hash(rawToken)),
+        isNull(authTokens.usedAt),
+        gt(authTokens.expiresAt, new Date())
+      )
+    )
     .limit(1);
   if (!token) return null;
 
-  await db.update(authTokens).set({ usedAt: new Date() }).where(eq(authTokens.id, token.id));
-  const [existing] = await db.select().from(users).where(eq(users.email, token.email)).limit(1);
-  if (existing) return { user: existing, accountCreated: false };
+  await db
+    .update(authTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(authTokens.id, token.id));
+  const [existing] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, token.email))
+    .limit(1);
+  if (existing) {
+    const lastSignedIn = new Date();
+    await db
+      .update(users)
+      .set({
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationTokenExpiry: null,
+        lastSignedIn,
+      })
+      .where(eq(users.id, existing.id));
+    return {
+      user: {
+        ...existing,
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationTokenExpiry: null,
+        lastSignedIn,
+      },
+      accountCreated: false,
+    };
+  }
 
   await db.insert(users).values({
     openId: independentOpenId(token.email),
     email: token.email,
     loginMethod: "email_magic_link",
+    emailVerified: true,
     lastSignedIn: new Date(),
   });
-  const [created] = await db.select().from(users).where(eq(users.email, token.email)).limit(1);
+  const [created] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, token.email))
+    .limit(1);
   if (created) {
-    await logConversionEvent(created.id, "free_account_created", { plan: "free" });
+    await logConversionEvent(created.id, "free_account_created", {
+      plan: "free",
+      ...attribution,
+    });
     return { user: created, accountCreated: true };
   }
   return null;
@@ -91,7 +140,11 @@ export async function getSessionUser(req: Request): Promise<User | null> {
     if (!Number.isInteger(userId)) return null;
     const db = await getDb();
     if (!db) return null;
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
     return user ?? null;
   } catch {
     return null;

@@ -6,7 +6,14 @@ const EMAIL_FROM = "SnapPost Pro <noreply@snappostpro.com>";
 const ALERT_FROM = "SnapPost Pro Alerts <alerts@snappostpro.com>";
 
 export type AcceptedEmail = { id: string };
-export type AccountEmailKind = "onboarding-day-1" | "onboarding-day-3" | "onboarding-day-5" | "trial-ending" | "renewal" | "purchase" | "contact-owner-alert";
+export type AccountEmailKind =
+  | "onboarding-day-1"
+  | "onboarding-day-3"
+  | "onboarding-day-5"
+  | "trial-ending"
+  | "renewal"
+  | "purchase"
+  | "contact-owner-alert";
 export type PurchaseConfirmationInput = {
   email: string;
   userName?: string | null;
@@ -26,7 +33,9 @@ function getResendClient(): Resend {
   if (!resendClient) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
-      throw new Error("RESEND_API_KEY environment variable is not set. Email notifications will not work.");
+      throw new Error(
+        "RESEND_API_KEY environment variable is not set. Email notifications will not work."
+      );
     }
     resendClient = new Resend(apiKey);
   }
@@ -34,13 +43,17 @@ function getResendClient(): Resend {
 }
 
 function escapeHtml(value: string | null | undefined) {
-  return String(value ?? "").replace(/[&<>"']/g, character => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character]!);
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    character =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[character]!
+  );
 }
 
 function greetingName(value: string | null | undefined) {
@@ -49,17 +62,27 @@ function greetingName(value: string | null | undefined) {
 }
 
 function dateText(value: Date | null | undefined) {
-  return value ? value.toLocaleDateString("en-NZ", { day: "numeric", month: "long", year: "numeric" }) : null;
+  return value
+    ? value.toLocaleDateString("en-NZ", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 }
 
 function acceptedEmailId(result: unknown): AcceptedEmail {
-  const candidate = result as { data?: { id?: unknown }; id?: unknown; error?: { message?: unknown } | null };
+  const candidate = result as {
+    data?: { id?: unknown };
+    id?: unknown;
+    error?: { message?: unknown } | null;
+  };
   const id = candidate?.data?.id ?? candidate?.id;
   if (candidate?.error || typeof id !== "string" || !id) {
     throw new Error(
       typeof candidate?.error?.message === "string"
         ? candidate.error.message
-        : "Resend did not accept the email.",
+        : "Resend did not accept the email."
     );
   }
   return { id };
@@ -80,7 +103,7 @@ async function sendAccountMessage(input: {
       html: input.html,
       ...(input.replyTo ? { replyTo: input.replyTo } : {}),
     },
-    input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
+    input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined
   );
   return acceptedEmailId(result);
 }
@@ -92,18 +115,25 @@ function accountFooter() {
 export async function sendMagicSignInLink(email: string, signInUrl: string) {
   return sendAccountMessage({
     to: email,
-    subject: "Your secure SnapPost Pro sign-in link",
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Sign in to SnapPost Pro</h2><p>Use the secure link below to sign in. It expires in 15 minutes and can only be used once.</p><p style="margin:28px 0"><a href="${escapeHtml(signInUrl)}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Sign in to SnapPost Pro</a></p><p style="font-size:12px;color:#64748b">If you did not request this email, you can safely ignore it.</p></div>`,
+    subject: "Your secure SnapPost Pro access link",
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Your SnapPost Pro access link</h2><p>Open the secure link below to access SnapPost Pro. It expires in 15 minutes and can only be used once.</p><p style="margin:28px 0"><a href="${escapeHtml(signInUrl)}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Open SnapPost Pro</a></p><p style="font-size:12px;color:#64748b">If you did not request this email, you can safely ignore it.</p></div>`,
   });
 }
 
-export async function sendPurchaseConfirmation(input: PurchaseConfirmationInput, idempotencyKey?: string) {
-  const details = input.plan === "pro" ? { name: "Pro", posts: 300 } : { name: "Starter", posts: 30 };
+export async function sendPurchaseConfirmation(
+  input: PurchaseConfirmationInput,
+  idempotencyKey?: string
+) {
+  const details =
+    input.plan === "pro"
+      ? { name: "Pro", posts: 300 }
+      : { name: "Starter", posts: 30 };
   const trialEnd = dateText(input.trialEndsAt);
   const periodEnd = dateText(input.periodEndsAt);
-  const statusCopy = input.subscriptionStatus === "trialing"
-    ? `<p>Your 7-day trial is active${trialEnd ? ` through <strong>${trialEnd}</strong>` : ""}. You can manage or cancel your subscription from your dashboard.</p>`
-    : `<p>Your <strong>${details.name}</strong> plan is active${periodEnd ? ` through <strong>${periodEnd}</strong>` : ""}.</p>`;
+  const statusCopy =
+    input.subscriptionStatus === "trialing"
+      ? `<p>Your 7-day trial is active${trialEnd ? ` through <strong>${trialEnd}</strong>` : ""}. You can manage or cancel your subscription from your dashboard.</p>`
+      : `<p>Your <strong>${details.name}</strong> plan is active${periodEnd ? ` through <strong>${periodEnd}</strong>` : ""}.</p>`;
   return sendAccountMessage({
     to: input.email,
     subject: `Welcome to SnapPost Pro ${details.name}`,
@@ -113,7 +143,12 @@ export async function sendPurchaseConfirmation(input: PurchaseConfirmationInput,
   });
 }
 
-export async function sendTrialExpirationWarning(email: string, userName: string | null | undefined, expirationDate: Date, idempotencyKey?: string) {
+export async function sendTrialExpirationWarning(
+  email: string,
+  userName: string | null | undefined,
+  expirationDate: Date,
+  idempotencyKey?: string
+) {
   return sendAccountMessage({
     to: email,
     subject: "Your SnapPost Pro trial ends tomorrow",
@@ -123,7 +158,13 @@ export async function sendTrialExpirationWarning(email: string, userName: string
   });
 }
 
-export async function sendRenewalReminder(email: string, userName: string | null | undefined, plan: "starter" | "pro", renewalDate: Date, idempotencyKey?: string) {
+export async function sendRenewalReminder(
+  email: string,
+  userName: string | null | undefined,
+  plan: "starter" | "pro",
+  renewalDate: Date,
+  idempotencyKey?: string
+) {
   const planName = plan === "pro" ? "Pro" : "Starter";
   return sendAccountMessage({
     to: email,
@@ -134,7 +175,11 @@ export async function sendRenewalReminder(email: string, userName: string | null
   });
 }
 
-export async function sendOnboardingDay1(email: string, userName: string | null | undefined, idempotencyKey?: string) {
+export async function sendOnboardingDay1(
+  email: string,
+  userName: string | null | undefined,
+  idempotencyKey?: string
+) {
   return sendAccountMessage({
     to: email,
     subject: "Welcome to SnapPost Pro — create your first branded post",
@@ -144,7 +189,11 @@ export async function sendOnboardingDay1(email: string, userName: string | null 
   });
 }
 
-export async function sendOnboardingDay3(email: string, userName: string | null | undefined, idempotencyKey?: string) {
+export async function sendOnboardingDay3(
+  email: string,
+  userName: string | null | undefined,
+  idempotencyKey?: string
+) {
   return sendAccountMessage({
     to: email,
     subject: "A simple way to prepare your next Facebook post",
@@ -154,9 +203,29 @@ export async function sendOnboardingDay3(email: string, userName: string | null 
   });
 }
 
-export async function sendOnboardingDay5(email: string, userName: string | null | undefined, plan: "free" | "starter" | "pro", idempotencyKey?: string) {
-  const details = plan === "free" ? { name: "Free", allowance: "3 branded posts total", upgrade: true } : plan === "pro" ? { name: "Pro", allowance: "300 branded posts per month", upgrade: false } : { name: "Starter", allowance: "30 branded posts per month", upgrade: false };
-  const upgrade = details.upgrade ? `<div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0"><h3 style="margin-top:0">Ready to post more?</h3><p>You are on the Free plan with <strong>3 posts total</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p><a href="https://snappostpro.com/pricing" style="background:#ffc107;color:#333;padding:10px 20px;border-radius:6px;text-decoration:none">View Plans</a></div>` : "";
+export async function sendOnboardingDay5(
+  email: string,
+  userName: string | null | undefined,
+  plan: "free" | "starter" | "pro",
+  idempotencyKey?: string
+) {
+  const details =
+    plan === "free"
+      ? { name: "Free", allowance: "3 branded posts total", upgrade: true }
+      : plan === "pro"
+        ? {
+            name: "Pro",
+            allowance: "300 branded posts per month",
+            upgrade: false,
+          }
+        : {
+            name: "Starter",
+            allowance: "30 branded posts per month",
+            upgrade: false,
+          };
+  const upgrade = details.upgrade
+    ? `<div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0"><h3 style="margin-top:0">Ready to post more?</h3><p>You are on the Free plan with <strong>3 posts total</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p><a href="https://snappostpro.com/pricing" style="background:#ffc107;color:#333;padding:10px 20px;border-radius:6px;text-decoration:none">View Plans</a></div>`
+    : "";
   return sendAccountMessage({
     to: email,
     subject: "Your SnapPost Pro plan and next post",
@@ -166,29 +235,64 @@ export async function sendOnboardingDay5(email: string, userName: string | null 
   });
 }
 
-export async function sendAccountEmail(kind: AccountEmailKind, input: {
-  email: string;
-  userName?: string | null;
-  plan?: "free" | "starter" | "pro" | null;
-  trialEndsAt?: Date | null;
-  renewalAt?: Date | null;
-  subscriptionStatus?: "trialing" | "active" | null;
-  contact?: { name: string; email: string; message: string; ownerEmail: string };
-}, idempotencyKey: string) {
+export async function sendAccountEmail(
+  kind: AccountEmailKind,
+  input: {
+    email: string;
+    userName?: string | null;
+    plan?: "free" | "starter" | "pro" | null;
+    trialEndsAt?: Date | null;
+    renewalAt?: Date | null;
+    subscriptionStatus?: "trialing" | "active" | null;
+    contact?: {
+      name: string;
+      email: string;
+      message: string;
+      ownerEmail: string;
+    };
+  },
+  idempotencyKey: string
+) {
   switch (kind) {
-    case "onboarding-day-1": return sendOnboardingDay1(input.email, input.userName, idempotencyKey);
-    case "onboarding-day-3": return sendOnboardingDay3(input.email, input.userName, idempotencyKey);
-    case "onboarding-day-5": return sendOnboardingDay5(input.email, input.userName, (input.plan ?? "free") as "free" | "starter" | "pro", idempotencyKey);
-    case "trial-ending": return sendTrialExpirationWarning(input.email, input.userName, input.trialEndsAt ?? new Date(), idempotencyKey);
-    case "renewal": return sendRenewalReminder(input.email, input.userName, (input.plan === "pro" ? "pro" : "starter"), input.renewalAt ?? new Date(), idempotencyKey);
-    case "purchase": return sendPurchaseConfirmation({
-      email: input.email,
-      userName: input.userName,
-      plan: input.plan === "pro" ? "pro" : "starter",
-      subscriptionStatus: input.subscriptionStatus === "trialing" ? "trialing" : "active",
-      trialEndsAt: input.trialEndsAt,
-      periodEndsAt: input.renewalAt,
-    }, idempotencyKey);
+    case "onboarding-day-1":
+      return sendOnboardingDay1(input.email, input.userName, idempotencyKey);
+    case "onboarding-day-3":
+      return sendOnboardingDay3(input.email, input.userName, idempotencyKey);
+    case "onboarding-day-5":
+      return sendOnboardingDay5(
+        input.email,
+        input.userName,
+        (input.plan ?? "free") as "free" | "starter" | "pro",
+        idempotencyKey
+      );
+    case "trial-ending":
+      return sendTrialExpirationWarning(
+        input.email,
+        input.userName,
+        input.trialEndsAt ?? new Date(),
+        idempotencyKey
+      );
+    case "renewal":
+      return sendRenewalReminder(
+        input.email,
+        input.userName,
+        input.plan === "pro" ? "pro" : "starter",
+        input.renewalAt ?? new Date(),
+        idempotencyKey
+      );
+    case "purchase":
+      return sendPurchaseConfirmation(
+        {
+          email: input.email,
+          userName: input.userName,
+          plan: input.plan === "pro" ? "pro" : "starter",
+          subscriptionStatus:
+            input.subscriptionStatus === "trialing" ? "trialing" : "active",
+          trialEndsAt: input.trialEndsAt,
+          periodEndsAt: input.renewalAt,
+        },
+        idempotencyKey
+      );
     case "contact-owner-alert": {
       if (!input.contact) throw new Error("Contact details are required");
       return sendContactFormNotification(
@@ -196,13 +300,17 @@ export async function sendAccountEmail(kind: AccountEmailKind, input: {
         input.contact.email,
         input.contact.message,
         input.contact.ownerEmail,
-        idempotencyKey,
+        idempotencyKey
       );
     }
   }
 }
 
-export async function sendCronErrorAlert(jobName: string, errorClass: string, timestamp: Date) {
+export async function sendCronErrorAlert(
+  jobName: string,
+  errorClass: string,
+  timestamp: Date
+) {
   const adminEmail = process.env.ADMIN_EMAIL || "admin@snappostpro.com";
   const result = await getResendClient().emails.send({
     from: ALERT_FROM,
@@ -213,7 +321,13 @@ export async function sendCronErrorAlert(jobName: string, errorClass: string, ti
   return acceptedEmailId(result);
 }
 
-export async function sendContactFormNotification(name: string, email: string, message: string, ownerEmail: string, idempotencyKey?: string) {
+export async function sendContactFormNotification(
+  name: string,
+  email: string,
+  message: string,
+  ownerEmail: string,
+  idempotencyKey?: string
+) {
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);
   return sendAccountMessage({
@@ -226,33 +340,87 @@ export async function sendContactFormNotification(name: string, email: string, m
 }
 
 export class NewsletterSendError extends Error {
-  constructor(message: string, public readonly ambiguous: boolean, public readonly permanent = false) {
+  constructor(
+    message: string,
+    public readonly ambiguous: boolean,
+    public readonly permanent = false
+  ) {
     super(message);
     this.name = "NewsletterSendError";
   }
 }
 
-export async function sendNewsletterMessage(input: { email: string; unsubscribeUrl: string; kind: NewsletterKind; issueIndex?: number; idempotencyKey: string }): Promise<{ id: string }> {
-  const message = getNewsletterMessage(input.kind, input.unsubscribeUrl, input.issueIndex);
-  const options = { idempotencyKey: input.idempotencyKey, signal: AbortSignal.timeout(30_000) };
+export async function sendNewsletterMessage(input: {
+  email: string;
+  unsubscribeUrl: string;
+  kind: NewsletterKind;
+  issueIndex?: number;
+  idempotencyKey: string;
+}): Promise<{ id: string }> {
+  const message = getNewsletterMessage(
+    input.kind,
+    input.unsubscribeUrl,
+    input.issueIndex
+  );
+  const options = {
+    idempotencyKey: input.idempotencyKey,
+    signal: AbortSignal.timeout(30_000),
+  };
   let result;
   try {
-    result = await getResendClient().emails.send({ from: EMAIL_FROM, to: input.email, replyTo: getSupportReplyTo(), ...message, headers: { "List-Unsubscribe": `<${input.unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }, options);
+    result = await getResendClient().emails.send(
+      {
+        from: EMAIL_FROM,
+        to: input.email,
+        replyTo: getSupportReplyTo(),
+        ...message,
+        headers: {
+          "List-Unsubscribe": `<${input.unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      },
+      options
+    );
   } catch {
-    throw new NewsletterSendError("Newsletter transport failed; provider acceptance is unknown.", true);
+    throw new NewsletterSendError(
+      "Newsletter transport failed; provider acceptance is unknown.",
+      true
+    );
   }
   if (result.error || !result.data?.id) {
     const status = result.error?.statusCode;
     const errorName = result.error?.name;
-    const ambiguous = !status || status >= 500 || errorName === "concurrent_idempotent_requests";
-    const permanent = Boolean(status && status >= 400 && status < 500 && status !== 429 && errorName !== "concurrent_idempotent_requests");
-    throw new NewsletterSendError("Resend did not confirm newsletter acceptance.", ambiguous, permanent);
+    const ambiguous =
+      !status ||
+      status >= 500 ||
+      errorName === "concurrent_idempotent_requests";
+    const permanent = Boolean(
+      status &&
+        status >= 400 &&
+        status < 500 &&
+        status !== 429 &&
+        errorName !== "concurrent_idempotent_requests"
+    );
+    throw new NewsletterSendError(
+      "Resend did not confirm newsletter acceptance.",
+      ambiguous,
+      permanent
+    );
   }
   return { id: result.data.id };
 }
 
-export async function sendNewsletterWelcome(email: string, unsubscribeUrl: string, idempotencyKey: string) {
-  return sendNewsletterMessage({ email, unsubscribeUrl, kind: "welcome", idempotencyKey });
+export async function sendNewsletterWelcome(
+  email: string,
+  unsubscribeUrl: string,
+  idempotencyKey: string
+) {
+  return sendNewsletterMessage({
+    email,
+    unsubscribeUrl,
+    kind: "welcome",
+    idempotencyKey,
+  });
 }
 
 export async function sendNewsletterSignupInvitation(email: string) {
@@ -262,13 +430,19 @@ export async function sendNewsletterSignupInvitation(email: string) {
     to: email,
     replyTo: getSupportReplyTo(),
     subject: "Prepare your next Facebook post with SnapPost Pro",
-    headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+    headers: {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
     html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.55"><p>Hi,</p><p>You subscribed to SnapPost Pro updates, so here is a closer look at the product.</p><p>When you have a completed photo of your work, product, space, or result, SnapPost Pro helps you prepare it for one selected Facebook Page:</p><ul><li>Upload your real completed photo</li><li>Add your logo overlay</li><li>Generate an AI caption you can edit</li><li>Review it, then publish when you are ready</li></ul><p style="margin:28px 0"><a href="https://snappostpro.com" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Start with 3 free posts</a></p><p>— SnapPost Pro</p><hr style="margin:30px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#64748b">You received this because you subscribed to SnapPost Pro updates. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#5747e8">Unsubscribe</a>.</p></div>`,
   });
   return acceptedEmailId(result);
 }
 
-export async function sendNewsletterSignupNotification(email: string, ownerEmail: string) {
+export async function sendNewsletterSignupNotification(
+  email: string,
+  ownerEmail: string
+) {
   const safeEmail = escapeHtml(email);
   const result = await getResendClient().emails.send({
     from: EMAIL_FROM,
@@ -279,7 +453,11 @@ export async function sendNewsletterSignupNotification(email: string, ownerEmail
   return acceptedEmailId(result);
 }
 
-export async function sendEmailVerification(email: string, userName: string | null | undefined, verificationToken: string) {
+export async function sendEmailVerification(
+  email: string,
+  userName: string | null | undefined,
+  verificationToken: string
+) {
   const verificationUrl = `https://snappostpro.com/verify-email?token=${encodeURIComponent(verificationToken)}`;
   return sendAccountMessage({
     to: email,

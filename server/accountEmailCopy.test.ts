@@ -11,6 +11,7 @@ beforeEach(() => {
   send.mockReset();
   send.mockResolvedValue({ data: { id: "accepted-email" } });
   process.env.RESEND_API_KEY = "test-key";
+  process.env.NEWSLETTER_UNSUBSCRIBE_SECRET = "test-unsubscribe-secret";
   delete process.env.SUPPORT_REPLY_TO;
 });
 
@@ -43,6 +44,16 @@ describe("account email copy", () => {
     const message = payload();
     expect(message.html).toContain("editable AI caption");
     expect(message.html).not.toMatch(/tradie|marketing automation/i);
+  });
+
+  it("uses clear access-link language for passwordless entry", async () => {
+    const { sendMagicSignInLink } = await import("./email");
+    await sendMagicSignInLink("customer@example.com", "https://snappostpro.com/api/auth/verify?token=value");
+
+    const message = payload();
+    expect(message.subject).toBe("Your secure SnapPost Pro access link");
+    expect(message.html).toContain("Open SnapPost Pro");
+    expect(message.html).not.toContain("Sign in to SnapPost Pro");
   });
 
   it("keeps the invitation limited to available product behaviour", async () => {

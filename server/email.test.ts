@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { Resend } from "resend";
 
-describe("Email Configuration", () => {
+const describeWithResendKey = process.env.RESEND_API_KEY ? describe : describe.skip;
+
+describeWithResendKey("Email Configuration", () => {
   let resendClient: Resend;
 
   beforeAll(() => {

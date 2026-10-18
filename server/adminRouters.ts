@@ -1,8 +1,21 @@
 import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { getDb, getContacts, getNewsletterSubscribers, updateContactStatus } from "./db";
-import { contacts, newsletterSubscribers, users, posts, integrations, conversionEvents } from "../drizzle/schema";
+import {
+  getDb,
+  getContacts,
+  getNewsletterSubscribers,
+  updateContactStatus,
+} from "./db";
+import {
+  authTokens,
+  contacts,
+  newsletterSubscribers,
+  users,
+  posts,
+  integrations,
+  conversionEvents,
+} from "../drizzle/schema";
 import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 import { sendNewsletterSignupInvitation } from "./email";
@@ -14,7 +27,10 @@ import { sendNewsletterSignupInvitation } from "./email";
 
 function adminOnlyMiddleware(ctx: any) {
   if (ctx.user?.role !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required",
+    });
   }
 }
 
@@ -25,7 +41,10 @@ export const adminRouter = router({
 
     const db = await getDb();
     if (!db) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Database unavailable",
+      });
     }
 
     const allUsers = await db
@@ -49,7 +68,10 @@ export const adminRouter = router({
 
     const db = await getDb();
     if (!db) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Database unavailable",
+      });
     }
 
     const [allUsers, allPosts, allIntegrations, allEvents] = await Promise.all([
@@ -66,17 +88,108 @@ export const adminRouter = router({
       activatedAccounts: new Set(allPosts.map(post => post.userId)).size,
       connectedPages: new Set(
         allIntegrations
-          .filter(integration => integration.status === "connected" && integration.pageId)
-          .map(integration => integration.userId),
+          .filter(
+            integration =>
+              integration.status === "connected" && integration.pageId
+          )
+          .map(integration => integration.userId)
       ).size,
       checkoutStarted: new Set(
         allEvents
           .filter(event => event.eventType === "checkout_started")
-          .map(event => event.userId),
+          .map(event => event.userId)
       ).size,
       paidSubscribers: allUsers.filter(
-        user => user.plan !== "free" && activePaidStatuses.has(user.subscriptionStatus ?? "none"),
+        user =>
+          user.plan !== "free" &&
+          activePaidStatuses.has(user.subscriptionStatus ?? "none")
       ).length,
+    };
+  }),
+
+  /**
+   * Owner-only aggregate free-access funnel. No visitor email addresses are
+   * returned; this is used to locate the stage where paid landing traffic drops.
+   */
+  signupFunnel: protectedProcedure.query(async ({ ctx }) => {
+    adminOnlyMiddleware(ctx);
+
+    const db = await getDb();
+    if (!db) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Database unavailable",
+      });
+    }
+
+    const periodDays = 30;
+    const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+    const [allTokens, recentUsers, allPosts, allIntegrations, allEvents] =
+      await Promise.all([
+        db.select().from(authTokens),
+        db.select().from(users).where(gte(users.createdAt, since)),
+        db.select().from(posts),
+        db.select().from(integrations),
+        db.select().from(conversionEvents),
+      ]);
+
+    const freeAccessRequests = allTokens.filter(
+      token => token.createdAt >= since
+    );
+    const freeAccessOpened = allTokens.filter(
+      token => token.usedAt !== null && token.usedAt >= since
+    );
+    const newFreeUsers = recentUsers.filter(
+      user => user.plan === "free" && user.loginMethod === "email_magic_link"
+    );
+    const newUserIds = new Set(newFreeUsers.map(user => user.id));
+    const landingAccounts = { contractors: 0, hairdressers: 0 };
+
+    for (const event of allEvents) {
+      if (
+        event.eventType !== "free_account_created" ||
+        !newUserIds.has(event.userId)
+      )
+        continue;
+      try {
+        const metadata = event.metadata ? JSON.parse(event.metadata) : null;
+        if (metadata?.landing === "contractors")
+          landingAccounts.contractors += 1;
+        if (metadata?.landing === "hairdressers")
+          landingAccounts.hairdressers += 1;
+      } catch {
+        // Old or malformed metadata does not affect aggregate funnel counts.
+      }
+    }
+
+    return {
+      periodDays,
+      freeAccessRequested: freeAccessRequests.length,
+      freeAccessOpened: freeAccessOpened.length,
+      freeAccountsCreated: newFreeUsers.length,
+      connectedPages: new Set(
+        allIntegrations
+          .filter(
+            integration =>
+              newUserIds.has(integration.userId) &&
+              integration.status === "connected" &&
+              integration.pageId
+          )
+          .map(integration => integration.userId)
+      ).size,
+      draftsCreated: new Set(
+        allPosts
+          .filter(post => newUserIds.has(post.userId))
+          .map(post => post.userId)
+      ).size,
+      postsPublished: new Set(
+        allPosts
+          .filter(
+            post => newUserIds.has(post.userId) && post.status === "published"
+          )
+          .map(post => post.userId)
+      ).size,
+      landingAccounts,
     };
   }),
 
@@ -89,7 +202,10 @@ export const adminRouter = router({
 
     const db = await getDb();
     if (!db) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Database unavailable",
+      });
     }
 
     // Get all users
@@ -97,7 +213,9 @@ export const adminRouter = router({
 
     const highUsageList = [];
     const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    );
 
     for (const user of allUsers) {
       if (user.plan === "free") continue; // Skip free users
@@ -110,9 +228,7 @@ export const adminRouter = router({
       const monthPosts = await db
         .select()
         .from(posts)
-        .where(
-          eq(posts.userId, user.id) && gte(posts.createdAt, monthStart)
-        );
+        .where(eq(posts.userId, user.id) && gte(posts.createdAt, monthStart));
 
       const usage = monthPosts.length;
       const usagePercent = Math.round((usage / limit) * 100);
@@ -147,32 +263,48 @@ export const adminRouter = router({
 
       const db = await getDb();
       if (!db) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Database unavailable",
+        });
       }
 
-      const user = await db.select().from(users).where(eq(users.id, input.userId));
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, input.userId));
       if (!user[0]) {
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
       const userRecord = user[0];
-      const userPosts = await db.select().from(posts).where(eq(posts.userId, input.userId));
+      const userPosts = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.userId, input.userId));
 
       // Calculate stats
       const totalPosts = userPosts.length;
-      const publishedPosts = userPosts.filter(p => p.status === "published").length;
+      const publishedPosts = userPosts.filter(
+        p => p.status === "published"
+      ).length;
       const failedPosts = userPosts.filter(p => p.status === "failed").length;
       const draftPosts = userPosts.filter(p => p.status === "draft").length;
 
       // Posts this month
       const now = new Date();
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      const monthPosts = userPosts.filter(p => new Date(p.createdAt) >= monthStart);
+      const monthStart = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+      );
+      const monthPosts = userPosts.filter(
+        p => new Date(p.createdAt) >= monthStart
+      );
 
       // Usage percentage
       const plan = userRecord.plan as "starter" | "pro";
       const limit = PLAN_POST_LIMITS[plan];
-      const usagePercent = limit === null ? 0 : Math.round((monthPosts.length / limit) * 100);
+      const usagePercent =
+        limit === null ? 0 : Math.round((monthPosts.length / limit) * 100);
 
       return {
         user: {
@@ -245,19 +377,32 @@ export const adminRouter = router({
 
     const db = await getDb();
     if (!db) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Database unavailable",
+      });
     }
 
     const testContacts = await db
       .select({ id: contacts.id })
       .from(contacts)
-      .where(and(like(contacts.email, "%@example.com"), ne(contacts.status, "archived")));
+      .where(
+        and(
+          like(contacts.email, "%@example.com"),
+          ne(contacts.status, "archived")
+        )
+      );
 
     if (testContacts.length > 0) {
       await db
         .update(contacts)
         .set({ status: "archived" })
-        .where(inArray(contacts.id, testContacts.map(contact => contact.id)));
+        .where(
+          inArray(
+            contacts.id,
+            testContacts.map(contact => contact.id)
+          )
+        );
     }
 
     return { archived: testContacts.length };
@@ -279,29 +424,56 @@ export const adminRouter = router({
 
       const db = await getDb();
       if (!db) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Database unavailable",
+        });
       }
 
-      const requestedEmails = Array.from(new Set(input.emails.map(email => email.trim().toLowerCase())));
+      const requestedEmails = Array.from(
+        new Set(input.emails.map(email => email.trim().toLowerCase()))
+      );
       const activeSubscribers = await db
         .select({ email: newsletterSubscribers.email })
         .from(newsletterSubscribers)
-        .where(and(inArray(newsletterSubscribers.email, requestedEmails), eq(newsletterSubscribers.status, "active")));
+        .where(
+          and(
+            inArray(newsletterSubscribers.email, requestedEmails),
+            eq(newsletterSubscribers.status, "active")
+          )
+        );
 
       const recipients = activeSubscribers
         .map(subscriber => subscriber.email.toLowerCase())
         .filter(email => !email.endsWith("@example.com"));
 
       const results = await Promise.allSettled(
-        recipients.map(async email => ({ email, delivery: await sendNewsletterSignupInvitation(email) })),
+        recipients.map(async email => ({
+          email,
+          delivery: await sendNewsletterSignupInvitation(email),
+        }))
       );
 
       const sent = results
-        .filter((result): result is PromiseFulfilledResult<{ email: string; delivery: { id: string } }> => result.status === "fulfilled")
+        .filter(
+          (
+            result
+          ): result is PromiseFulfilledResult<{
+            email: string;
+            delivery: { id: string };
+          }> => result.status === "fulfilled"
+        )
         .map(result => result.value.email);
       const failed = results
-        .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-        .map(result => result.reason instanceof Error ? result.reason.message : "Email delivery failed");
+        .filter(
+          (result): result is PromiseRejectedResult =>
+            result.status === "rejected"
+        )
+        .map(result =>
+          result.reason instanceof Error
+            ? result.reason.message
+            : "Email delivery failed"
+        );
 
       return { sent, failed };
     }),

@@ -2,15 +2,15 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { trpc } from "@/lib/trpc";
 import {
-  Loader2,
-  TrendingUp,
-  AlertCircle,
-  Mail,
-  Users,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
+import { Loader2, TrendingUp, AlertCircle, Mail, Users } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useState } from "react";
 
@@ -28,13 +28,20 @@ export default function AdminDashboard() {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
+  const signupFunnel = trpc.admin.signupFunnel.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
   const accountList = trpc.admin.accountList.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
   const contractorAnalytics = trpc.admin.contractorAnalytics.useQuery(
     { userId: selectedUserId! },
-    { enabled: isAuthenticated && user?.role === "admin" && selectedUserId !== null }
+    {
+      enabled:
+        isAuthenticated && user?.role === "admin" && selectedUserId !== null,
+    }
   );
 
   const emailStats = trpc.admin.emailDeliveryStats.useQuery(undefined, {
@@ -56,9 +63,12 @@ export default function AdminDashboard() {
         <main className="flex-1 bg-muted/20">
           <div className="container py-10">
             <div className="rounded-lg border border-destructive bg-destructive/10 p-6">
-              <h1 className="font-display text-2xl font-bold text-destructive">Access Denied</h1>
+              <h1 className="font-display text-2xl font-bold text-destructive">
+                Access Denied
+              </h1>
               <p className="mt-2 text-destructive/80">
-                You don't have permission to access this page. Admin role required.
+                You don't have permission to access this page. Admin role
+                required.
               </p>
             </div>
           </div>
@@ -83,7 +93,9 @@ export default function AdminDashboard() {
 
           {/* Subscriber Funnel */}
           <div className="mb-8">
-            <h2 className="font-display text-xl font-bold">Subscriber Funnel</h2>
+            <h2 className="font-display text-xl font-bold">
+              Subscriber Funnel
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               All-time account and subscription progress.
             </p>
@@ -98,16 +110,64 @@ export default function AdminDashboard() {
               ].map(([label, value]) => (
                 <Card key={label}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      {label}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {funnel.isLoading ? "—" : value ?? 0}
+                      {funnel.isLoading ? "—" : (value ?? 0)}
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          </div>
+
+          {/* Free access funnel */}
+          <div className="mb-8">
+            <h2 className="font-display text-xl font-bold">
+              Free-access Funnel
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Last {signupFunnel.data?.periodDays ?? 30} days. Aggregate-only
+              stages for finding where paid visitors stop.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                [
+                  "Free access links requested",
+                  signupFunnel.data?.freeAccessRequested,
+                ],
+                [
+                  "Free access links opened",
+                  signupFunnel.data?.freeAccessOpened,
+                ],
+                ["New Free accounts", signupFunnel.data?.freeAccountsCreated],
+                ["Connected a Page", signupFunnel.data?.connectedPages],
+                ["Created a draft", signupFunnel.data?.draftsCreated],
+                ["Published a post", signupFunnel.data?.postsPublished],
+              ].map(([label, value]) => (
+                <Card key={label}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      {label}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {signupFunnel.isLoading ? "—" : (value ?? 0)}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Source-attributed Free accounts recorded from this release:
+              contractors {signupFunnel.data?.landingAccounts.contractors ?? 0}{" "}
+              · hairdressers{" "}
+              {signupFunnel.data?.landingAccounts.hairdressers ?? 0}
+            </p>
           </div>
 
           {/* Email Delivery Stats */}
@@ -116,7 +176,9 @@ export default function AdminDashboard() {
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   <Mail className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-medium">Trial Expiration Warnings</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Trial Expiration Warnings
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -124,7 +186,8 @@ export default function AdminDashboard() {
                   {emailStats.data?.trialExpirationWarnings.sent ?? 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Sent • {emailStats.data?.trialExpirationWarnings.failed ?? 0} failed
+                  Sent • {emailStats.data?.trialExpirationWarnings.failed ?? 0}{" "}
+                  failed
                 </p>
               </CardContent>
             </Card>
@@ -133,7 +196,9 @@ export default function AdminDashboard() {
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
                   <Mail className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-medium">Renewal Reminders</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Renewal Reminders
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -152,14 +217,17 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle>Account List</CardTitle>
               <CardDescription>
-                Owner-only list of every account, including test accounts. Newest first.
+                Owner-only list of every account, including test accounts.
+                Newest first.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {accountList.isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               ) : (accountList.data ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No accounts yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No accounts yet.
+                </p>
               ) : (
                 <div className="divide-y rounded-lg border">
                   {(accountList.data ?? []).map(account => (
@@ -168,7 +236,9 @@ export default function AdminDashboard() {
                       className="grid gap-2 p-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-medium">{account.email || "No email recorded"}</p>
+                        <p className="truncate font-medium">
+                          {account.email || "No email recorded"}
+                        </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Created {new Date(account.createdAt).toLocaleString()}
                         </p>
@@ -177,7 +247,9 @@ export default function AdminDashboard() {
                         {account.plan}
                       </Badge>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {account.role === "admin" ? "Admin" : account.subscriptionStatus || "none"}
+                        {account.role === "admin"
+                          ? "Admin"
+                          : account.subscriptionStatus || "none"}
                       </p>
                     </div>
                   ))}
@@ -194,7 +266,8 @@ export default function AdminDashboard() {
                 <CardTitle>High-Usage Contractors</CardTitle>
               </div>
               <CardDescription>
-                Contractors using &gt;70% of their monthly limit (upsell opportunities)
+                Contractors using &gt;70% of their monthly limit (upsell
+                opportunities)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -214,7 +287,9 @@ export default function AdminDashboard() {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{contractor.name || "Unknown"}</span>
+                          <span className="font-medium">
+                            {contractor.name || "Unknown"}
+                          </span>
                           <Badge variant="outline" className="capitalize">
                             {contractor.plan}
                           </Badge>
@@ -234,7 +309,8 @@ export default function AdminDashboard() {
                           {contractor.email}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {contractor.usage} / {contractor.limit} posts this month
+                          {contractor.usage} / {contractor.limit} posts this
+                          month
                         </p>
                       </div>
                       <Button size="sm" variant="outline">
@@ -253,8 +329,12 @@ export default function AdminDashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>{contractorAnalytics.data.user.name || "Contractor"}</CardTitle>
-                    <CardDescription>{contractorAnalytics.data.user.email}</CardDescription>
+                    <CardTitle>
+                      {contractorAnalytics.data.user.name || "Contractor"}
+                    </CardTitle>
+                    <CardDescription>
+                      {contractorAnalytics.data.user.email}
+                    </CardDescription>
                   </div>
                   <Button
                     variant="outline"
@@ -275,15 +355,21 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Subscription Status</p>
+                    <p className="text-sm text-muted-foreground">
+                      Subscription Status
+                    </p>
                     <p className="text-lg font-semibold capitalize">
                       {contractorAnalytics.data.user.subscriptionStatus}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Member Since</p>
+                    <p className="text-sm text-muted-foreground">
+                      Member Since
+                    </p>
                     <p className="text-lg font-semibold">
-                      {new Date(contractorAnalytics.data.user.createdAt).toLocaleDateString()}
+                      {new Date(
+                        contractorAnalytics.data.user.createdAt
+                      ).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -293,7 +379,9 @@ export default function AdminDashboard() {
                   <h3 className="font-semibold mb-4">Usage Statistics</h3>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-sm text-muted-foreground">Monthly Usage</p>
+                      <p className="text-sm text-muted-foreground">
+                        Monthly Usage
+                      </p>
                       <p className="text-2xl font-bold">
                         {contractorAnalytics.data.stats.monthlyUsage} /{" "}
                         {contractorAnalytics.data.stats.monthlyLimit}
@@ -308,14 +396,17 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Posts</p>
+                      <p className="text-sm text-muted-foreground">
+                        Total Posts
+                      </p>
                       <p className="text-2xl font-bold">
                         {contractorAnalytics.data.stats.totalPosts}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        {contractorAnalytics.data.stats.publishedPosts} published •{" "}
-                        {contractorAnalytics.data.stats.draftPosts} draft •{" "}
-                        {contractorAnalytics.data.stats.failedPosts} failed
+                        {contractorAnalytics.data.stats.publishedPosts}{" "}
+                        published • {contractorAnalytics.data.stats.draftPosts}{" "}
+                        draft • {contractorAnalytics.data.stats.failedPosts}{" "}
+                        failed
                       </p>
                     </div>
                   </div>
@@ -327,11 +418,14 @@ export default function AdminDashboard() {
                     <div className="flex gap-3">
                       <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-amber-900">Upsell Opportunity</p>
+                        <p className="font-semibold text-amber-900">
+                          Upsell Opportunity
+                        </p>
                         <p className="text-sm text-amber-800 mt-1">
-                          This contractor is using {contractorAnalytics.data.stats.usagePercent}% of
-                          their monthly limit. Consider reaching out about upgrading to a higher
-                          plan.
+                          This contractor is using{" "}
+                          {contractorAnalytics.data.stats.usagePercent}% of
+                          their monthly limit. Consider reaching out about
+                          upgrading to a higher plan.
                         </p>
                       </div>
                     </div>

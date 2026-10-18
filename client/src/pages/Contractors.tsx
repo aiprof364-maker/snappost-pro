@@ -103,7 +103,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Create 3 free posts"}{" "}
+                      : "Start my 3 free posts"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -145,7 +145,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Create 3 free posts"}{" "}
+                      : "Start my 3 free posts"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -233,7 +233,9 @@ export default function Contractors() {
                   variant="secondary"
                   className="gap-2 px-8 py-6 text-base font-bold"
                 >
-                  {isAuthenticated ? "Go to dashboard" : "Create 3 free posts"}{" "}
+                  {isAuthenticated
+                    ? "Go to dashboard"
+                    : "Start my 3 free posts"}{" "}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>

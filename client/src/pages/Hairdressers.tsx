@@ -2,6 +2,7 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { getLoginUrl } from "@/const";
+import { trackMetaCustomEvent } from "@/lib/metaPixel";
 import { useAuth } from "@/_core/hooks/useAuth";
 import salonPreview from "@/assets/landing-carousel/salon-preview.webp";
 import {
@@ -55,7 +56,16 @@ const FREE_FEATURES = [
 
 export default function Hairdressers() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/dashboard");
+  const primaryCta = isAuthenticated
+    ? "/dashboard"
+    : getLoginUrl("/dashboard?landing=hairdressers");
+  const trackFreeStartClick = () => {
+    if (!isAuthenticated) {
+      trackMetaCustomEvent("FreeStartCtaClicked", {
+        landing_page: "hairdressers",
+      });
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -86,14 +96,14 @@ export default function Hairdressers() {
                 review it, then publish it to your Facebook Page.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <a href={primaryCta}>
+                <a href={primaryCta} onClick={trackFreeStartClick}>
                   <Button
                     size="lg"
                     className="w-full gap-2 px-8 py-6 text-base font-bold sm:w-auto"
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Create 3 free posts"}{" "}
+                      : "Start my 3 free posts"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -124,14 +134,18 @@ export default function Hairdressers() {
                     </li>
                   ))}
                 </ul>
-                <a href={primaryCta} className="mt-5 inline-flex">
+                <a
+                  href={primaryCta}
+                  className="mt-5 inline-flex"
+                  onClick={trackFreeStartClick}
+                >
                   <Button
                     size="lg"
                     className="gap-2 px-7 py-6 text-base font-bold"
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Create 3 free posts"}{" "}
+                      : "Start my 3 free posts"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -196,13 +210,19 @@ export default function Hairdressers() {
                 Create three branded Facebook posts free. You review the image
                 and caption before anything is published.
               </p>
-              <a href={primaryCta} className="mt-8 inline-flex">
+              <a
+                href={primaryCta}
+                className="mt-8 inline-flex"
+                onClick={trackFreeStartClick}
+              >
                 <Button
                   size="lg"
                   variant="secondary"
                   className="gap-2 px-8 py-6 text-base font-bold"
                 >
-                  {isAuthenticated ? "Go to dashboard" : "Create 3 free posts"}{" "}
+                  {isAuthenticated
+                    ? "Go to dashboard"
+                    : "Start my 3 free posts"}{" "}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>

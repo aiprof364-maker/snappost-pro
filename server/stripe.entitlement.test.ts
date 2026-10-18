@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { entitlementFromSubscription, hasPaidEntitlement } from "./stripe";
+
+const originalStarterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
+const originalProPriceId = process.env.STRIPE_PRO_PRICE_ID;
 
 function subscription(status: string, priceId: string) {
   return {
@@ -10,9 +13,21 @@ function subscription(status: string, priceId: string) {
 }
 
 describe("Stripe subscription entitlements", () => {
+  beforeEach(() => {
+    process.env.STRIPE_STARTER_PRICE_ID = "price_starter_test";
+    process.env.STRIPE_PRO_PRICE_ID = "price_pro_test";
+  });
+
+  afterEach(() => {
+    if (originalStarterPriceId === undefined) delete process.env.STRIPE_STARTER_PRICE_ID;
+    else process.env.STRIPE_STARTER_PRICE_ID = originalStarterPriceId;
+    if (originalProPriceId === undefined) delete process.env.STRIPE_PRO_PRICE_ID;
+    else process.env.STRIPE_PRO_PRICE_ID = originalProPriceId;
+  });
+
   it("only unlocks the mapped plan for active or trialing subscriptions", () => {
-    const starter = entitlementFromSubscription(subscription("active", process.env.STRIPE_STARTER_PRICE_ID ?? ""));
-    const pro = entitlementFromSubscription(subscription("trialing", process.env.STRIPE_PRO_PRICE_ID ?? ""));
+    const starter = entitlementFromSubscription(subscription("active", "price_starter_test"));
+    const pro = entitlementFromSubscription(subscription("trialing", "price_pro_test"));
 
     expect(starter).toMatchObject({ plan: "starter", subscriptionStatus: "active" });
     expect(pro).toMatchObject({ plan: "pro", subscriptionStatus: "trialing" });
@@ -21,10 +36,10 @@ describe("Stripe subscription entitlements", () => {
   });
 
   it("never unlocks a canceled, inactive, or unknown-price subscription", () => {
-    const canceled = entitlementFromSubscription(subscription("canceled", process.env.STRIPE_PRO_PRICE_ID ?? ""));
-    const pastDue = entitlementFromSubscription(subscription("past_due", process.env.STRIPE_PRO_PRICE_ID ?? ""));
-    const unpaid = entitlementFromSubscription(subscription("unpaid", process.env.STRIPE_PRO_PRICE_ID ?? ""));
-    const incomplete = entitlementFromSubscription(subscription("incomplete", process.env.STRIPE_PRO_PRICE_ID ?? ""));
+    const canceled = entitlementFromSubscription(subscription("canceled", "price_pro_test"));
+    const pastDue = entitlementFromSubscription(subscription("past_due", "price_pro_test"));
+    const unpaid = entitlementFromSubscription(subscription("unpaid", "price_pro_test"));
+    const incomplete = entitlementFromSubscription(subscription("incomplete", "price_pro_test"));
     const unknown = entitlementFromSubscription(subscription("active", "price_unknown"));
 
     expect(canceled.plan).toBe("free");

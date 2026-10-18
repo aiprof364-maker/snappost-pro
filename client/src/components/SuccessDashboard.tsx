@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { getDashboardPostStats } from "@/lib/dashboardStats";
@@ -69,27 +69,13 @@ export function SuccessDashboard() {
           <CardContent>
             <div className="text-3xl font-bold">{remainingPosts}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {usage?.limit == null ? "No monthly cap" : "in your current month"}
+              {usage?.limit == null
+                ? "No monthly cap"
+                : "in your current month"}
             </p>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Available in SnapPost Pro</CardTitle>
-          <CardDescription>
-            Create, brand, and publish job-site posts to the Facebook Page you connect.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>AI-generated captions for your job-site photos</li>
-            <li>Automatic logo branding on each new image</li>
-            <li>Facebook Page publishing and saved post history</li>
-          </ul>
-        </CardContent>
-      </Card>
 
       {/* Current Plan Info */}
       <Card>
@@ -107,7 +93,11 @@ export function SuccessDashboard() {
             <div className="flex justify-between">
               <span className="text-sm font-medium">Posts per month:</span>
               <span className="text-sm">
-                {currentPlan === "pro" ? "300" : currentPlan === "starter" ? "30" : "3"}
+                {currentPlan === "pro"
+                  ? "300"
+                  : currentPlan === "starter"
+                    ? "30"
+                    : "3"}
               </span>
             </div>
           </div>

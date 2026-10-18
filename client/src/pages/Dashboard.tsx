@@ -4,7 +4,6 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import UploadCard, { type PostFlowState } from "@/components/UploadCard";
 import { PostingSteps } from "@/components/PostingSteps";
-import { FeatureUnlock } from "@/components/FeatureUnlock";
 import { SuccessDashboard } from "@/components/SuccessDashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -271,13 +270,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Success dashboard with analytics and premium features */}
-          {user?.plan !== "free" && (
-            <div className="mt-8">
-              <SuccessDashboard />
-            </div>
-          )}
-
           <PostingSteps
             facebookConnected={facebookConnected}
             facebookPageName={overview.data?.facebook?.pageName}
@@ -444,10 +436,6 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="mt-6">
-            <FeatureUnlock />
-          </div>
-
           {/* Post history */}
           <div className="mt-10">
             <h2 className="font-display text-xl font-bold">Post history</h2>
@@ -534,6 +522,20 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {user?.plan !== "free" && (
+            <section className="mt-12 border-t border-border pt-10">
+              <h2 className="font-display text-xl font-bold">
+                Account overview
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your plan and posting activity.
+              </p>
+              <div className="mt-5">
+                <SuccessDashboard />
+              </div>
+            </section>
+          )}
 
           <Dialog
             open={Boolean(selectedPost)}

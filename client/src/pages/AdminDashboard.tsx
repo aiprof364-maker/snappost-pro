@@ -124,23 +124,23 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Free access funnel */}
+          {/* Email access funnel */}
           <div className="mb-8">
             <h2 className="font-display text-xl font-bold">
-              Free-access Funnel
+              Email-access Funnel
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Last {signupFunnel.data?.periodDays ?? 30} days. Aggregate-only
-              stages for finding where paid visitors stop.
+              stages for finding where visitors stop.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 [
-                  "Free access links requested",
+                  "Access links requested (all sign-ins)",
                   signupFunnel.data?.freeAccessRequested,
                 ],
                 [
-                  "Free access links opened",
+                  "Access links opened (all sign-ins)",
                   signupFunnel.data?.freeAccessOpened,
                 ],
                 ["New Free accounts", signupFunnel.data?.freeAccountsCreated],

@@ -189,10 +189,22 @@ export default function Home() {
               or result into a logo-branded image and an AI-written caption. You
               review it, then post it to your Facebook Page.
             </p>
-            <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--brand-accent)]/12 px-3 py-1 text-sm font-semibold text-[var(--brand-accent)]">
-              <Stamp className="h-4 w-4" /> Your photo, with your logo
+            <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
+              <span>Upload a photo</span>
+              <span className="text-primary" aria-hidden="true">
+                →
+              </span>
+              <span>Add your logo</span>
+              <span className="text-primary" aria-hidden="true">
+                →
+              </span>
+              <span>Review caption</span>
+              <span className="text-primary" aria-hidden="true">
+                →
+              </span>
+              <span>Publish</span>
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8">
               {isAuthenticated ? (
                 <Link href="/dashboard">
                   <Button
@@ -212,14 +224,6 @@ export default function Home() {
                   </Button>
                 </a>
               )}
-              <Link href="/pricing">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto px-8 py-6 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  View pricing
-                </Button>
-              </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
               3 posts total · No card required · Publish to one connected
@@ -238,25 +242,6 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              {isAuthenticated ? (
-                <Link href="/dashboard" className="mt-5 inline-flex">
-                  <Button
-                    size="lg"
-                    className="gap-2 px-7 py-6 text-base font-bold"
-                  >
-                    Go to dashboard <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-              ) : (
-                <a href={primaryCta} className="mt-5 inline-flex">
-                  <Button
-                    size="lg"
-                    className="gap-2 px-7 py-6 text-base font-bold"
-                  >
-                    Start my 3 free posts <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </a>
-              )}
             </div>
           </div>
 

@@ -23,7 +23,6 @@ import {
   ShieldCheck,
   ArrowRight,
   Check,
-  CheckCircle2,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -188,7 +187,7 @@ export default function Home() {
                 "No card required",
               ].map(line => (
                 <span key={line} className="flex items-center gap-3">
-                  <CheckCircle2 className="h-8 w-8 shrink-0 text-emerald-500 sm:h-10 sm:w-10" />
+                  <Check className="h-8 w-8 shrink-0 stroke-[3] text-emerald-500 sm:h-10 sm:w-10" />
                   <span>{line}</span>
                 </span>
               ))}
@@ -229,8 +228,7 @@ export default function Home() {
                     size="lg"
                     className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
                   >
-                    Create my free preview here{" "}
-                    <ArrowRight className="h-5 w-5 text-emerald-300" />
+                    Start <ArrowRight className="h-5 w-5 text-emerald-300" />
                   </Button>
                 </a>
               )}

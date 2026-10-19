@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   ArrowRight,
   Check,
+  CheckCircle2,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -178,13 +179,24 @@ export default function Home() {
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
               for local businesses
             </span>
-            <h1 className="font-display mt-5 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
-              Your work already looks good. Make it{" "}
-              <span className="text-primary">ready for Facebook.</span>
+            <h1 className="font-display mt-5 space-y-1 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
+              {[
+                "Buy back your time",
+                "Post your work faster",
+                "Try free today",
+                "3 free posts",
+                "No card required",
+              ].map(line => (
+                <span key={line} className="flex items-center gap-3">
+                  <CheckCircle2 className="h-8 w-8 shrink-0 text-emerald-500 sm:h-10 sm:w-10" />
+                  <span>{line}</span>
+                </span>
+              ))}
             </h1>
             <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              Upload a real photo. Add your logo. Review an AI-written caption.
-              Publish to your Facebook Page when you are ready.
+              Upload a real photo. Add your logo if you have one. Review an
+              AI-written caption. Publish to your Facebook Page when you are
+              ready.
             </p>
             <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
               <span>Upload a photo</span>
@@ -217,7 +229,8 @@ export default function Home() {
                     size="lg"
                     className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
                   >
-                    Create my free preview <ArrowRight className="h-5 w-5" />
+                    Create my free preview here{" "}
+                    <ArrowRight className="h-5 w-5 text-emerald-300" />
                   </Button>
                 </a>
               )}

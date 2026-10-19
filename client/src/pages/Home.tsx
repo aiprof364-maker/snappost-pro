@@ -228,7 +228,8 @@ export default function Home() {
                     size="lg"
                     className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
                   >
-                    Start <ArrowRight className="h-5 w-5 text-emerald-300" />
+                    Start my free preview here{" "}
+                    <ArrowRight className="h-5 w-5 text-emerald-300" />
                   </Button>
                 </a>
               )}

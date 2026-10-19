@@ -1,25 +1,19 @@
-import {
-  ArrowRight,
-  Check,
-  ImagePlus,
-  MessageSquareText,
-  Stamp,
-} from "lucide-react";
+import { ArrowRight, Check, ImagePlus, Stamp } from "lucide-react";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
 
 export default function ResultsFirstHero() {
   return (
     <div className="mx-auto w-full max-w-xl">
-      <div className="rounded-3xl border border-primary/15 bg-card p-4 shadow-2xl shadow-primary/10 sm:p-5">
+      <div className="rounded-3xl border border-primary/20 bg-card p-4 shadow-2xl shadow-primary/10 sm:p-5">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
           <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-muted-foreground">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-primary">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 1
               </span>
               <span>Your real photo</span>
             </div>
-            <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted">
+            <div className="aspect-[4/3] overflow-hidden rounded-xl border border-primary/25 bg-muted">
               <img
                 src={LANDING_MOCKUP.originalPhotoUrl}
                 alt="Original completed outdoor space photo before logo branding"
@@ -52,12 +46,12 @@ export default function ResultsFirstHero() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
+        <div className="mt-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:p-5">
           <div className="flex items-center gap-2 text-sm font-bold">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <MessageSquareText className="h-4 w-4" />
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+              3
             </span>
-            <span>3. Caption ready to review</span>
+            <span>Caption ready to review</span>
           </div>
           <p className="mt-3 text-sm leading-6 text-foreground sm:text-base">
             “{LANDING_MOCKUP.heroCaption}”

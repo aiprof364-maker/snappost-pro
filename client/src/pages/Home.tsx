@@ -14,7 +14,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { getLoginUrl } from "@/const";
 import {
   Camera,
   Sparkles,
@@ -149,7 +148,7 @@ const FAQS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : getLoginUrl("/dashboard");
+  const primaryCta = isAuthenticated ? "/dashboard" : "/preview";
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const subscribe = trpc.contact.subscribe.useMutation({
     onSuccess: () => {
@@ -218,7 +217,7 @@ export default function Home() {
                     size="lg"
                     className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
                   >
-                    Start my 3 free posts <ArrowRight className="h-5 w-5" />
+                    Create my free preview <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
               )}
@@ -446,8 +445,8 @@ export default function Home() {
               Create your first branded post free.
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
-              Start free with your email, upload your photo and logo, then
-              review your branded image and AI-written caption. No card
+              Upload your photo and logo first, then review your branded image
+              and AI-written caption before you enter your email. No card
               required.
             </p>
             <div className="mt-8 flex justify-center">
@@ -457,7 +456,7 @@ export default function Home() {
                   variant="secondary"
                   className="gap-2 px-8 py-6 text-base font-semibold"
                 >
-                  Start my 3 free posts <ArrowRight className="h-5 w-5" />
+                  Create my free preview <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>
             </div>

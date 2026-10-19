@@ -1,7 +1,6 @@
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
-import { getLoginUrl } from "@/const";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -58,7 +57,7 @@ export default function Contractors() {
   const { isAuthenticated } = useAuth();
   const primaryCta = isAuthenticated
     ? "/dashboard"
-    : getLoginUrl("/dashboard?landing=contractors");
+    : "/preview?landing=contractors";
   const trackFreeStartClick = () => {
     if (!isAuthenticated) {
       trackMetaCustomEvent("FreeStartCtaClicked", {
@@ -103,7 +102,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Start my 3 free posts"}{" "}
+                      : "Create my free preview"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -145,7 +144,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Start my 3 free posts"}{" "}
+                      : "Create my free preview"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -235,7 +234,7 @@ export default function Contractors() {
                 >
                   {isAuthenticated
                     ? "Go to dashboard"
-                    : "Start my 3 free posts"}{" "}
+                    : "Create my free preview"}{" "}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>

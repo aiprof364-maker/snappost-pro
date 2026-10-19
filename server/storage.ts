@@ -36,14 +36,15 @@ function appendHashSuffix(relKey: string): string {
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
-  contentType = "application/octet-stream",
+  contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
   ensureCloudinaryConfig();
 
   const publicId = appendHashSuffix(normalizeKey(relKey));
 
   // Convert data to base64 data URI for Cloudinary upload
-  const buffer = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
+  const buffer =
+    typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
   const base64 = buffer.toString("base64");
   const mimeType = contentType || "image/jpeg";
   const dataUri = `data:${mimeType};base64,${base64}`;
@@ -58,7 +59,9 @@ export async function storagePut(
   return { key: result.public_id, url: result.secure_url };
 }
 
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
+export async function storageGet(
+  relKey: string
+): Promise<{ key: string; url: string }> {
   ensureCloudinaryConfig();
   const key = normalizeKey(relKey);
   const url = cloudinary.url(key, { secure: true });
@@ -70,4 +73,10 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
   // Cloudinary URLs are already publicly accessible, no signing needed
   const url = cloudinary.url(relKey, { secure: true, resource_type: "image" });
   return url;
+}
+
+/** Best-effort cleanup for short-lived, unclaimed public-preview assets. */
+export async function storageDelete(key: string): Promise<void> {
+  ensureCloudinaryConfig();
+  await cloudinary.uploader.destroy(key, { resource_type: "image" });
 }

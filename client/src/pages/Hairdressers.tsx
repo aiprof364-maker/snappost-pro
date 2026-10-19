@@ -1,7 +1,6 @@
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
-import { getLoginUrl } from "@/const";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
 import { useAuth } from "@/_core/hooks/useAuth";
 import salonPreview from "@/assets/landing-carousel/salon-preview.webp";
@@ -58,7 +57,7 @@ export default function Hairdressers() {
   const { isAuthenticated } = useAuth();
   const primaryCta = isAuthenticated
     ? "/dashboard"
-    : getLoginUrl("/dashboard?landing=hairdressers");
+    : "/preview?landing=hairdressers";
   const trackFreeStartClick = () => {
     if (!isAuthenticated) {
       trackMetaCustomEvent("FreeStartCtaClicked", {
@@ -103,7 +102,7 @@ export default function Hairdressers() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Start my 3 free posts"}{" "}
+                      : "Create my free preview"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -145,7 +144,7 @@ export default function Hairdressers() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Start my 3 free posts"}{" "}
+                      : "Create my free preview"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -222,7 +221,7 @@ export default function Hairdressers() {
                 >
                   {isAuthenticated
                     ? "Go to dashboard"
-                    : "Start my 3 free posts"}{" "}
+                    : "Create my free preview"}{" "}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>

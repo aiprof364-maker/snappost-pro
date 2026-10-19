@@ -48,9 +48,24 @@ import { createMagicLinkToken, SESSION_COOKIE } from "./auth";
 import { storageGetSignedUrl, storagePut } from "./storage";
 import { getCheckoutTrialData } from "./trialEligibility";
 import { adminRouter } from "./adminRouters";
+import {
+  claimPreviewDraft,
+  cleanupExpiredPreviewDrafts,
+  createPreviewDraft,
+  getPublicPreviewDraft,
+  markPreviewEmailRequested,
+  updatePublicPreviewCaption,
+  type PreviewLanding,
+} from "./previewDrafts";
 
 const magicLinkRequestTimes = new Map<string, number>();
 const MAGIC_LINK_COOLDOWN_MS = 60_000;
+const previewRequestCounts = new Map<
+  string,
+  { count: number; startedAt: number }
+>();
+const PREVIEW_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const PREVIEW_RATE_LIMIT = 4;
 
 /** Decode a data URL or base64 string to a Buffer. */
 function decodeBase64Image(input: string): { buffer: Buffer; mime: string } {
@@ -59,6 +74,58 @@ function decodeBase64Image(input: string): { buffer: Buffer; mime: string } {
     return { mime: match[1], buffer: Buffer.from(match[2], "base64") };
   }
   return { mime: "image/jpeg", buffer: Buffer.from(input, "base64") };
+}
+
+function decodePreviewImage(input: string, maxBytes: number) {
+  const decoded = decodeBase64Image(input);
+  if (!new Set(["image/jpeg", "image/png"]).has(decoded.mime)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Please use a JPG or PNG image.",
+    });
+  }
+  if (!decoded.buffer.length || decoded.buffer.length > maxBytes) {
+    throw new TRPCError({
+      code: "PAYLOAD_TOO_LARGE",
+      message:
+        "That image is too large. Use a photo under 8 MB and a logo under 2 MB.",
+    });
+  }
+  return decoded;
+}
+
+function previewRequestKey(
+  headers: Record<string, string | string[] | undefined>
+) {
+  const forwarded = headers["x-forwarded-for"];
+  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  return address?.split(",")[0]?.trim() || "unknown";
+}
+
+function enforcePreviewRateLimit(
+  headers: Record<string, string | string[] | undefined>
+) {
+  const key = previewRequestKey(headers);
+  const now = Date.now();
+  const existing = previewRequestCounts.get(key);
+  if (!existing || now - existing.startedAt >= PREVIEW_RATE_LIMIT_WINDOW_MS) {
+    previewRequestCounts.set(key, { count: 1, startedAt: now });
+    return;
+  }
+  if (existing.count >= PREVIEW_RATE_LIMIT) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message:
+        "You can create up to 4 previews an hour. Please try again shortly.",
+    });
+  }
+  existing.count += 1;
+}
+
+function previewLanding(value: string | undefined): PreviewLanding {
+  return value === "contractors" || value === "hairdressers"
+    ? value
+    : undefined;
 }
 
 /** First day of the current month (UTC) — used for monthly usage limits. */
@@ -83,10 +150,21 @@ export const appRouter = router({
           email: z.string().email(),
           origin: z.string().url(),
           next: z.string().optional(),
+          previewToken: z.string().min(32).max(128).optional(),
         })
       )
       .mutation(async ({ input }) => {
         const email = input.email.trim().toLowerCase();
+        if (input.previewToken) {
+          const preview = await getPublicPreviewDraft(input.previewToken);
+          if (!preview) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message:
+                "This preview has expired. Create a new free preview to continue.",
+            });
+          }
+        }
         const lastRequestedAt = magicLinkRequestTimes.get(email) ?? 0;
         const remainingMs =
           MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastRequestedAt);
@@ -106,6 +184,11 @@ export const appRouter = router({
         try {
           await sendMagicSignInLink(email, link.toString());
           magicLinkRequestTimes.set(email, Date.now());
+          if (input.previewToken) {
+            await markPreviewEmailRequested(input.previewToken).catch(error => {
+              console.error("[Preview] Could not record email handoff", error);
+            });
+          }
           return { success: true } as const;
         } catch (error) {
           console.error("[Auth] Magic-link email delivery failed", error);
@@ -186,6 +269,119 @@ export const appRouter = router({
         });
       }
     }),
+  }),
+
+  /* ---------------------- Public free preview ---------------------- */
+  preview: router({
+    /** Create a real branded photo and caption before collecting an email. */
+    create: publicProcedure
+      .input(
+        z.object({
+          image: z.string().min(10).max(11_200_000),
+          logo: z.string().min(10).max(2_800_000),
+          trade: z.string().max(60).optional(),
+          tone: z.string().max(40).optional(),
+          landing: z.enum(["contractors", "hairdressers"]).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        enforcePreviewRateLimit(ctx.req.headers);
+        const { buffer: photoBuffer, mime: photoMime } = decodePreviewImage(
+          input.image,
+          8 * 1024 * 1024
+        );
+        const { buffer: logoBuffer, mime: logoMime } = decodePreviewImage(
+          input.logo,
+          2 * 1024 * 1024
+        );
+        const createdAt = Date.now();
+        const keyPrefix = `previews/${createdAt}`;
+        const ext = photoMime.includes("png") ? "png" : "jpg";
+
+        // Cleanup never blocks a visitor's preview when storage is unavailable.
+        void cleanupExpiredPreviewDrafts().catch(error => {
+          console.error("[Preview] Expired draft cleanup failed", error);
+        });
+
+        try {
+          const original = await storagePut(
+            `${keyPrefix}/original.${ext}`,
+            photoBuffer,
+            photoMime
+          );
+          const logo = await storagePut(
+            `${keyPrefix}/logo.${logoMime.includes("png") ? "png" : "jpg"}`,
+            logoBuffer,
+            logoMime
+          );
+          const signedUrl = await storageGetSignedUrl(original.key);
+          const caption = await generateCaption({
+            imageUrl: signedUrl,
+            trade: input.trade,
+            tone: input.tone,
+          });
+          const branded = await brandImage({
+            photoBuffer,
+            logoBuffer,
+            destKeyPrefix: keyPrefix,
+          });
+          return await createPreviewDraft({
+            landing: previewLanding(input.landing),
+            originalImageKey: original.key,
+            originalImageUrl: original.url,
+            logoImageKey: logo.key,
+            brandedImageKey: branded.key,
+            brandedImageUrl: branded.url,
+            caption,
+          });
+        } catch (error) {
+          console.error("[Preview] Creation failed", error);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message:
+              "We could not create that preview. Please try another JPG or PNG shortly.",
+          });
+        }
+      }),
+
+    /** Retrieve an anonymous active preview through its opaque browser token. */
+    get: publicProcedure
+      .input(z.object({ token: z.string().min(32).max(128) }))
+      .query(async ({ input }) => {
+        const preview = await getPublicPreviewDraft(input.token);
+        if (!preview) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message:
+              "This preview has expired. Create a new free preview to continue.",
+          });
+        }
+        return preview;
+      }),
+
+    /** Let a visitor refine the generated caption before saving it with email. */
+    updateCaption: publicProcedure
+      .input(
+        z.object({
+          token: z.string().min(32).max(128),
+          caption: z.string().trim().min(1).max(2200),
+        })
+      )
+      .mutation(({ input }) => updatePublicPreviewCaption(input)),
+
+    /** Claim exactly one saved preview after the visitor completes email access. */
+    claim: protectedProcedure
+      .input(z.object({ token: z.string().min(32).max(128) }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await claimPreviewDraft({
+          token: input.token,
+          userId: ctx.user.id,
+        });
+        if (!result.alreadyClaimed) {
+          await logConversionEvent(ctx.user.id, "preview_draft_claimed");
+        }
+        return result;
+      }),
   }),
 
   /* --------------------------- Account --------------------------- */
@@ -669,9 +865,10 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           const { createContact } = await import("./db");
-          const { queueAccountEmail } = await import("./accountEmailAutomation");
-          const ownerEmail =
-            process.env.OWNER_EMAIL || "admin@snappostpro.com";
+          const { queueAccountEmail } = await import(
+            "./accountEmailAutomation"
+          );
+          const ownerEmail = process.env.OWNER_EMAIL || "admin@snappostpro.com";
 
           // Persist first. Once saved, owner notification is handled by the
           // durable outbox so an email-provider outage never asks the visitor

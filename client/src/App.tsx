@@ -19,6 +19,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
 import Contractors from "./pages/Contractors";
 import Hairdressers from "./pages/Hairdressers";
+import FreePreview from "./pages/FreePreview";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/contractors"} component={Contractors} />
       <Route path={"/hairdressers"} component={Hairdressers} />
+      <Route path={"/preview"} component={FreePreview} />
       <Route path={"/pricing"} component={Pricing} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/analytics"} component={Analytics} />

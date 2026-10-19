@@ -1,4 +1,15 @@
-import { boolean, datetime, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  datetime,
+  index,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 /**
@@ -25,7 +36,9 @@ export const users = mysqlTable("users", {
   /** Stripe subscription identifier. */
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }),
   /** Subscription status mirrored from Stripe: active, trialing, past_due, canceled, none. */
-  subscriptionStatus: varchar("subscriptionStatus", { length: 32 }).default("none"),
+  subscriptionStatus: varchar("subscriptionStatus", { length: 32 }).default(
+    "none"
+  ),
   /** Logo image storage key used to brand uploaded photos. */
   logoKey: varchar("logoKey", { length: 256 }),
   /** Email verification status: pending, verified. */
@@ -64,7 +77,9 @@ export const trialClaims = mysqlTable("trial_claims", {
   emailHash: varchar("emailHash", { length: 64 }).notNull().unique(),
   facebookPageId: varchar("facebookPageId", { length: 128 }).unique(),
   stripeCustomerId: varchar("stripeCustomerId", { length: 128 }).unique(),
-  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 128 }).unique(),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", {
+    length: 128,
+  }).unique(),
   redeemedAt: timestamp("redeemedAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -118,7 +133,9 @@ export const posts = mysqlTable("posts", {
   /** AI-generated caption text. */
   caption: text("caption"),
   /** Lifecycle status: draft, published, failed. */
-  status: mysqlEnum("status", ["draft", "published", "failed"]).default("draft").notNull(),
+  status: mysqlEnum("status", ["draft", "published", "failed"])
+    .default("draft")
+    .notNull(),
   /** Facebook post id returned after publishing. */
   facebookPostId: varchar("facebookPostId", { length: 128 }),
   /** Error message if publishing failed. */
@@ -129,6 +146,42 @@ export const posts = mysqlTable("posts", {
 
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
+
+/**
+ * A short-lived, anonymous photo-to-post preview created before a visitor
+ * supplies an email address. The raw token stays only in the browser/email
+ * link; this table stores a SHA-256 hash. When the visitor opens their secure
+ * email link, the assets become the first saved draft in their account.
+ */
+export const previewDrafts = mysqlTable(
+  "preview_drafts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tokenHash: varchar("tokenHash", { length: 64 }).notNull(),
+    landing: varchar("landing", { length: 32 }),
+    originalImageKey: varchar("originalImageKey", { length: 256 }).notNull(),
+    originalImageUrl: varchar("originalImageUrl", { length: 512 }).notNull(),
+    logoImageKey: varchar("logoImageKey", { length: 256 }).notNull(),
+    brandedImageKey: varchar("brandedImageKey", { length: 256 }).notNull(),
+    brandedImageUrl: varchar("brandedImageUrl", { length: 512 }).notNull(),
+    caption: text("caption").notNull(),
+    emailRequestedAt: timestamp("emailRequestedAt"),
+    userId: int("userId"),
+    postId: int("postId"),
+    claimedAt: timestamp("claimedAt"),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    tokenHashUnique: uniqueIndex("preview_drafts_token_hash_uq").on(
+      table.tokenHash
+    ),
+    expiryIndex: index("preview_drafts_expiry_idx").on(table.expiresAt),
+  })
+);
+
+export type PreviewDraft = typeof previewDrafts.$inferSelect;
+export type InsertPreviewDraft = typeof previewDrafts.$inferInsert;
 
 /**
  * Onboarding checklist tracking for new contractors.
@@ -174,7 +227,6 @@ export const conversionEvents = mysqlTable("conversion_events", {
 export type ConversionEvent = typeof conversionEvents.$inferSelect;
 export type InsertConversionEvent = typeof conversionEvents.$inferInsert;
 
-
 /**
  * Contact form submissions.
  * Stores all inquiries from the contact form for lead tracking.
@@ -184,7 +236,9 @@ export const contacts = mysqlTable("contacts", {
   name: varchar("name", { length: 120 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   message: text("message").notNull(),
-  status: mysqlEnum("status", ["new", "replied", "archived"]).default("new").notNull(),
+  status: mysqlEnum("status", ["new", "replied", "archived"])
+    .default("new")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -199,13 +253,16 @@ export type InsertContact = typeof contacts.$inferInsert;
 export const newsletterSubscribers = mysqlTable("newsletterSubscribers", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull().unique(),
-  status: mysqlEnum("status", ["active", "unsubscribed"]).default("active").notNull(),
+  status: mysqlEnum("status", ["active", "unsubscribed"])
+    .default("active")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
-export type InsertNewsletterSubscriber = typeof newsletterSubscribers.$inferInsert;
+export type InsertNewsletterSubscriber =
+  typeof newsletterSubscribers.$inferInsert;
 
 /**
  * Additive state for newsletter subscribers. `welcomeEligible` distinguishes
@@ -221,16 +278,26 @@ export const newsletterSubscriberState = mysqlTable(
     /** Durable activation time used for the 72-hour follow-up calculation. */
     activationAnchor: datetime("activationAnchor").notNull(),
     welcomeEligible: boolean("welcomeEligible").default(false).notNull(),
-    createdAt: datetime("createdAt").default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updatedAt: datetime("updatedAt").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()).notNull(),
+    createdAt: datetime("createdAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: datetime("updatedAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   table => ({
-    unsubscribeTokenUnique: uniqueIndex("newsletter_state_token_uq").on(table.unsubscribeToken),
-    activationAnchorIndex: index("newsletter_state_anchor_idx").on(table.activationAnchor),
-  }),
+    unsubscribeTokenUnique: uniqueIndex("newsletter_state_token_uq").on(
+      table.unsubscribeToken
+    ),
+    activationAnchorIndex: index("newsletter_state_anchor_idx").on(
+      table.activationAnchor
+    ),
+  })
 );
 
-export type NewsletterSubscriberState = typeof newsletterSubscriberState.$inferSelect;
+export type NewsletterSubscriberState =
+  typeof newsletterSubscriberState.$inferSelect;
 
 /**
  * Durable, idempotent newsletter outbox. The unique subscriber/campaign key
@@ -257,22 +324,27 @@ export const newsletterDeliveryLedger = mysqlTable(
     ambiguousSince: datetime("ambiguousSince"),
     uncertainAt: datetime("uncertainAt"),
     alertedAt: datetime("alertedAt"),
-    createdAt: datetime("createdAt").default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updatedAt: datetime("updatedAt").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()).notNull(),
+    createdAt: datetime("createdAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: datetime("updatedAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   table => ({
-    subscriberCampaignUnique: uniqueIndex("newsletter_delivery_sub_campaign_uq").on(
-      table.subscriberId,
-      table.campaignKey,
-    ),
+    subscriberCampaignUnique: uniqueIndex(
+      "newsletter_delivery_sub_campaign_uq"
+    ).on(table.subscriberId, table.campaignKey),
     dispatchIndex: index("newsletter_delivery_dispatch_idx").on(
       table.status,
-      table.nextAttemptAt,
+      table.nextAttemptAt
     ),
-  }),
+  })
 );
 
-export type NewsletterDeliveryLedger = typeof newsletterDeliveryLedger.$inferSelect;
+export type NewsletterDeliveryLedger =
+  typeof newsletterDeliveryLedger.$inferSelect;
 
 /**
  * Durable outbox for account, billing, onboarding, and owner-alert emails.
@@ -297,14 +369,25 @@ export const accountEmailDelivery = mysqlTable(
     providerMessageId: varchar("providerMessageId", { length: 191 }),
     lastErrorClass: varchar("lastErrorClass", { length: 32 }),
     metadata: text("metadata"),
-    createdAt: datetime("createdAt").default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updatedAt: datetime("updatedAt").default(sql`CURRENT_TIMESTAMP`).$onUpdate(() => new Date()).notNull(),
+    createdAt: datetime("createdAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: datetime("updatedAt")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   table => ({
-    entityCampaignUnique: uniqueIndex("account_email_entity_campaign_uq").on(table.entityKey, table.campaignKey),
-    dispatchIndex: index("account_email_dispatch_idx").on(table.status, table.nextAttemptAt),
+    entityCampaignUnique: uniqueIndex("account_email_entity_campaign_uq").on(
+      table.entityKey,
+      table.campaignKey
+    ),
+    dispatchIndex: index("account_email_dispatch_idx").on(
+      table.status,
+      table.nextAttemptAt
+    ),
     userIndex: index("account_email_user_idx").on(table.userId),
-  }),
+  })
 );
 
 export const accountEmailRollout = mysqlTable("account_email_rollout", {

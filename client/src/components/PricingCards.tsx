@@ -8,7 +8,9 @@ import { toast } from "sonner";
 
 export default function PricingCards() {
   const { isAuthenticated } = useAuth();
-  const account = trpc.account.overview.useQuery(undefined, { enabled: isAuthenticated });
+  const account = trpc.account.overview.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
   const checkout = trpc.billing.createCheckout.useMutation({
     onSuccess: data => {
       if (data.url) window.location.href = data.url;
@@ -25,7 +27,9 @@ export default function PricingCards() {
       window.location.href = getLoginUrl("/pricing");
       return;
     }
-    const hasActivePaidPlan = account.data?.plan !== "free" && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
+    const hasActivePaidPlan =
+      account.data?.plan !== "free" &&
+      ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
     if (hasActivePaidPlan) {
       portal.mutate({ origin: window.location.origin });
       return;
@@ -34,7 +38,7 @@ export default function PricingCards() {
   };
 
   const order: PlanId[] = ["starter", "pro"];
-  const freeHref = isAuthenticated ? "/dashboard" : getLoginUrl("/dashboard");
+  const freeHref = isAuthenticated ? "/dashboard" : "/preview";
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
@@ -45,7 +49,9 @@ export default function PricingCards() {
           <span className="text-muted-foreground">/mo</span>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">3 posts total</p>
-        <p className="mt-2 text-sm font-medium text-primary">No card required.</p>
+        <p className="mt-2 text-sm font-medium text-primary">
+          No card required.
+        </p>
         <ul className="mt-6 flex-1 space-y-3">
           {[
             "3 branded post drafts total",
@@ -60,15 +66,26 @@ export default function PricingCards() {
           ))}
         </ul>
         <a href={freeHref} className="mt-8">
-          <Button className="w-full" variant="outline">Create 3 free posts</Button>
+          <Button className="w-full" variant="outline">
+            Create free preview
+          </Button>
         </a>
       </div>
       {order.map(id => {
         const plan = PLANS[id];
         const featured = id === "pro";
-        const currentPlan = account.data?.plan === id && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
-        const hasActivePaidPlan = account.data?.plan !== "free" && ["active", "trialing"].includes(account.data?.subscriptionStatus ?? "");
-        const trialEligible = !isAuthenticated || account.data?.trialEligible === true;
+        const currentPlan =
+          account.data?.plan === id &&
+          ["active", "trialing"].includes(
+            account.data?.subscriptionStatus ?? ""
+          );
+        const hasActivePaidPlan =
+          account.data?.plan !== "free" &&
+          ["active", "trialing"].includes(
+            account.data?.subscriptionStatus ?? ""
+          );
+        const trialEligible =
+          !isAuthenticated || account.data?.trialEligible === true;
         return (
           <div
             key={id}

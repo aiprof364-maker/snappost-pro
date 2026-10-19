@@ -15,6 +15,7 @@ import {
   posts,
   integrations,
   conversionEvents,
+  previewDrafts,
 } from "../drizzle/schema";
 import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
@@ -124,14 +125,21 @@ export const adminRouter = router({
 
     const periodDays = 30;
     const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
-    const [allTokens, recentUsers, allPosts, allIntegrations, allEvents] =
-      await Promise.all([
-        db.select().from(authTokens),
-        db.select().from(users).where(gte(users.createdAt, since)),
-        db.select().from(posts),
-        db.select().from(integrations),
-        db.select().from(conversionEvents),
-      ]);
+    const [
+      allTokens,
+      recentUsers,
+      allPosts,
+      allIntegrations,
+      allEvents,
+      allPreviewDrafts,
+    ] = await Promise.all([
+      db.select().from(authTokens),
+      db.select().from(users).where(gte(users.createdAt, since)),
+      db.select().from(posts),
+      db.select().from(integrations),
+      db.select().from(conversionEvents),
+      db.select().from(previewDrafts),
+    ]);
 
     const freeAccessRequests = allTokens.filter(
       token => token.createdAt >= since
@@ -164,6 +172,16 @@ export const adminRouter = router({
 
     return {
       periodDays,
+      previewsCreated: allPreviewDrafts.filter(
+        draft => draft.createdAt >= since
+      ).length,
+      previewsEmailRequested: allPreviewDrafts.filter(
+        draft =>
+          draft.emailRequestedAt !== null && draft.emailRequestedAt >= since
+      ).length,
+      previewsClaimed: allPreviewDrafts.filter(
+        draft => draft.claimedAt !== null && draft.claimedAt >= since
+      ).length,
       freeAccessRequested: freeAccessRequests.length,
       freeAccessOpened: freeAccessOpened.length,
       freeAccountsCreated: newFreeUsers.length,

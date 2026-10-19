@@ -23,10 +23,22 @@ import "dotenv/config";
 
 // Log environment variables for debugging
 console.log("[Server] Environment variables at startup:");
-console.log("  STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY ? "SET" : "NOT SET");
-console.log("  STRIPE_STARTER_PRICE_ID:", process.env.STRIPE_STARTER_PRICE_ID ? "SET" : "NOT SET");
-console.log("  STRIPE_PRO_PRICE_ID:", process.env.STRIPE_PRO_PRICE_ID ? "SET" : "NOT SET");
-console.log("  STRIPE_WEBHOOK_SECRET:", process.env.STRIPE_WEBHOOK_SECRET ? "SET" : "NOT SET");
+console.log(
+  "  STRIPE_SECRET_KEY:",
+  process.env.STRIPE_SECRET_KEY ? "SET" : "NOT SET"
+);
+console.log(
+  "  STRIPE_STARTER_PRICE_ID:",
+  process.env.STRIPE_STARTER_PRICE_ID ? "SET" : "NOT SET"
+);
+console.log(
+  "  STRIPE_PRO_PRICE_ID:",
+  process.env.STRIPE_PRO_PRICE_ID ? "SET" : "NOT SET"
+);
+console.log(
+  "  STRIPE_WEBHOOK_SECRET:",
+  process.env.STRIPE_WEBHOOK_SECRET ? "SET" : "NOT SET"
+);
 
 import express from "express";
 import { createServer } from "http";
@@ -41,6 +53,7 @@ import { serveStatic, setupVite } from "./vite";
 import { COOKIE_NAME } from "@shared/const";
 import { startAccountEmailAutomationAfterListen } from "../accountEmailAutomation";
 import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
+import { startPreviewDraftCleanupAfterListen } from "../previewDrafts";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -106,6 +119,7 @@ async function startServer() {
     void startNewsletterAutomationAfterListen().catch(() => {
       console.error("[Newsletter] automation startup failed");
     });
+    startPreviewDraftCleanupAfterListen();
   });
 }
 

@@ -127,14 +127,23 @@ export default function AdminDashboard() {
           {/* Email access funnel */}
           <div className="mb-8">
             <h2 className="font-display text-xl font-bold">
-              Email-access Funnel
+              Free-preview Funnel
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Last {signupFunnel.data?.periodDays ?? 30} days. Aggregate-only
-              stages for finding where visitors stop.
+              stages from preview through email access.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
+                ["Free previews created", signupFunnel.data?.previewsCreated],
+                [
+                  "Preview emails requested",
+                  signupFunnel.data?.previewsEmailRequested,
+                ],
+                [
+                  "Previews saved to dashboard",
+                  signupFunnel.data?.previewsClaimed,
+                ],
                 [
                   "Access links requested (all sign-ins)",
                   signupFunnel.data?.freeAccessRequested,

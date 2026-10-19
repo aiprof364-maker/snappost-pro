@@ -117,6 +117,13 @@ export default function Privacy() {
                 participate in various activities related to the Site.
               </li>
               <li>
+                <strong>Photos and logos:</strong> If you create a free branded
+                preview, we process the photo and logo you upload to create that
+                preview. An unclaimed preview is stored for up to 24 hours, then
+                deleted. If you open the secure access link, the preview is
+                saved to your account as a draft.
+              </li>
+              <li>
                 <strong>Financial Data:</strong> Financial information, such as
                 data related to your payment method (e.g., valid credit card
                 number, card brand, expiration date) that we may collect when

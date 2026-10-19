@@ -27,7 +27,9 @@ export default function SiteHeader() {
             alt="SnapPost Pro"
             className="h-9 w-9 rounded-lg object-cover"
           />
-          <span className="font-display text-lg font-extrabold">SnapPost Pro</span>
+          <span className="font-display text-lg font-extrabold">
+            SnapPost Pro
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -48,11 +50,7 @@ export default function SiteHeader() {
               <Link href="/dashboard">
                 <Button>Dashboard</Button>
               </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => logout()}
-              >
+              <Button variant="ghost" size="sm" onClick={() => logout()}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
@@ -62,8 +60,8 @@ export default function SiteHeader() {
               <a href={getLoginUrl()}>
                 <Button variant="ghost">Log in</Button>
               </a>
-              <a href={getLoginUrl()}>
-                <Button>Get started</Button>
+              <a href="/preview">
+                <Button>Create free preview</Button>
               </a>
             </>
           )}
@@ -109,8 +107,8 @@ export default function SiteHeader() {
                 </Button>
               </>
             ) : (
-              <a href={getLoginUrl()}>
-                <Button className="w-full">Get started</Button>
+              <a href="/preview">
+                <Button className="w-full">Create free preview</Button>
               </a>
             )}
           </div>

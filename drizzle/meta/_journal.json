@@ -71,6 +71,13 @@
       "when": 1792437622509,
       "tag": "0009_add_preview_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1792439119622,
+      "tag": "0010_make_preview_logo_optional",
+      "breakpoints": true
     }
   ]
 }

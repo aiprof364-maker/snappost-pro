@@ -278,7 +278,7 @@ export const appRouter = router({
       .input(
         z.object({
           image: z.string().min(10).max(11_200_000),
-          logo: z.string().min(10).max(2_800_000),
+          logo: z.string().min(10).max(2_800_000).optional(),
           trade: z.string().max(60).optional(),
           tone: z.string().max(40).optional(),
           landing: z.enum(["contractors", "hairdressers"]).optional(),
@@ -290,10 +290,9 @@ export const appRouter = router({
           input.image,
           8 * 1024 * 1024
         );
-        const { buffer: logoBuffer, mime: logoMime } = decodePreviewImage(
-          input.logo,
-          2 * 1024 * 1024
-        );
+        const logo = input.logo
+          ? decodePreviewImage(input.logo, 2 * 1024 * 1024)
+          : null;
         const createdAt = Date.now();
         const keyPrefix = `previews/${createdAt}`;
         const ext = photoMime.includes("png") ? "png" : "jpg";
@@ -309,11 +308,13 @@ export const appRouter = router({
             photoBuffer,
             photoMime
           );
-          const logo = await storagePut(
-            `${keyPrefix}/logo.${logoMime.includes("png") ? "png" : "jpg"}`,
-            logoBuffer,
-            logoMime
-          );
+          const uploadedLogo = logo
+            ? await storagePut(
+                `${keyPrefix}/logo.${logo.mime.includes("png") ? "png" : "jpg"}`,
+                logo.buffer,
+                logo.mime
+              )
+            : null;
           const signedUrl = await storageGetSignedUrl(original.key);
           const caption = await generateCaption({
             imageUrl: signedUrl,
@@ -322,14 +323,14 @@ export const appRouter = router({
           });
           const branded = await brandImage({
             photoBuffer,
-            logoBuffer,
+            logoBuffer: logo?.buffer,
             destKeyPrefix: keyPrefix,
           });
           return await createPreviewDraft({
             landing: previewLanding(input.landing),
             originalImageKey: original.key,
             originalImageUrl: original.url,
-            logoImageKey: logo.key,
+            logoImageKey: uploadedLogo?.key,
             brandedImageKey: branded.key,
             brandedImageUrl: branded.url,
             caption,

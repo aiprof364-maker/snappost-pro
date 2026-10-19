@@ -30,6 +30,7 @@ type PreviewResult = {
   landing: string | null;
   originalImageUrl: string;
   brandedImageUrl: string;
+  hasLogo: boolean;
   caption: string;
   expiresAt: Date;
 };
@@ -221,10 +222,8 @@ export default function FreePreview() {
   const makePreview = async (event: React.FormEvent) => {
     event.preventDefault();
     setFormError("");
-    if (!photo || !logo) {
-      setFormError(
-        "Add both your photo and your logo to create the branded preview."
-      );
+    if (!photo) {
+      setFormError("Add a photo to create your Facebook-post preview.");
       return;
     }
     if (!photoPermission) {
@@ -233,14 +232,14 @@ export default function FreePreview() {
       );
       return;
     }
-    if (photo.size > MAX_PHOTO_BYTES || logo.size > MAX_LOGO_BYTES) {
+    if (photo.size > MAX_PHOTO_BYTES || (logo && logo.size > MAX_LOGO_BYTES)) {
       setFormError("Use a photo under 8 MB and a logo under 2 MB.");
       return;
     }
     try {
       const [image, logoImage] = await Promise.all([
         fileToDataUrl(photo),
-        fileToDataUrl(logo),
+        logo ? fileToDataUrl(logo) : Promise.resolve(undefined),
       ]);
       createPreview.mutate({
         image,
@@ -345,9 +344,9 @@ export default function FreePreview() {
                 See your own photo ready for Facebook.
               </h1>
               <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Add a photo and your logo. We create a logo-branded image and an
-                AI-written caption for you to review before asking for your
-                email.
+                Add a photo and, if you have one, your logo. We create a
+                Facebook-post preview and an AI-written caption for you to
+                review before asking for your email.
               </p>
               <p className="mt-3 text-sm font-semibold text-muted-foreground">
                 3 posts total · No card required · Nothing is published
@@ -388,7 +387,7 @@ export default function FreePreview() {
                         Your real preview
                       </p>
                       <h2 className="font-display text-2xl font-bold">
-                        Your branded Facebook post is ready to review
+                        Your Facebook post is ready to review
                       </h2>
                     </div>
                   </div>
@@ -397,11 +396,17 @@ export default function FreePreview() {
                   <figure className="border-b border-border/70 bg-muted/20 p-4 md:border-b-0 md:border-r">
                     <img
                       src={preview.brandedImageUrl}
-                      alt="Your photo with your business logo watermark"
+                      alt={
+                        preview.hasLogo
+                          ? "Your photo with your business logo watermark"
+                          : "Your photo ready for Facebook"
+                      }
                       className="aspect-square w-full rounded-xl object-contain bg-white"
                     />
                     <figcaption className="mt-3 text-sm font-semibold text-muted-foreground">
-                      Your photo with your logo watermark
+                      {preview.hasLogo
+                        ? "Your photo with your logo watermark"
+                        : "Your photo, ready to post"}
                     </figcaption>
                   </figure>
                   <div className="p-5 sm:p-7">
@@ -523,8 +528,8 @@ export default function FreePreview() {
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
                     Use a real business, completed-job, product, salon or result
-                    photo you have permission to publish. Your logo is placed in
-                    the lower-right.
+                    photo you have permission to publish. Add your logo if you
+                    have one and we will place it in the lower-right.
                   </p>
                 </div>
               </div>
@@ -539,8 +544,8 @@ export default function FreePreview() {
                 />
                 <FilePicker
                   id="preview-logo"
-                  label="2. Add your business logo"
-                  helper="We will use this logo for this preview and save it to your account after you use the secure email link."
+                  label="2. Add your business logo (optional)"
+                  helper="Have a logo? We will add it to this preview and save it to your account after you use the secure email link. No logo? You can still continue."
                   value={logo}
                   maxBytes={MAX_LOGO_BYTES}
                   onChange={setLogo}
@@ -611,7 +616,8 @@ export default function FreePreview() {
                     </>
                   ) : (
                     <>
-                      Create my branded preview <Sparkles className="h-5 w-5" />
+                      Create my Facebook-post preview{" "}
+                      <Sparkles className="h-5 w-5" />
                     </>
                   )}
                 </Button>

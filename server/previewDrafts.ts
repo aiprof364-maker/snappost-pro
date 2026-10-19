@@ -36,6 +36,7 @@ function publicPreviewFields(draft: typeof previewDrafts.$inferSelect) {
     landing: draft.landing,
     originalImageUrl: draft.originalImageUrl,
     brandedImageUrl: draft.brandedImageUrl,
+    hasLogo: Boolean(draft.logoImageKey),
     caption: draft.caption,
     expiresAt: draft.expiresAt,
   };
@@ -75,7 +76,7 @@ export async function ensurePreviewDraftSchema() {
         landing VARCHAR(32) NULL,
         originalImageKey VARCHAR(256) NOT NULL,
         originalImageUrl VARCHAR(512) NOT NULL,
-        logoImageKey VARCHAR(256) NOT NULL,
+        logoImageKey VARCHAR(256) NULL,
         brandedImageKey VARCHAR(256) NOT NULL,
         brandedImageUrl VARCHAR(512) NOT NULL,
         caption TEXT NOT NULL,
@@ -91,6 +92,13 @@ export async function ensurePreviewDraftSchema() {
       ) ENGINE=InnoDB
     `)
     );
+    // The first version required a logo. Keep an already deployed table in
+    // sync so a visitor can now save a photo-only preview too.
+    await db.execute(
+      sql.raw(
+        "ALTER TABLE preview_drafts MODIFY COLUMN logoImageKey VARCHAR(256) NULL"
+      )
+    );
   })().catch(error => {
     previewSchemaPromise = null;
     throw error;
@@ -103,7 +111,7 @@ export async function createPreviewDraft(input: {
   landing?: PreviewLanding;
   originalImageKey: string;
   originalImageUrl: string;
-  logoImageKey: string;
+  logoImageKey?: string | null;
   brandedImageKey: string;
   brandedImageUrl: string;
   caption: string;
@@ -132,6 +140,7 @@ export async function createPreviewDraft(input: {
     ...publicPreviewFields({
       landing: input.landing ?? null,
       originalImageUrl: input.originalImageUrl,
+      logoImageKey: input.logoImageKey ?? null,
       brandedImageUrl: input.brandedImageUrl,
       caption: input.caption,
       expiresAt,
@@ -311,7 +320,7 @@ export async function claimPreviewDraft(input: {
       );
     }
 
-    if (!user.logoKey) {
+    if (!user.logoKey && draft.logoImageKey) {
       await tx
         .update(users)
         .set({ logoKey: draft.logoImageKey })
@@ -343,8 +352,8 @@ export async function cleanupExpiredPreviewDrafts() {
   for (const draft of expired) {
     await Promise.allSettled([
       storageDelete(draft.originalImageKey),
-      storageDelete(draft.logoImageKey),
       storageDelete(draft.brandedImageKey),
+      ...(draft.logoImageKey ? [storageDelete(draft.logoImageKey)] : []),
     ]);
     await db.delete(previewDrafts).where(eq(previewDrafts.id, draft.id));
   }

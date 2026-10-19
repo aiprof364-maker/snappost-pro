@@ -1,0 +1,1 @@
+ALTER TABLE `preview_drafts` MODIFY COLUMN `logoImageKey` varchar(256);

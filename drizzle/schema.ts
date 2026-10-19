@@ -161,7 +161,7 @@ export const previewDrafts = mysqlTable(
     landing: varchar("landing", { length: 32 }),
     originalImageKey: varchar("originalImageKey", { length: 256 }).notNull(),
     originalImageUrl: varchar("originalImageUrl", { length: 512 }).notNull(),
-    logoImageKey: varchar("logoImageKey", { length: 256 }).notNull(),
+    logoImageKey: varchar("logoImageKey", { length: 256 }),
     brandedImageKey: varchar("brandedImageKey", { length: 256 }).notNull(),
     brandedImageUrl: varchar("brandedImageUrl", { length: 512 }).notNull(),
     caption: text("caption").notNull(),

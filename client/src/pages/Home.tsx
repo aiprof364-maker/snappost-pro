@@ -44,29 +44,6 @@ const FEATURES = [
   },
 ];
 
-const STEPS = [
-  {
-    n: "1",
-    title: "Take the photo",
-    desc: "Take a photo of completed work, a product, a space or a result you want to share.",
-  },
-  {
-    n: "2",
-    title: "AI writes the caption",
-    desc: "A caption with hashtags is generated for you to review.",
-  },
-  {
-    n: "3",
-    title: "Logo is branded on",
-    desc: "Your business logo is stamped onto the image automatically.",
-  },
-  {
-    n: "4",
-    title: "Post to Facebook",
-    desc: "Publish to your connected Facebook page in one click — or save for later.",
-  },
-];
-
 const FREE_START_FEATURES = [
   "3 branded Facebook posts total",
   "No card required",
@@ -307,31 +284,6 @@ export default function Home() {
             upload customer, patient or client-identifying information without
             appropriate consent.
           </p>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="py-20">
-        <div className="container">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              How it works
-            </h2>
-          </div>
-          <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-            Four simple steps from photo to Facebook.
-          </p>
-          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map(s => (
-              <div key={s.n} className="text-center">
-                <span className="font-display mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                  {s.n}
-                </span>
-                <h3 className="mt-4 font-semibold">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 

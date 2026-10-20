@@ -223,7 +223,7 @@ export default function Home() {
       {/* Features */}
       <section
         id="features"
-        className="border-t border-border/60 bg-muted/20 py-20"
+        className="border-t border-border/60 bg-muted/20 py-14 sm:py-16"
       >
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
@@ -254,7 +254,7 @@ export default function Home() {
       </section>
 
       {/* Local businesses */}
-      <section className="py-20">
+      <section className="py-14 sm:py-16">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -290,7 +290,7 @@ export default function Home() {
       {/* Pricing */}
       <section
         id="pricing"
-        className="border-t border-border/60 bg-muted/20 py-20"
+        className="border-t border-border/60 bg-muted/20 py-14 sm:py-16"
       >
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
@@ -309,7 +309,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="py-20">
+      <section className="py-14 sm:py-16">
         <div className="container max-w-3xl">
           <div className="text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -330,7 +330,7 @@ export default function Home() {
       </section>
 
       {/* Cost transparency */}
-      <section className="border-t border-border/60 bg-muted/20 py-20">
+      <section className="border-t border-border/60 bg-muted/20 py-14 sm:py-16">
         <div className="container max-w-3xl">
           <div className="text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -355,7 +355,7 @@ export default function Home() {
       </section>
 
       {/* Newsletter */}
-      <section className="py-20">
+      <section className="py-14 sm:py-16">
         <div className="container max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold sm:text-4xl">
             Get weekly tips for local businesses
@@ -388,7 +388,7 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="border-t border-border/60 py-20">
+      <section className="border-t border-border/60 py-14 sm:py-16">
         <div className="container">
           <div className="mx-auto max-w-3xl rounded-2xl bg-primary px-8 py-12 text-center text-primary-foreground">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">

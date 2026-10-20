@@ -134,7 +134,7 @@ export default function Home() {
               "radial-gradient(60% 50% at 20% 0%, oklch(0.49 0.18 277 / 0.18), transparent), radial-gradient(50% 50% at 90% 10%, oklch(0.74 0.15 70 / 0.14), transparent)",
           }}
         />
-        <div className="container py-10 sm:py-14 md:py-16">
+        <div className="container pt-10 pb-3 sm:pt-14 sm:pb-3 md:pt-16 md:pb-3">
           <ResultsFirstHero />
 
           <div className="mx-auto mt-12 max-w-xl text-center sm:mt-16">
@@ -223,7 +223,7 @@ export default function Home() {
       {/* Features */}
       <section
         id="features"
-        className="border-t border-border/60 bg-muted/20 py-14 sm:py-16"
+        className="border-t border-border/60 bg-muted/20 py-3"
       >
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
@@ -254,7 +254,7 @@ export default function Home() {
       </section>
 
       {/* Local businesses */}
-      <section className="py-14 sm:py-16">
+      <section className="py-3">
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -290,7 +290,7 @@ export default function Home() {
       {/* Pricing */}
       <section
         id="pricing"
-        className="border-t border-border/60 bg-muted/20 py-14 sm:py-16"
+        className="border-t border-border/60 bg-muted/20 py-3"
       >
         <div className="container">
           <div className="mx-auto max-w-2xl text-center">
@@ -309,7 +309,7 @@ export default function Home() {
       </section>
 
       {/* FAQ */}
-      <section className="py-14 sm:py-16">
+      <section className="py-3">
         <div className="container max-w-3xl">
           <div className="text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -330,7 +330,7 @@ export default function Home() {
       </section>
 
       {/* Cost transparency */}
-      <section className="border-t border-border/60 bg-muted/20 py-14 sm:py-16">
+      <section className="border-t border-border/60 bg-muted/20 py-3">
         <div className="container max-w-3xl">
           <div className="text-center">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">
@@ -355,7 +355,7 @@ export default function Home() {
       </section>
 
       {/* Newsletter */}
-      <section className="py-14 sm:py-16">
+      <section className="py-3">
         <div className="container max-w-2xl text-center">
           <h2 className="font-display text-3xl font-bold sm:text-4xl">
             Get weekly tips for local businesses
@@ -388,7 +388,7 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="border-t border-border/60 py-14 sm:py-16">
+      <section className="border-t border-border/60 py-3">
         <div className="container">
           <div className="mx-auto max-w-3xl rounded-2xl bg-primary px-8 py-12 text-center text-primary-foreground">
             <h2 className="font-display text-3xl font-bold sm:text-4xl">

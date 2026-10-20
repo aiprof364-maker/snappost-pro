@@ -14,46 +14,31 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Camera,
-  Sparkles,
-  Stamp,
-  Share2,
-  Clock,
-  ShieldCheck,
-  ArrowRight,
-  Check,
-} from "lucide-react";
+import { Sparkles, ArrowRight, Check } from "lucide-react";
 import { Link } from "wouter";
 
 const FEATURES = [
   {
-    icon: Camera,
     title: "Snap & upload",
     desc: "Upload a photo of your completed work, product, space or result from your phone or desktop.",
   },
   {
-    icon: Sparkles,
     title: "AI captions",
     desc: "Get a ready-to-post caption with hashtags written for you.",
   },
   {
-    icon: Stamp,
     title: "Auto logo branding",
     desc: "Your logo is overlaid on every photo so every post markets your business.",
   },
   {
-    icon: Share2,
     title: "Post to Facebook",
     desc: "Publish the branded photo to your connected Facebook page in one click.",
   },
   {
-    icon: Clock,
     title: "Save hours every week",
     desc: "Spend less time writing captions and preparing images for social media.",
   },
   {
-    icon: ShieldCheck,
     title: "Built for local businesses",
     desc: "Made for businesses with real work, products, spaces or results worth showing.",
   },
@@ -272,19 +257,21 @@ export default function Home() {
               Built so you spend time on the tools, not on social media.
             </p>
           </div>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(f => (
-              <div
-                key={f.title}
-                className="rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <f.icon className="h-5 w-5" />
-                </span>
-                <h3 className="mt-4 font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
-              </div>
-            ))}
+          <div className="mx-auto mt-12 max-w-3xl rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-6">
+            <h3 className="text-lg font-bold">Everything you need includes</h3>
+            <ul className="mt-4 space-y-4">
+              {FEATURES.map(f => (
+                <li key={f.title} className="flex items-start gap-3">
+                  <Check className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                  <div>
+                    <p className="font-semibold">{f.title}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {f.desc}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>

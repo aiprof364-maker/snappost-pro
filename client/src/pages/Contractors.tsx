@@ -57,7 +57,7 @@ export default function Contractors() {
   const { isAuthenticated } = useAuth();
   const primaryCta = isAuthenticated
     ? "/dashboard"
-    : "/preview?landing=contractors";
+    : "/login?next=/preview?landing=contractors";
   const trackFreeStartClick = () => {
     if (!isAuthenticated) {
       trackMetaCustomEvent("FreeStartCtaClicked", {
@@ -102,7 +102,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Create my free preview"}{" "}
+                      : "Start my 3 free posts"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -144,7 +144,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Create my free preview"}{" "}
+                      : "Start my 3 free posts"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -234,7 +234,7 @@ export default function Contractors() {
                 >
                   {isAuthenticated
                     ? "Go to dashboard"
-                    : "Create my free preview"}{" "}
+                    : "Start my 3 free posts"}{" "}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>

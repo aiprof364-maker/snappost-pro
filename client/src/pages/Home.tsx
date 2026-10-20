@@ -110,7 +110,7 @@ const FAQS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : "/preview";
+  const primaryCta = isAuthenticated ? "/dashboard" : "/login?next=/preview";
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const subscribe = trpc.contact.subscribe.useMutation({
     onSuccess: () => {
@@ -192,7 +192,7 @@ export default function Home() {
                     size="lg"
                     className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
                   >
-                    Start my free preview here{" "}
+                    Start my 3 free posts{" "}
                     <ArrowRight className="h-5 w-5 text-emerald-300" />
                   </Button>
                 </a>
@@ -406,7 +406,7 @@ export default function Home() {
                   variant="secondary"
                   className="gap-2 px-8 py-6 text-base font-semibold"
                 >
-                  Create my free preview <ArrowRight className="h-5 w-5" />
+                  Start my 3 free posts <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>
             </div>

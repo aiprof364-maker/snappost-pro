@@ -15,7 +15,8 @@ export default function Login() {
   const next = query.get("next") || "/dashboard";
   const nextUrl = new URL(next, window.location.origin);
   const landing = nextUrl.searchParams.get("landing");
-  const isFreeStart = nextUrl.pathname === "/dashboard";
+  const isFreeStart =
+    nextUrl.pathname === "/dashboard" || nextUrl.pathname === "/preview";
   const requestLink = trpc.auth.requestSignInLink.useMutation({
     onSuccess: () => {
       trackMetaEvent("Lead", {

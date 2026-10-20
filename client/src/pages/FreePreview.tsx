@@ -130,6 +130,9 @@ export default function FreePreview() {
   const [claimMessage, setClaimMessage] = useState("");
   const claimStarted = useRef(false);
   const registrationTracked = useRef(false);
+  const [accountCreated] = useState(() =>
+    initialSearch.get("account_created") === "1"
+  );
 
   const storedPreview = trpc.preview.get.useQuery(
     { token: token ?? "invalid" },
@@ -205,7 +208,7 @@ export default function FreePreview() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("account_created") === "1" && !registrationTracked.current) {
+    if (accountCreated && !registrationTracked.current) {
       registrationTracked.current = true;
       trackMetaEvent(
         "CompleteRegistration",
@@ -217,7 +220,7 @@ export default function FreePreview() {
         previewPath(token ?? undefined, landing)
       );
     }
-  }, [landing, token]);
+  }, [accountCreated, landing, token]);
 
   const makePreview = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -334,6 +337,16 @@ export default function FreePreview() {
     <div className="flex min-h-screen flex-col bg-muted/20 text-foreground">
       <SiteHeader />
       <main className="flex-1">
+        {accountCreated && (
+          <section className="border-b border-emerald-200 bg-emerald-50">
+            <div className="container max-w-3xl py-4 text-center text-emerald-950">
+              <p className="font-bold">Your free SnapPost Pro account is ready.</p>
+              <p className="mt-1 text-sm text-emerald-900">
+                Add one real business photo now to create your first branded Facebook post.
+              </p>
+            </div>
+          </section>
+        )}
         <section className="border-b border-border/60 bg-background">
           <div className="container max-w-3xl py-10 sm:py-14">
             <div className="mx-auto max-w-2xl text-center">

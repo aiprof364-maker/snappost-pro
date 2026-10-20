@@ -172,13 +172,15 @@ export default function Home() {
               "radial-gradient(60% 50% at 20% 0%, oklch(0.49 0.18 277 / 0.18), transparent), radial-gradient(50% 50% at 90% 10%, oklch(0.74 0.15 70 / 0.14), transparent)",
           }}
         />
-        <div className="container grid gap-12 py-20 md:grid-cols-2 md:items-center md:py-28">
-          <div>
+        <div className="container py-10 sm:py-14 md:py-16">
+          <ResultsFirstHero />
+
+          <div className="mx-auto mt-12 max-w-xl text-center sm:mt-16">
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
               for local businesses
             </span>
-            <h1 className="font-display mt-5 space-y-1 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
+            <h1 className="font-display mt-5 space-y-1 text-left text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
               {[
                 "Buy back your time",
                 "Post your work faster",
@@ -192,12 +194,12 @@ export default function Home() {
                 </span>
               ))}
             </h1>
-            <p className="mt-5 max-w-md text-lg text-muted-foreground">
+            <p className="mx-auto mt-5 max-w-md text-lg text-muted-foreground">
               Upload a real photo. Add your logo if you have one. Review an
               AI-written caption. Publish to your Facebook Page when you are
               ready.
             </p>
-            <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
+            <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
               <span>Upload a photo</span>
               <span className="text-primary" aria-hidden="true">
                 →
@@ -238,7 +240,7 @@ export default function Home() {
               3 posts total · No card required · Publish to one connected
               Facebook Page
             </p>
-            <div className="mt-5 max-w-xl rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-6">
+            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left sm:p-6">
               <h2 className="text-lg font-bold">Your free start includes</h2>
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {FREE_START_FEATURES.map(feature => (
@@ -253,9 +255,6 @@ export default function Home() {
               </ul>
             </div>
           </div>
-
-          {/* Real photo-to-branded-photo-to-caption transformation */}
-          <ResultsFirstHero />
         </div>
       </section>
 

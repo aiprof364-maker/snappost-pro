@@ -199,6 +199,38 @@ export const appRouter = router({
           });
         }
       }),
+    requestAdminAccessLink: publicProcedure.mutation(async () => {
+      const email = (
+        process.env.OWNER_EMAIL ?? "admin@snappostpro.com"
+      ).toLowerCase();
+      const lastRequestedAt = magicLinkRequestTimes.get(email) ?? 0;
+      const remainingMs =
+        MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastRequestedAt);
+      if (remainingMs > 0) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Please wait ${Math.ceil(remainingMs / 1000)} seconds before requesting another admin access link.`,
+        });
+      }
+
+      const token = await createMagicLinkToken(email);
+      const link = new URL("/api/auth/verify", "https://snappostpro.com");
+      link.searchParams.set("token", token);
+      link.searchParams.set("next", "/admin");
+      const { sendMagicSignInLink } = await import("./email");
+      try {
+        await sendMagicSignInLink(email, link.toString());
+        magicLinkRequestTimes.set(email, Date.now());
+        return { success: true } as const;
+      } catch (error) {
+        console.error("[Auth] Admin access-link email delivery failed", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We could not send the admin access email. Please try again shortly.",
+        });
+      }
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.setHeader("Cache-Control", "no-store");

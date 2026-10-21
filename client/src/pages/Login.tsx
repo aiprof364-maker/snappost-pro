@@ -15,6 +15,7 @@ export default function Login() {
   const next = query.get("next") || "/dashboard";
   const nextUrl = new URL(next, window.location.origin);
   const landing = nextUrl.searchParams.get("landing");
+  const isAdminAccess = nextUrl.pathname === "/admin";
   const isFreeStart =
     nextUrl.pathname === "/dashboard" || nextUrl.pathname === "/preview";
   const requestLink = trpc.auth.requestSignInLink.useMutation({
@@ -23,6 +24,13 @@ export default function Login() {
         lead_type: "magic_link_requested",
         ...(landing ? { landing_page: landing } : {}),
       });
+      setSent(true);
+      setCooldown(60);
+    },
+    onError: error => setMessage(error.message),
+  });
+  const requestAdminAccessLink = trpc.auth.requestAdminAccessLink.useMutation({
+    onSuccess: () => {
       setSent(true);
       setCooldown(60);
     },
@@ -56,6 +64,11 @@ export default function Login() {
     requestLink.mutate({ email, origin: window.location.origin, next });
   };
 
+  const requestAdminLink = () => {
+    setMessage("");
+    requestAdminAccessLink.mutate();
+  };
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     requestSignInLink();
@@ -71,12 +84,18 @@ export default function Login() {
           <Mail className="h-6 w-6" />
         </div>
         <h1 className="mt-5 text-3xl font-black tracking-tight">
-          {isFreeStart ? "Start your 3 free posts" : "Sign in securely"}
+          {isAdminAccess
+            ? "Admin access"
+            : isFreeStart
+              ? "Start your 3 free posts"
+              : "Sign in securely"}
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          {isFreeStart
-            ? "No password or card required. Enter your business email and we’ll send a one-tap free access link so you can create your first branded post."
-            : "Enter your email and we’ll send a one-time sign-in link. No Manus account is needed."}
+          {isAdminAccess
+            ? "Send a secure one-tap access link to the SnapPost Pro admin inbox."
+            : isFreeStart
+              ? "No password or card required. Enter your business email and we’ll send a one-tap free access link so you can create your first branded post."
+              : "Enter your email and we’ll send a one-time sign-in link. No Manus account is needed."}
         </p>
         {sent ? (
           <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950">
@@ -84,7 +103,11 @@ export default function Login() {
               <ShieldCheck className="h-5 w-5 shrink-0" />
               <div>
                 <p>
-                  <strong>Your free access link is on its way.</strong>
+                  <strong>
+                    {isAdminAccess
+                      ? "Your admin access link is on its way."
+                      : "Your free access link is on its way."}
+                  </strong>
                   <br />
                   Open the email from SnapPost Pro and tap the link. It expires
                   in 15 minutes.
@@ -97,16 +120,38 @@ export default function Login() {
                   type="button"
                   variant="outline"
                   className="mt-3 border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-100"
-                  disabled={cooldown > 0 || requestLink.isPending}
-                  onClick={requestSignInLink}
+                  disabled={
+                    cooldown > 0 ||
+                    requestLink.isPending ||
+                    requestAdminAccessLink.isPending
+                  }
+                  onClick={isAdminAccess ? requestAdminLink : requestSignInLink}
                 >
                   {cooldown > 0
                     ? `Resend available in ${cooldown}s`
-                    : "Resend free access link"}
+                    : isAdminAccess
+                      ? "Resend admin access link"
+                      : "Resend free access link"}
                 </Button>
                 {message && <p className="mt-3 text-destructive">{message}</p>}
               </div>
             </div>
+          </div>
+        ) : isAdminAccess ? (
+          <div className="mt-7 space-y-4">
+            {message && <p className="text-sm text-destructive">{message}</p>}
+            <Button
+              type="button"
+              className="h-12 w-full text-base font-bold"
+              disabled={requestAdminAccessLink.isPending}
+              onClick={requestAdminLink}
+            >
+              {requestAdminAccessLink.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Send admin access link"
+              )}
+            </Button>
           </div>
         ) : (
           <form onSubmit={submit} className="mt-7 space-y-4">

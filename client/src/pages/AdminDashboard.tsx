@@ -12,11 +12,13 @@ import {
 import { trpc } from "@/lib/trpc";
 import { Loader2, TrendingUp, AlertCircle, Mail, Users } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { useState } from "react";
 
 export default function AdminDashboard() {
   const { isAuthenticated, loading, user } = useAuth({
     redirectOnUnauthenticated: true,
+    redirectPath: getLoginUrl("/admin"),
   });
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 

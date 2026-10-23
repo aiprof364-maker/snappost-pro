@@ -6,6 +6,32 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 
+const PREVIEW_PAGE_TITLE =
+  "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
+const PREVIEW_PAGE_DESCRIPTION =
+  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and AI-written caption free.";
+
+function withPreviewMetadata(template: string) {
+  return template
+    .replace(/<title>[^<]*<\/title>/, `<title>${PREVIEW_PAGE_TITLE}</title>`)
+    .replace(
+      /<meta name="description" content="[^"]*"\s*\/>/,
+      `<meta name="description" content="${PREVIEW_PAGE_DESCRIPTION}" />`
+    )
+    .replace(
+      /<meta property="og:url" content="[^"]*"\s*\/>/,
+      '<meta property="og:url" content="https://snappostpro.com/preview" />'
+    )
+    .replace(
+      /<meta property="og:title" content="[^"]*"\s*\/>/,
+      `<meta property="og:title" content="${PREVIEW_PAGE_TITLE}" />`
+    )
+    .replace(
+      /<meta property="og:description" content="[^"]*"\s*\/>/,
+      `<meta property="og:description" content="${PREVIEW_PAGE_DESCRIPTION}" />`
+    );
+}
+
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
@@ -34,6 +60,9 @@ export async function setupVite(app: Express, server: Server) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      if (new URL(url, "http://localhost").pathname === "/preview") {
+        template = withPreviewMetadata(template);
+      }
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`
@@ -59,6 +88,21 @@ export function serveStatic(app: Express) {
   }
 
   app.use(express.static(distPath));
+
+  app.get("/preview", async (_req, res, next) => {
+    try {
+      const template = await fs.promises.readFile(
+        path.resolve(distPath, "index.html"),
+        "utf-8"
+      );
+      res
+        .status(200)
+        .set({ "Content-Type": "text/html" })
+        .end(withPreviewMetadata(template));
+    } catch (error) {
+      next(error);
+    }
+  });
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {

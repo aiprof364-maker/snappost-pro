@@ -36,6 +36,38 @@ type PreviewResult = {
   expiresAt: Date;
 };
 
+const PREVIEW_PAGE_TITLE =
+  "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
+const PREVIEW_PAGE_DESCRIPTION =
+  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and AI-written caption free.";
+
+function updateMetaContent(
+  attribute: "name" | "property",
+  value: string,
+  content: string,
+) {
+  const selector = `meta[${attribute}="${value}"]`;
+  let element = document.head.querySelector<HTMLMetaElement>(selector);
+  const created = !element;
+  const previousContent = element?.content;
+
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attribute, value);
+    document.head.appendChild(element);
+  }
+
+  element.content = content;
+
+  return () => {
+    if (created) {
+      element?.remove();
+    } else if (element && previousContent !== undefined) {
+      element.content = previousContent;
+    }
+  };
+}
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -74,15 +106,30 @@ function FilePicker({
   maxBytes: number;
   onChange: (file: File | null) => void;
 }) {
+  const isPhoto = id === "preview-photo";
+
   return (
-    <div>
-      <Label htmlFor={id} className="text-base font-bold">
-        {label}
-      </Label>
-      <p className="mt-1 text-sm text-muted-foreground">{helper}</p>
+    <div
+      className={
+        isPhoto
+          ? "rounded-3xl bg-[#1877f2] p-5 text-white shadow-lg shadow-[#1877f2]/20 sm:p-6"
+          : "rounded-3xl bg-gradient-to-br from-[#1877f2] via-[#387fe8] to-[#7b5ce1] p-5 text-white shadow-lg shadow-[#1877f2]/20 sm:p-6"
+      }
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-xl font-extrabold text-white ring-1 ring-white/30">
+          {isPhoto ? "1" : "2"}
+        </span>
+        <div>
+          <Label htmlFor={id} className="text-base font-extrabold text-white">
+            {label}
+          </Label>
+          <p className="mt-1 text-sm leading-6 text-white/90">{helper}</p>
+        </div>
+      </div>
       <Input
         id={id}
-        className="mt-3 cursor-pointer"
+        className="mt-5 h-14 cursor-pointer border-0 bg-white/95 text-sm font-semibold text-foreground shadow-sm file:mr-4 file:h-10 file:rounded-lg file:border-0 file:bg-[#1877f2] file:px-4 file:font-bold file:text-white hover:file:bg-[#166fe5]"
         type="file"
         accept="image/jpeg,image/png"
         onChange={event => {
@@ -96,11 +143,11 @@ function FilePicker({
         }}
       />
       {value ? (
-        <p className="mt-2 text-sm font-medium text-emerald-700">
+        <p className="mt-3 text-sm font-bold text-white">
           <CheckCircle2 className="mr-1 inline h-4 w-4" /> {value.name}
         </p>
       ) : (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-3 text-xs text-white/80">
           JPG or PNG · {Math.round(maxBytes / (1024 * 1024))} MB maximum
         </p>
       )}
@@ -134,6 +181,39 @@ export default function FreePreview() {
   const [accountCreated] = useState(() =>
     initialSearch.get("account_created") === "1"
   );
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = PREVIEW_PAGE_TITLE;
+    const restoreDescription = updateMetaContent(
+      "name",
+      "description",
+      PREVIEW_PAGE_DESCRIPTION,
+    );
+    const restoreOgTitle = updateMetaContent(
+      "property",
+      "og:title",
+      PREVIEW_PAGE_TITLE,
+    );
+    const restoreOgDescription = updateMetaContent(
+      "property",
+      "og:description",
+      PREVIEW_PAGE_DESCRIPTION,
+    );
+    const restoreOgUrl = updateMetaContent(
+      "property",
+      "og:url",
+      "https://snappostpro.com/preview",
+    );
+
+    return () => {
+      document.title = previousTitle;
+      restoreDescription();
+      restoreOgTitle();
+      restoreOgDescription();
+      restoreOgUrl();
+    };
+  }, []);
 
   const storedPreview = trpc.preview.get.useQuery(
     { token: token ?? "invalid" },
@@ -352,9 +432,9 @@ export default function FreePreview() {
         {accountCreated && (
           <section className="border-b border-emerald-200 bg-emerald-50">
             <div className="container max-w-3xl py-4 text-center text-emerald-950">
-              <p className="font-bold">Your free SnapPost Pro account is ready.</p>
+              <p className="font-bold">Your 3 free posts are ready.</p>
               <p className="mt-1 text-sm text-emerald-900">
-                Add one real business photo now to create your first branded Facebook post.
+                Add a photo of your work now to create your first branded Facebook post.
               </p>
             </div>
           </section>
@@ -363,19 +443,19 @@ export default function FreePreview() {
           <div className="container max-w-3xl py-10 sm:py-14">
             <div className="mx-auto max-w-2xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> Free branded preview
+                <Sparkles className="h-3.5 w-3.5" /> Free branded Facebook-post preview
               </span>
               <h1 className="font-display mt-4 text-3xl font-extrabold sm:text-5xl">
-                See your own photo ready for Facebook.
+                Turn one photo of your work into a branded Facebook post — free.
               </h1>
               <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Add a photo and, if you have one, your logo. We create a
-                Facebook-post preview and an AI-written caption for you to
-                review before asking for your email.
+                Upload a completed-job, product, salon or result photo. Add your
+                logo if you have one. See your branded image and AI-written
+                Facebook caption before you enter your email.
               </p>
               <p className="mt-3 text-sm font-semibold text-muted-foreground">
-                3 posts total · No card required · Nothing is published
-                automatically
+                3 posts total · No card required · Logo optional · Nothing is
+                published automatically
               </p>
             </div>
           </div>
@@ -463,12 +543,13 @@ export default function FreePreview() {
                   </span>
                   <div>
                     <h2 className="font-display text-2xl font-bold">
-                      Save your free post
+                      Save this post and start your 3 free posts
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                      Enter your business email and we will send one secure
-                      link. It saves this image and caption to your dashboard so
-                      you can connect your Facebook Page and publish when ready.
+                      Enter your business email and we will send one secure link.
+                      It saves this branded image and caption to your dashboard,
+                      ready for you to connect your Facebook Page and publish if
+                      you choose.
                     </p>
                   </div>
                 </div>
@@ -524,7 +605,7 @@ export default function FreePreview() {
                         </>
                       ) : (
                         <>
-                          Email my secure access link{" "}
+                          Send my secure link and save this post{" "}
                           <ArrowRight className="h-5 w-5" />
                         </>
                       )}
@@ -549,28 +630,28 @@ export default function FreePreview() {
                 </span>
                 <div>
                   <h2 className="font-display text-2xl font-bold">
-                    Create your free preview
+                    See your next Facebook post before you sign up
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Use a real business, completed-job, product, salon or result
-                    photo you have permission to publish. Add your logo if you
-                    have one and we will place it in the lower-right.
+                    Upload a real photo of your completed work, product, salon or
+                    result. We will create a branded Facebook-post preview and an
+                    AI-written caption for you to review first.
                   </p>
                 </div>
               </div>
               <form onSubmit={makePreview} className="mt-7 space-y-6">
                 <FilePicker
                   id="preview-photo"
-                  label="1. Add your photo"
-                  helper="Choose the photo you want to turn into a Facebook post."
+                  label="Upload a photo of your work"
+                  helper="Your completed job, product, salon or result. You will see it branded before email."
                   value={photo}
                   maxBytes={MAX_PHOTO_BYTES}
                   onChange={setPhoto}
                 />
                 <FilePicker
                   id="preview-logo"
-                  label="2. Add your business logo (optional)"
-                  helper="Have a logo? We will add it to this preview and save it to your account after you use the secure email link. No logo? You can still continue."
+                  label="Add your logo (optional)"
+                  helper="Have a logo? We will add it in the lower-right. No logo? Keep going."
                   value={logo}
                   maxBytes={MAX_LOGO_BYTES}
                   onChange={setLogo}
@@ -631,7 +712,7 @@ export default function FreePreview() {
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full gap-2 py-6 text-base font-bold sm:w-auto sm:px-8"
+                  className="w-full gap-2 bg-[#1877f2] py-7 text-base font-extrabold text-white shadow-lg shadow-[#1877f2]/25 hover:bg-[#166fe5] sm:px-8"
                   disabled={createPreview.isPending}
                 >
                   {createPreview.isPending ? (
@@ -641,14 +722,14 @@ export default function FreePreview() {
                     </>
                   ) : (
                     <>
-                      Create my Facebook-post preview{" "}
+                      Create my free branded post preview{" "}
                       <Sparkles className="h-5 w-5" />
                     </>
                   )}
                 </Button>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Your unclaimed preview is kept for up to 24 hours. No card is
-                  required.
+                <p className="text-center text-xs leading-5 text-muted-foreground sm:text-left">
+                  See the result before email. No card required. Nothing is
+                  published automatically.
                 </p>
               </form>
             </section>

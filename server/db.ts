@@ -23,6 +23,7 @@ import {
   type NewsletterSubscriptionResult,
   unsubscribeNewsletterByEmail,
 } from "./newsletterAutomation";
+import { isConfiguredAdminEmail } from "./adminIdentity";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -91,7 +92,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) {
       values.role = user.role;
       updateSet.role = user.role;
-    } else if (user.email && user.email.toLowerCase() === (process.env.OWNER_EMAIL ?? "admin@snappostpro.com").toLowerCase()) {
+    } else if (user.email && isConfiguredAdminEmail(user.email)) {
       values.role = "admin";
       updateSet.role = "admin";
     }

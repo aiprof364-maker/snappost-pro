@@ -4,6 +4,7 @@ import type { Request } from "express";
 import { parse as parseCookieHeader } from "cookie";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { authTokens, users, type User } from "../drizzle/schema";
+import { isConfiguredAdminEmail } from "./adminIdentity";
 import { getDb, logConversionEvent } from "./db";
 
 export const SESSION_COOKIE = "snappost_session";
@@ -105,6 +106,7 @@ export async function consumeMagicLinkToken(
     openId: independentOpenId(token.email),
     email: token.email,
     loginMethod: "email_magic_link",
+    role: isConfiguredAdminEmail(token.email) ? "admin" : "user",
     emailVerified: true,
     lastSignedIn: new Date(),
   });

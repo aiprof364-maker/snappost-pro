@@ -20,6 +20,7 @@ import {
 import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 import { sendNewsletterSignupInvitation } from "./email";
+import { isConfiguredAdminEmail } from "./adminIdentity";
 
 /**
  * Admin-only procedures for analytics and contractor management.
@@ -83,24 +84,32 @@ export const adminRouter = router({
     ]);
 
     const activePaidStatuses = new Set(["active", "trialing"]);
+    const customerUsers = allUsers.filter(user => user.role !== "admin");
+    const customerIds = new Set(customerUsers.map(user => user.id));
     return {
-      accounts: allUsers.length,
-      freeAccounts: allUsers.filter(user => user.plan === "free").length,
-      activatedAccounts: new Set(allPosts.map(post => post.userId)).size,
+      accounts: customerUsers.length,
+      freeAccounts: customerUsers.filter(user => user.plan === "free").length,
+      activatedAccounts: new Set(
+        allPosts
+          .filter(post => customerIds.has(post.userId))
+          .map(post => post.userId)
+      ).size,
       connectedPages: new Set(
         allIntegrations
           .filter(
             integration =>
               integration.status === "connected" && integration.pageId
           )
+          .filter(integration => customerIds.has(integration.userId))
           .map(integration => integration.userId)
       ).size,
       checkoutStarted: new Set(
         allEvents
           .filter(event => event.eventType === "checkout_started")
+          .filter(event => customerIds.has(event.userId))
           .map(event => event.userId)
       ).size,
-      paidSubscribers: allUsers.filter(
+      paidSubscribers: customerUsers.filter(
         user =>
           user.plan !== "free" &&
           activePaidStatuses.has(user.subscriptionStatus ?? "none")
@@ -142,13 +151,20 @@ export const adminRouter = router({
     ]);
 
     const freeAccessRequests = allTokens.filter(
-      token => token.createdAt >= since
+      token =>
+        token.createdAt >= since && !isConfiguredAdminEmail(token.email)
     );
     const freeAccessOpened = allTokens.filter(
-      token => token.usedAt !== null && token.usedAt >= since
+      token =>
+        token.usedAt !== null &&
+        token.usedAt >= since &&
+        !isConfiguredAdminEmail(token.email)
     );
     const newFreeUsers = recentUsers.filter(
-      user => user.plan === "free" && user.loginMethod === "email_magic_link"
+      user =>
+        user.role !== "admin" &&
+        user.plan === "free" &&
+        user.loginMethod === "email_magic_link"
     );
     const newUserIds = new Set(newFreeUsers.map(user => user.id));
     const landingAccounts = { contractors: 0, hairdressers: 0 };

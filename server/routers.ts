@@ -11,6 +11,7 @@ import { sendNewsletterSignupNotification } from "./email";
 import { createNewsletterSubscriber } from "./db";
 import { attemptImmediateNewsletterWelcome } from "./newsletterAutomation";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { configuredAdminEmail } from "./adminIdentity";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { generateCaption } from "./captions";
 import {
@@ -200,9 +201,7 @@ export const appRouter = router({
         }
       }),
     requestAdminAccessLink: publicProcedure.mutation(async () => {
-      const email = (
-        process.env.OWNER_EMAIL ?? "admin@snappostpro.com"
-      ).toLowerCase();
+      const email = configuredAdminEmail();
       const lastRequestedAt = magicLinkRequestTimes.get(email) ?? 0;
       const remainingMs =
         MAGIC_LINK_COOLDOWN_MS - (Date.now() - lastRequestedAt);

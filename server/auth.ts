@@ -81,6 +81,7 @@ export async function consumeMagicLinkToken(
     .limit(1);
   if (existing) {
     const lastSignedIn = new Date();
+    const role = isConfiguredAdminEmail(token.email) ? "admin" : existing.role;
     await db
       .update(users)
       .set({
@@ -88,6 +89,7 @@ export async function consumeMagicLinkToken(
         emailVerificationToken: null,
         emailVerificationTokenExpiry: null,
         lastSignedIn,
+        role,
       })
       .where(eq(users.id, existing.id));
     return {
@@ -97,6 +99,7 @@ export async function consumeMagicLinkToken(
         emailVerificationToken: null,
         emailVerificationTokenExpiry: null,
         lastSignedIn,
+        role,
       },
       accountCreated: false,
     };

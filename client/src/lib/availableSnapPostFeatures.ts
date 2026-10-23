@@ -1,6 +1,6 @@
 export const AVAILABLE_SNAPPOST_FEATURES = [
   {
-    name: "AI-generated captions",
+    name: "SnapPost Pro-written captions",
     description: "Create a ready-to-edit caption for each job-site photo.",
   },
   {

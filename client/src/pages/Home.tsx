@@ -23,7 +23,7 @@ const FEATURES = [
     desc: "Upload a photo of your completed work, product, space or result from your phone or desktop.",
   },
   {
-    title: "AI captions",
+    title: "SnapPost Pro captions",
     desc: "Get a ready-to-post caption with hashtags written for you.",
   },
   {
@@ -47,7 +47,7 @@ const FEATURES = [
 const FREE_START_FEATURES = [
   "3 branded Facebook posts total",
   "No card required",
-  "AI-written captions to review",
+  "SnapPost Pro-written captions to review",
   "Logo watermark on your image",
   "One connected Facebook Page",
 ] as const;
@@ -158,7 +158,7 @@ export default function Home() {
             </h1>
             <p className="mx-auto mt-5 max-w-md text-lg text-muted-foreground">
               Upload a real photo. Add your logo if you have one. Review an
-              AI-written caption. Publish to your Facebook Page when you are
+              SnapPost Pro-written caption. Publish to your Facebook Page when you are
               ready.
             </p>
             <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
@@ -343,7 +343,7 @@ export default function Home() {
               caption and finding the right words to say.
             </p>
             <p className="text-2xl font-bold text-primary">
-              SnapPost Pro gives you a logo-branded image and AI-written caption
+              SnapPost Pro gives you a logo-branded image and SnapPost Pro-written caption
               to review before you publish.
             </p>
             <p className="text-lg text-muted-foreground">
@@ -396,7 +396,7 @@ export default function Home() {
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
               Upload your photo and logo first, then review your branded image
-              and AI-written caption before you enter your email. No card
+              and SnapPost Pro-written caption before you enter your email. No card
               required.
             </p>
             <div className="mt-8 flex justify-center">

@@ -35,7 +35,7 @@ const STEPS = [
   {
     number: "3",
     icon: PenLine,
-    title: "Review your AI-written caption",
+    title: "Review your SnapPost Pro-written caption",
     description: "Review and edit the caption before you decide to publish.",
   },
   {
@@ -50,7 +50,7 @@ const STEPS = [
 const FREE_FEATURES = [
   "3 branded Facebook posts total",
   "No card required",
-  "AI-written captions to review",
+  "SnapPost Pro-written captions to review",
   "Logo watermark on your image",
   "One connected Facebook Page",
 ] as const;
@@ -96,7 +96,7 @@ export default function Contractors() {
               </h1>
               <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
                 Upload a completed-job photo. SnapPost Pro adds your logo and
-                writes an AI caption. You review it, then publish it to your
+                writes your caption. You review it, then publish it to your
                 Facebook Page.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">

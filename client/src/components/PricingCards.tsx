@@ -55,7 +55,7 @@ export default function PricingCards() {
         <ul className="mt-6 flex-1 space-y-3">
           {[
             "3 branded post drafts total",
-            "AI captions",
+            "SnapPost Pro-written captions",
             "Logo branding overlay",
             "Post history",
           ].map(feature => (

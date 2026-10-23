@@ -16,7 +16,7 @@ const CHANGELOG: Entry[] = [
     tag: "New",
     items: [
       "Launch of SnapPost Pro on snappostpro.com.",
-      "Photo upload with automatic AI caption generation.",
+      "Photo upload with automatic SnapPost Pro caption generation.",
       "Automatic logo branding overlay on every post.",
       "Facebook page connection and one-click publishing.",
       "Starter ($19/mo) and Pro ($29/mo) subscription plans via Stripe.",

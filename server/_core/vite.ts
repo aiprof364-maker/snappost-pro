@@ -9,7 +9,7 @@ import viteConfig from "../../vite.config";
 const PREVIEW_PAGE_TITLE =
   "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
 const PREVIEW_PAGE_DESCRIPTION =
-  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and AI-written caption free.";
+  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and SnapPost Pro-written caption free.";
 
 function withPreviewMetadata(template: string) {
   return template

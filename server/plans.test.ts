@@ -21,7 +21,7 @@ describe("pricing plans", () => {
   it("lists only currently implemented Pro features", () => {
     expect(PLANS.pro.features).toEqual([
       "300 branded posts per month",
-      "AI captions",
+      "SnapPost Pro-written captions",
       "Logo branding overlay",
       "1 connected Facebook Page",
       "Post history",

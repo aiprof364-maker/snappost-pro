@@ -144,7 +144,7 @@ export default function UploadCard({
         invalidateAccountOverview: () => utils.account.overview.invalidate(),
       });
       onCreated?.();
-      toast.success("Photo branded and AI caption written.");
+      toast.success("Photo branded and SnapPost Pro caption written.");
       window.setTimeout(() => {
         document
           .getElementById("caption-section")
@@ -329,7 +329,7 @@ export default function UploadCard({
       <StepCard
         id="caption-section"
         number={4}
-        title="Review your AI caption"
+        title="Review your SnapPost Pro caption"
         description="Read, edit and save the caption before you decide to publish."
         complete={captionReady}
         icon={<MessageSquareText className="h-6 w-6" aria-hidden="true" />}
@@ -378,7 +378,7 @@ export default function UploadCard({
         icon={<Send className="h-6 w-6" aria-hidden="true" />}
       >
         {!captionReady ? (
-          <LockedStep message="This unlocks after your AI caption is ready in Step 4." />
+          <LockedStep message="This unlocks after your SnapPost Pro caption is ready in Step 4." />
         ) : !emailVerified ? (
           <LockedStep message="Verify your email using the message above before publishing to Facebook." />
         ) : (

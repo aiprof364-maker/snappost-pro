@@ -21,7 +21,7 @@ export const PLANS: Record<
     postsPerMonth: "30 posts / month",
     features: [
       "30 branded posts per month",
-      "AI captions",
+      "SnapPost Pro-written captions",
       "Logo branding overlay",
       "1 connected Facebook page",
       "Post history",
@@ -35,7 +35,7 @@ export const PLANS: Record<
     postsPerMonth: "300 posts / month",
     features: [
       "300 branded posts per month",
-      "AI captions",
+      "SnapPost Pro-written captions",
       "Logo branding overlay",
       "1 connected Facebook Page",
       "Post history",

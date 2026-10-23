@@ -64,7 +64,7 @@ export default function BeforeAfterCaptionProof({
           </div>
           <div className="m-3 rounded-xl border border-primary/15 bg-background p-3.5 shadow-sm">
             <p className="flex items-center gap-2 text-xs font-bold text-primary">
-              <Sparkles className="h-3.5 w-3.5" /> Example AI-written caption
+              <Sparkles className="h-3.5 w-3.5" /> Example SnapPost Pro-written caption
             </p>
             <p className="mt-2 text-sm leading-6 text-foreground">{caption}</p>
             <p className="mt-2 text-xs font-semibold text-primary">{hashtags}</p>

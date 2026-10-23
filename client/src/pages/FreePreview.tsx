@@ -39,7 +39,7 @@ type PreviewResult = {
 const PREVIEW_PAGE_TITLE =
   "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
 const PREVIEW_PAGE_DESCRIPTION =
-  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and AI-written caption free.";
+  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and SnapPost Pro-written caption free.";
 
 function updateMetaContent(
   attribute: "name" | "property",
@@ -507,7 +507,7 @@ export default function FreePreview() {
                   </figure>
                   <div className="p-5 sm:p-7">
                     <div className="flex items-center gap-2 text-sm font-bold text-primary">
-                      <PenLine className="h-4 w-4" /> AI-written caption
+                      <PenLine className="h-4 w-4" /> SnapPost Pro-written caption
                     </div>
                     <Label htmlFor="preview-caption" className="sr-only">
                       Your caption
@@ -621,12 +621,10 @@ export default function FreePreview() {
                 </span>
                 <div>
                   <h2 className="font-display text-2xl font-bold">
-                    See your next Facebook post before you sign up
+                    3 free posts on us
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Upload a real photo of your completed work, product, salon or
-                    result. We will create a branded Facebook-post preview and an
-                    AI-written caption for you to review first.
+                    Create a free preview first, or skip straight to sign up.
                   </p>
                 </div>
               </div>
@@ -700,24 +698,36 @@ export default function FreePreview() {
                 {formError && (
                   <p className="text-sm text-destructive">{formError}</p>
                 )}
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full gap-2 bg-[#1877f2] py-7 text-base font-extrabold text-white shadow-lg shadow-[#1877f2]/25 hover:bg-[#166fe5] sm:px-8"
-                  disabled={createPreview.isPending}
-                >
-                  {createPreview.isPending ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" /> Creating your
-                      preview…
-                    </>
-                  ) : (
-                    <>
-                      Create my free branded post preview{" "}
-                      <Sparkles className="h-5 w-5" />
-                    </>
-                  )}
-                </Button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full gap-2 bg-[#1877f2] py-7 text-base font-extrabold text-white shadow-lg shadow-[#1877f2]/25 hover:bg-[#166fe5] sm:w-auto sm:px-8"
+                    disabled={createPreview.isPending}
+                  >
+                    {createPreview.isPending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" /> Creating your
+                        preview…
+                      </>
+                    ) : (
+                      <>
+                        Create my free branded post preview{" "}
+                        <Sparkles className="h-5 w-5" />
+                      </>
+                    )}
+                  </Button>
+                  <div className="flex items-center justify-center gap-3 sm:justify-start">
+                    <span className="text-sm font-semibold text-muted-foreground">
+                      Skip preview
+                    </span>
+                    <Link href="/login?next=/dashboard">
+                      <Button type="button" size="lg" variant="outline">
+                        Sign up free
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
                 <p className="text-center text-xs leading-5 text-muted-foreground sm:text-left">
                   See the result before email. No card required. Nothing is
                   published automatically.

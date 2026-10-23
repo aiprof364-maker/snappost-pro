@@ -28,7 +28,7 @@ function quoteIdentifier(identifier: string): string {
 }
 
 function safeTokenMatches(requestToken: string | undefined): boolean {
-  const expected = process.env.DATABASE_MIGRATION_TOKEN;
+  const expected = process.env.AUTH_SESSION_SECRET;
   if (!expected || !requestToken) return false;
 
   const actualHash = createHash("sha256").update(requestToken).digest();

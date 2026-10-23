@@ -38,7 +38,6 @@ Add these in **Settings → Secrets** (or I can add them for you on request). Th
 | `STRIPE_WEBHOOK_SECRET` | Verifying Stripe webhooks | Stripe → Webhooks → your endpoint → Signing secret |
 | `STRIPE_PRICE_STARTER` | Starter $19/mo price | Stripe → Products → Starter → Price ID (`price_...`) |
 | `STRIPE_PRICE_PRO` | Pro $29/mo price | Stripe → Products → Pro → Price ID (`price_...`) |
-| `MAKE_WEBHOOK_URL` | Contact form delivery | Make.com scenario webhook URL |
 
 ---
 
@@ -82,16 +81,7 @@ You now have a registered business + NZBN, which satisfies Meta's Business Verif
 
 ---
 
-## 5. Make webhook (Contact form)
-
-1. In Make.com create a scenario starting with a **Custom webhook** trigger; copy its URL.
-2. Set it as `MAKE_WEBHOOK_URL`.
-3. The Contact form sends JSON: `{ name, email, message, source: "snappostpro.com", submittedAt }`.
-4. If this secret is missing, the Contact form **fails clearly** and notifies the project owner instead of silently dropping the message.
-
----
-
-## 6. Go-live checklist
+## 5. Go-live checklist
 
 - [ ] snappostpro.com is bound and shows Active.
 - [ ] All secrets in Section 2 are set.
@@ -99,7 +89,6 @@ You now have a registered business + NZBN, which satisfies Meta's Business Verif
 - [ ] Test a real checkout in Stripe test mode, confirm dashboard shows the plan + status.
 - [ ] Meta: domain verified, OAuth redirect URI set, four permissions requested, business verification submitted.
 - [ ] Once Meta approves: connect a page, upload a photo, confirm caption + logo, click **Post to Facebook**, verify it appears on the page.
-- [ ] Contact form: submit a test message, confirm it lands in your Make scenario.
 
 ---
 

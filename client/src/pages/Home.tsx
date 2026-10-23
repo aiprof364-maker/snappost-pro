@@ -134,87 +134,89 @@ export default function Home() {
               "radial-gradient(60% 50% at 20% 0%, oklch(0.49 0.18 277 / 0.18), transparent), radial-gradient(50% 50% at 90% 10%, oklch(0.74 0.15 70 / 0.14), transparent)",
           }}
         />
-        <div className="container pt-10 pb-3 sm:pt-14 sm:pb-3 md:pt-16 md:pb-3">
-          <ResultsFirstHero />
+        <div className="container pb-3 pt-6 sm:pb-3 sm:pt-8 md:pb-3 md:pt-10">
+          <div className="mx-auto grid max-w-[90rem] items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.8fr)] xl:gap-7">
+            <ResultsFirstHero />
 
-          <div className="mx-auto mt-12 max-w-xl text-center sm:mt-16">
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground">
+            <div className="mx-auto w-full max-w-xl text-center xl:mx-0 xl:max-w-none xl:text-left">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground xl:w-fit">
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
               for local businesses
             </span>
-            <h1 className="font-display mt-5 space-y-1 text-left text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
-              {[
-                "Buy back your time",
-                "Post your work faster",
-                "Try free today",
-                "3 free posts",
-                "No card required",
-              ].map(line => (
-                <span key={line} className="flex items-center gap-3">
-                  <Check className="h-8 w-8 shrink-0 stroke-[3] text-emerald-500 sm:h-10 sm:w-10" />
-                  <span>{line}</span>
-                </span>
-              ))}
-            </h1>
-            <p className="mx-auto mt-5 max-w-md text-lg text-muted-foreground">
-              Upload a real photo. Add your logo if you have one. Review an
-              SnapPost Pro-written caption. Publish to your Facebook Page when you are
-              ready.
-            </p>
-            <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground">
-              <span>Upload a photo</span>
-              <span className="text-primary" aria-hidden="true">
-                →
-              </span>
-              <span>Add your logo</span>
-              <span className="text-primary" aria-hidden="true">
-                →
-              </span>
-              <span>Review caption</span>
-              <span className="text-primary" aria-hidden="true">
-                →
-              </span>
-              <span>Publish</span>
-            </p>
-            <div className="mt-8">
-              {isAuthenticated ? (
-                <Link href="/dashboard">
-                  <Button
-                    size="lg"
-                    className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
-                  >
-                    Go to dashboard <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-              ) : (
-                <a href={primaryCta}>
-                  <Button
-                    size="lg"
-                    className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
-                  >
-                    Start my 3 free posts{" "}
-                    <ArrowRight className="h-5 w-5 text-emerald-300" />
-                  </Button>
-                </a>
-              )}
-            </div>
-            <p className="mt-4 text-sm text-muted-foreground">
-              3 posts total · No card required · Publish to one connected
-              Facebook Page
-            </p>
-            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left sm:p-6">
-              <h2 className="text-lg font-bold">Your free start includes</h2>
-              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                {FREE_START_FEATURES.map(feature => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-3 text-sm leading-6"
-                  >
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{feature}</span>
-                  </li>
+              <h1 className="font-display mt-5 space-y-1 text-left text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl">
+                {[
+                  "Buy back your time",
+                  "Post your work faster",
+                  "Try free today",
+                  "3 free posts",
+                  "No card required",
+                ].map(line => (
+                  <span key={line} className="flex items-center gap-3">
+                    <Check className="h-8 w-8 shrink-0 stroke-[3] text-emerald-500 sm:h-10 sm:w-10" />
+                    <span>{line}</span>
+                  </span>
                 ))}
-              </ul>
+              </h1>
+              <p className="mx-auto mt-5 max-w-md text-lg text-muted-foreground xl:mx-0">
+                Upload a real photo. Add your logo if you have one. Review an
+                SnapPost Pro-written caption. Publish to your Facebook Page when you are
+                ready.
+              </p>
+              <p className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground xl:justify-start">
+                <span>Upload a photo</span>
+                <span className="text-primary" aria-hidden="true">
+                  →
+                </span>
+                <span>Add your logo</span>
+                <span className="text-primary" aria-hidden="true">
+                  →
+                </span>
+                <span>Review caption</span>
+                <span className="text-primary" aria-hidden="true">
+                  →
+                </span>
+                <span>Publish</span>
+              </p>
+              <div className="mt-8">
+                {isAuthenticated ? (
+                  <Link href="/dashboard">
+                    <Button
+                      size="lg"
+                      className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
+                    >
+                      Go to dashboard <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <a href={primaryCta}>
+                    <Button
+                      size="lg"
+                      className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
+                    >
+                      Start my 3 free posts{" "}
+                      <ArrowRight className="h-5 w-5 text-emerald-300" />
+                    </Button>
+                  </a>
+                )}
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                3 posts total · No card required · Publish to one connected
+                Facebook Page
+              </p>
+              <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left sm:p-6">
+                <h2 className="text-lg font-bold">Your free start includes</h2>
+                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {FREE_START_FEATURES.map(feature => (
+                    <li
+                      key={feature}
+                      className="flex items-start gap-3 text-sm leading-6"
+                    >
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>

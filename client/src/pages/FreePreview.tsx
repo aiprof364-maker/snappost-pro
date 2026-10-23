@@ -440,7 +440,7 @@ export default function FreePreview() {
           </section>
         )}
         <section className="border-b border-border/60 bg-background">
-          <div className="container max-w-3xl py-10 sm:py-14">
+          <div className="container max-w-3xl pb-5 pt-10 sm:pb-7 sm:pt-14">
             <div className="mx-auto max-w-2xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="h-3.5 w-3.5" /> Free branded Facebook-post preview
@@ -448,15 +448,6 @@ export default function FreePreview() {
               <h1 className="font-display mt-4 text-3xl font-extrabold sm:text-5xl">
                 Turn one photo of your work into a branded Facebook post — free.
               </h1>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Upload a completed-job, product, salon or result photo. Add your
-                logo if you have one. See your branded image and AI-written
-                Facebook caption before you enter your email.
-              </p>
-              <p className="mt-3 text-sm font-semibold text-muted-foreground">
-                3 posts total · No card required · Logo optional · Nothing is
-                published automatically
-              </p>
             </div>
           </div>
         </section>

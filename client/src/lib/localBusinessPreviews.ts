@@ -4,6 +4,8 @@ import floristPreview from "@/assets/landing-carousel/florist-preview.webp";
 import propertyPreview from "@/assets/landing-carousel/property-preview.webp";
 import petPreview from "@/assets/landing-carousel/pet-preview.webp";
 import tradesPreview from "@/assets/landing-carousel/trades-preview.jpg";
+import fitnessPreview from "@/assets/landing-carousel/fitness-preview.webp";
+import restaurantPreview from "@/assets/landing-carousel/restaurant-preview.webp";
 
 export const LOCAL_BUSINESS_PREVIEWS = [
   {
@@ -52,6 +54,22 @@ export const LOCAL_BUSINESS_PREVIEWS = [
     alt: "Freshly groomed dog as an example pet services post",
     caption: "Freshly groomed and feeling good.",
     hashtags: "#DogGrooming #PetCare #LocalBusiness",
+    showLogoOverlay: true,
+  },
+  {
+    category: "Fitness & Movement",
+    imageUrl: fitnessPreview,
+    alt: "Fitness studio as an example wellness and movement business post",
+    caption: "A calm, welcoming studio, ready for the next class.",
+    hashtags: "#FitnessStudio #MoveWell #LocalBusiness",
+    showLogoOverlay: true,
+  },
+  {
+    category: "Restaurant & Dining",
+    imageUrl: restaurantPreview,
+    alt: "Restaurant dining room as an example hospitality business post",
+    caption: "A welcoming table, ready for a great evening out.",
+    hashtags: "#RestaurantLife #LocalDining #SmallBusiness",
     showLogoOverlay: true,
   },
 ] as const;

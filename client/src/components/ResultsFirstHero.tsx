@@ -4,7 +4,16 @@ import BeforeAfterCaptionProof from "@/components/BeforeAfterCaptionProof";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
 import { LOCAL_BUSINESS_PREVIEWS } from "@/lib/localBusinessPreviews";
 
-const SHORT_LABELS = ["Trades", "Café", "Salon", "Florist", "Property", "Pet"] as const;
+const SHORT_LABELS = [
+  "Trades",
+  "Café",
+  "Salon",
+  "Florist",
+  "Property",
+  "Pet",
+  "Fitness",
+  "Restaurant",
+] as const;
 
 const BUSINESS_EXAMPLES = LOCAL_BUSINESS_PREVIEWS.map((preview, index) => ({
   ...preview,
@@ -25,13 +34,19 @@ const BUSINESS_EXAMPLES = LOCAL_BUSINESS_PREVIEWS.map((preview, index) => ({
   showLogoOverlay: index === 0 ? false : preview.showLogoOverlay,
 }));
 
-export default function ResultsFirstHero() {
+type ResultsFirstHeroProps = {
+  freeStartFeatures: readonly string[];
+};
+
+export default function ResultsFirstHero({
+  freeStartFeatures,
+}: ResultsFirstHeroProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selected = BUSINESS_EXAMPLES[selectedIndex];
 
   return (
     <section className="mx-auto w-full max-w-6xl">
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_13.5rem] lg:gap-5">
+      <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_13.5rem] lg:gap-5">
         <BeforeAfterCaptionProof
           originalImageUrl={selected.originalImageUrl}
           brandedImageUrl={selected.brandedImageUrl}
@@ -43,7 +58,7 @@ export default function ResultsFirstHero() {
         />
 
         <aside
-          className="rounded-2xl border border-border bg-card p-3 shadow-sm"
+          className="flex rounded-2xl border border-border bg-card p-3 shadow-sm lg:h-full lg:flex-col"
           aria-label="Choose a business photo example"
         >
           <div className="mb-3 flex items-start gap-2">
@@ -58,7 +73,7 @@ export default function ResultsFirstHero() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 lg:grid-cols-2">
+          <div className="grid flex-1 grid-cols-4 gap-2 lg:grid-cols-2 lg:grid-rows-4">
             {BUSINESS_EXAMPLES.map((example, index) => {
               const isSelected = index === selectedIndex;
               return (
@@ -68,7 +83,7 @@ export default function ResultsFirstHero() {
                   aria-pressed={isSelected}
                   aria-label={`Show ${example.category} before-and-after example`}
                   onClick={() => setSelectedIndex(index)}
-                  className={`relative overflow-hidden rounded-lg border text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  className={`flex min-h-0 flex-col overflow-hidden rounded-lg border text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     isSelected
                       ? "border-primary ring-2 ring-primary/30"
                       : "border-border hover:border-primary/50"
@@ -77,7 +92,7 @@ export default function ResultsFirstHero() {
                   <img
                     src={example.originalImageUrl}
                     alt=""
-                    className="aspect-[4/3] w-full object-cover"
+                    className="min-h-0 w-full flex-1 object-cover"
                     loading={index === 0 ? "eager" : "lazy"}
                   />
                   <span
@@ -95,6 +110,21 @@ export default function ResultsFirstHero() {
             })}
           </div>
         </aside>
+
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left sm:p-6">
+          <h2 className="text-lg font-bold">Your free start includes</h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {freeStartFeatures.map(feature => (
+              <li
+                key={feature}
+                className="flex items-start gap-3 text-sm leading-6"
+              >
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

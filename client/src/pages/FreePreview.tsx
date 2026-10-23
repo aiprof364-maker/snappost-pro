@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
+import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import {
   ArrowRight,
   CheckCircle2,
@@ -163,6 +164,9 @@ export default function FreePreview() {
       trackMetaCustomEvent("FreePreviewCreated", {
         ...(landing ? { landing_page: landing } : {}),
       });
+      trackGoogleAnalyticsEvent("free_preview_created", {
+        ...(landing ? { landing_page: landing } : {}),
+      });
     },
     onError: error => setFormError(error.message),
   });
@@ -174,6 +178,10 @@ export default function FreePreview() {
   const requestLink = trpc.auth.requestSignInLink.useMutation({
     onSuccess: () => {
       trackMetaEvent("Lead", {
+        lead_type: "preview_saved",
+        ...(landing ? { landing_page: landing } : {}),
+      });
+      trackGoogleAnalyticsEvent("generate_lead", {
         lead_type: "preview_saved",
         ...(landing ? { landing_page: landing } : {}),
       });
@@ -214,6 +222,10 @@ export default function FreePreview() {
         "CompleteRegistration",
         landing ? { landing_page: landing } : undefined
       );
+      trackGoogleAnalyticsEvent("sign_up", {
+        method: "magic_link",
+        ...(landing ? { landing_page: landing } : {}),
+      });
       window.history.replaceState(
         {},
         "",

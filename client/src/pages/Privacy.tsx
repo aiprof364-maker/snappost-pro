@@ -1,6 +1,10 @@
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { hasMetaPixelConsent, setMetaPixelConsent } from "@/lib/metaPixel";
+import {
+  hasGoogleAnalyticsConsent,
+  setGoogleAnalyticsConsent,
+} from "@/lib/googleAnalytics";
 import { useLocation } from "wouter";
 import { useState } from "react";
 
@@ -9,10 +13,18 @@ export default function Privacy() {
   const [advertisingChoice, setAdvertisingChoice] = useState<
     "granted" | "denied"
   >(hasMetaPixelConsent() ? "granted" : "denied");
+  const [analyticsChoice, setAnalyticsChoice] = useState<
+    "granted" | "denied"
+  >(hasGoogleAnalyticsConsent() ? "granted" : "denied");
 
   const setAdvertisingPreference = (choice: "granted" | "denied") => {
     setMetaPixelConsent(choice);
     setAdvertisingChoice(choice);
+  };
+
+  const setAnalyticsPreference = (choice: "granted" | "denied") => {
+    setGoogleAnalyticsConsent(choice);
+    setAnalyticsChoice(choice);
   };
 
   return (
@@ -50,18 +62,25 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">
-              Cookies and Meta advertising measurement
+              Cookies, Google Analytics and Meta advertising measurement
             </h2>
             <p className="text-foreground/90 leading-relaxed">
-              With your permission, we use Meta Pixel, cookies and similar
-              technologies to collect or receive information about visits to
-              this website and completed free-account registrations. Meta may
-              use that information to provide measurement services and to help
-              us target and deliver advertising.
+              With your permission, Google Analytics measures aggregate visitor
+              totals, page views and on-site actions so we can understand how
+              people use SnapPost Pro. We do not send your email address,
+              uploaded photo, logo or secure access-link values to Google
+              Analytics.
             </p>
             <p className="mt-4 text-foreground/90 leading-relaxed">
-              You can decline optional advertising cookies and still use
-              SnapPost Pro. You can also change your choice below at any time.
+              Separately, with your permission, Meta Pixel, cookies and similar
+              technologies collect or receive information about visits to this
+              website and completed free-account registrations. Meta may use
+              that information to provide measurement services and to help us
+              target and deliver advertising. You can decline either optional
+              category and still use SnapPost Pro. You can change your choices
+              below at any time.
+            </p>
+            <p className="mt-4 text-foreground/90 leading-relaxed">
               For additional ad-targeting choices, visit{" "}
               <a
                 className="text-primary underline underline-offset-4"
@@ -82,20 +101,37 @@ export default function Privacy() {
               </a>
               .
             </p>
-            <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-              <p className="mr-auto text-sm text-muted-foreground">
-                Optional advertising cookies:{" "}
-                {advertisingChoice === "granted" ? "allowed" : "declined"}
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => setAdvertisingPreference("denied")}
-              >
-                Decline
-              </Button>
-              <Button onClick={() => setAdvertisingPreference("granted")}>
-                Allow
-              </Button>
+            <div className="mt-5 grid gap-4">
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+                <p className="mr-auto text-sm text-muted-foreground">
+                  Optional Google Analytics cookies:{" "}
+                  {analyticsChoice === "granted" ? "allowed" : "declined"}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setAnalyticsPreference("denied")}
+                >
+                  Decline
+                </Button>
+                <Button onClick={() => setAnalyticsPreference("granted")}>
+                  Allow
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+                <p className="mr-auto text-sm text-muted-foreground">
+                  Optional advertising cookies:{" "}
+                  {advertisingChoice === "granted" ? "allowed" : "declined"}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setAdvertisingPreference("denied")}
+                >
+                  Decline
+                </Button>
+                <Button onClick={() => setAdvertisingPreference("granted")}>
+                  Allow
+                </Button>
+              </div>
             </div>
           </section>
 

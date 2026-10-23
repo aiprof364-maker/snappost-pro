@@ -2,6 +2,7 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
+import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { useAuth } from "@/_core/hooks/useAuth";
 import salonPreview from "@/assets/landing-carousel/salon-preview.webp";
 import {
@@ -61,6 +62,9 @@ export default function Hairdressers() {
   const trackFreeStartClick = () => {
     if (!isAuthenticated) {
       trackMetaCustomEvent("FreeStartCtaClicked", {
+        landing_page: "hairdressers",
+      });
+      trackGoogleAnalyticsEvent("free_start_cta_clicked", {
         landing_page: "hairdressers",
       });
     }

@@ -19,6 +19,7 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { isDashboardDataLoading } from "@/lib/dashboardDataState";
 import { trackMetaEvent } from "@/lib/metaPixel";
+import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import {
@@ -126,6 +127,10 @@ export default function Dashboard() {
         "CompleteRegistration",
         landing ? { landing_page: landing } : undefined
       );
+      trackGoogleAnalyticsEvent("sign_up", {
+        method: "magic_link",
+        ...(landing ? { landing_page: landing } : {}),
+      });
       toast.success("Your free account is ready.");
     }
     if (fb || checkout || accountCreated) {

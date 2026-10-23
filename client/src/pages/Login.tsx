@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Loader2, Mail, ShieldCheck } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { trackMetaEvent } from "@/lib/metaPixel";
+import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -21,6 +22,10 @@ export default function Login() {
   const requestLink = trpc.auth.requestSignInLink.useMutation({
     onSuccess: () => {
       trackMetaEvent("Lead", {
+        lead_type: "magic_link_requested",
+        ...(landing ? { landing_page: landing } : {}),
+      });
+      trackGoogleAnalyticsEvent("generate_lead", {
         lead_type: "magic_link_requested",
         ...(landing ? { landing_page: landing } : {}),
       });

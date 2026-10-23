@@ -20,8 +20,17 @@ import Login from "./pages/Login";
 import Contractors from "./pages/Contractors";
 import Hairdressers from "./pages/Hairdressers";
 import FreePreview from "./pages/FreePreview";
+import { trackGooglePageView } from "@/lib/googleAnalytics";
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 
 function Router() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    trackGooglePageView();
+  }, [location]);
+
   return (
     <Switch>
       <Route path={"/"} component={Home} />

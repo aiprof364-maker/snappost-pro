@@ -3,6 +3,7 @@ import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
+import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   ArrowRight,
@@ -61,6 +62,9 @@ export default function Contractors() {
   const trackFreeStartClick = () => {
     if (!isAuthenticated) {
       trackMetaCustomEvent("FreeStartCtaClicked", {
+        landing_page: "contractors",
+      });
+      trackGoogleAnalyticsEvent("free_start_cta_clicked", {
         landing_page: "contractors",
       });
     }

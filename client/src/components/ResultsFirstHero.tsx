@@ -1,78 +1,98 @@
-import { ArrowRight, Check, ImagePlus, Stamp } from "lucide-react";
+import { Check, Images } from "lucide-react";
+import { useState } from "react";
+import BeforeAfterCaptionProof from "@/components/BeforeAfterCaptionProof";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
+import { LOCAL_BUSINESS_PREVIEWS } from "@/lib/localBusinessPreviews";
+
+const BUSINESS_EXAMPLES = LOCAL_BUSINESS_PREVIEWS.map((preview, index) => ({
+  ...preview,
+  originalImageUrl:
+    index === 0 ? LANDING_MOCKUP.originalPhotoUrl : preview.imageUrl,
+  brandedImageUrl:
+    index === 0 ? LANDING_MOCKUP.brandedPhotoUrl : preview.imageUrl,
+  originalAlt:
+    index === 0
+      ? "Completed outdoor deck photo before branding"
+      : `${preview.alt} before logo branding`,
+  brandedAlt:
+    index === 0
+      ? "Completed outdoor deck photo with a contractor logo watermark"
+      : `${preview.alt} with an example logo overlay`,
+  caption: index === 0 ? LANDING_MOCKUP.heroCaption : preview.caption,
+  showLogoOverlay: index === 0 ? false : preview.showLogoOverlay,
+}));
 
 export default function ResultsFirstHero() {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const selected = BUSINESS_EXAMPLES[selectedIndex];
+
   return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="rounded-3xl border border-primary/20 bg-card p-4 shadow-2xl shadow-primary/10 sm:p-5">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
-          <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-primary">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                1
-              </span>
-              <span>Your real photo</span>
-            </div>
-            <div className="aspect-[4/3] overflow-hidden rounded-xl border border-primary/25 bg-muted">
-              <img
-                src={LANDING_MOCKUP.originalPhotoUrl}
-                alt="Original completed outdoor space photo before logo branding"
-                className="h-full w-full object-cover"
-                loading="eager"
-              />
-            </div>
-          </div>
-
-          <ArrowRight
-            className="h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6"
-            aria-hidden="true"
-          />
-
-          <div className="min-w-0">
-            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-primary">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                2
-              </span>
-              <span>Logo added</span>
-            </div>
-            <div className="aspect-[4/3] overflow-hidden rounded-xl border border-primary/25 bg-muted">
-              <img
-                src={LANDING_MOCKUP.brandedPhotoUrl}
-                alt="The same completed outdoor space photo with logo branding"
-                className="h-full w-full object-cover"
-                loading="eager"
-              />
-            </div>
+    <section className="mx-auto w-full max-w-3xl">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Images className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-sm font-bold">Choose a business example</p>
+            <p className="text-xs text-muted-foreground">
+              See the same photo before and after SnapPost Pro.
+            </p>
           </div>
         </div>
-
-        <div className="mt-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:p-5">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-              3
-            </span>
-            <span>Caption ready to review</span>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-foreground sm:text-base">
-            “{LANDING_MOCKUP.heroCaption}”
-          </p>
-          <p className="mt-3 text-xs font-medium text-muted-foreground">
-            Review or edit the caption before you decide to publish.
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-semibold text-muted-foreground sm:gap-3 sm:text-sm">
-        <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/70 px-2 py-2">
-          <ImagePlus className="h-3.5 w-3.5 text-primary" /> Your photo
-        </span>
-        <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/70 px-2 py-2">
-          <Stamp className="h-3.5 w-3.5 text-primary" /> Your logo
-        </span>
-        <span className="flex items-center justify-center gap-1.5 rounded-lg bg-muted/70 px-2 py-2">
-          <Check className="h-3.5 w-3.5 text-primary" /> Your review
+        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          {selected.category}
         </span>
       </div>
-    </div>
+
+      <div
+        className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3"
+        aria-label="Choose a business photo example"
+      >
+        {BUSINESS_EXAMPLES.map((example, index) => {
+          const isSelected = index === selectedIndex;
+          return (
+            <button
+              key={example.category}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => setSelectedIndex(index)}
+              className={`relative overflow-hidden rounded-xl border text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                isSelected
+                  ? "border-primary ring-2 ring-primary/30"
+                  : "border-border hover:border-primary/50"
+              }`}
+            >
+              <img
+                src={example.originalImageUrl}
+                alt=""
+                className="aspect-[16/9] w-full object-cover"
+                loading={index === 0 ? "eager" : "lazy"}
+              />
+              <span
+                className={`flex min-h-10 items-center gap-1.5 px-2 py-1.5 text-xs font-bold leading-4 ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-foreground"
+                }`}
+              >
+                {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
+                {example.category}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <BeforeAfterCaptionProof
+        originalImageUrl={selected.originalImageUrl}
+        brandedImageUrl={selected.brandedImageUrl}
+        originalAlt={selected.originalAlt}
+        brandedAlt={selected.brandedAlt}
+        caption={selected.caption}
+        hashtags={selected.hashtags}
+        showLogoOverlay={selected.showLogoOverlay}
+      />
+    </section>
   );
 }

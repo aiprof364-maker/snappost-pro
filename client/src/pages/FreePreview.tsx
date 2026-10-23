@@ -723,7 +723,7 @@ export default function FreePreview() {
                     </span>
                     <Link href="/login?next=/dashboard">
                       <Button type="button" size="lg" variant="outline">
-                        Sign up free
+                        Sign up here
                       </Button>
                     </Link>
                   </div>

@@ -1,5 +1,6 @@
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import BeforeAfterCaptionProof from "@/components/BeforeAfterCaptionProof";
 import { Button } from "@/components/ui/button";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
@@ -155,30 +156,14 @@ export default function Contractors() {
               </div>
             </div>
 
-            <figure className="overflow-hidden rounded-2xl border border-border bg-card p-3 shadow-xl shadow-primary/10">
-              <div className="grid grid-cols-2 overflow-hidden rounded-xl">
-                <img
-                  src={LANDING_MOCKUP.originalPhotoUrl}
-                  alt="Completed outdoor deck photo before logo branding"
-                  className="aspect-[4/3] h-full w-full object-cover"
-                />
-                <img
-                  src={LANDING_MOCKUP.brandedPhotoUrl}
-                  alt="The same completed deck photo with a contractor logo watermark"
-                  className="aspect-[4/3] h-full w-full object-cover"
-                />
-              </div>
-              <figcaption className="flex flex-wrap items-center justify-between gap-2 px-1 pt-3 text-sm text-muted-foreground">
-                <span>
-                  <strong className="text-foreground">Before:</strong> finished
-                  job photo
-                </span>
-                <span>
-                  <strong className="text-primary">After:</strong> photo with
-                  the contractor's logo
-                </span>
-              </figcaption>
-            </figure>
+	            <BeforeAfterCaptionProof
+	              originalImageUrl={LANDING_MOCKUP.originalPhotoUrl}
+	              brandedImageUrl={LANDING_MOCKUP.brandedPhotoUrl}
+	              originalAlt="Completed outdoor deck photo before branding"
+	              brandedAlt="The same completed deck photo with a contractor logo watermark"
+	              caption={LANDING_MOCKUP.heroCaption}
+	              hashtags="#DeckBuild #OutdoorLiving #QualityWork"
+	            />
           </div>
         </section>
 

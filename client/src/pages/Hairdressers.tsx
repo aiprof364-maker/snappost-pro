@@ -1,5 +1,6 @@
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import BeforeAfterCaptionProof from "@/components/BeforeAfterCaptionProof";
 import { Button } from "@/components/ui/button";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
@@ -155,17 +156,15 @@ export default function Hairdressers() {
               </div>
             </div>
 
-            <figure className="overflow-hidden rounded-2xl border border-border bg-card p-3 shadow-xl shadow-primary/10">
-              <img
-                src={salonPreview}
-                alt="Example of a polished salon interior photo suitable for a Facebook post"
-                className="aspect-[4/3] w-full rounded-xl object-cover"
-              />
-              <figcaption className="px-1 pt-3 text-sm text-muted-foreground">
-                Use your own finished-style, product or salon photo. Add your
-                logo and review the caption before publishing.
-              </figcaption>
-            </figure>
+	            <BeforeAfterCaptionProof
+	              originalImageUrl={salonPreview}
+	              brandedImageUrl={salonPreview}
+	              originalAlt="Example salon interior photo before branding"
+	              brandedAlt="The same salon interior photo with an example logo overlay"
+	              caption="A calm, polished space for your next appointment. We cannot wait to welcome you in."
+	              hashtags="#SalonLife #BeautyBusiness #LocalSalon"
+	              showLogoOverlay
+	            />
           </div>
         </section>
 

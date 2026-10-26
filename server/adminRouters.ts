@@ -22,6 +22,10 @@ import { PLAN_POST_LIMITS } from "@shared/const";
 import { sendNewsletterSignupInvitation } from "./email";
 import { isConfiguredAdminEmail } from "./adminIdentity";
 import { hasPublishingReadyFacebookPage } from "./facebook";
+import {
+  queueAccountEmail,
+  runAccountEmailAutomation,
+} from "./accountEmailAutomation";
 
 /**
  * Admin-only procedures for analytics and contractor management.
@@ -64,6 +68,66 @@ export const adminRouter = router({
 
     return allUsers;
   }),
+
+  /**
+   * Sends the approved Page-connection welcome to the single real free account
+   * that existed before the immediate-new-account email was introduced. This
+   * intentionally refuses to send if the account set is not exactly one.
+   */
+  sendExistingFreePageConnectionEmail: protectedProcedure.mutation(
+    async ({ ctx }) => {
+      adminOnlyMiddleware(ctx);
+
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Database unavailable",
+        });
+      }
+
+      const eligibleUsers = (await db
+        .select({
+          id: users.id,
+          email: users.email,
+          plan: users.plan,
+          role: users.role,
+        })
+        .from(users))
+        .filter(user => {
+          const email = user.email?.trim().toLowerCase();
+          return Boolean(
+            email &&
+              user.role !== "admin" &&
+              user.plan === "free" &&
+              !email.endsWith("@example.com") &&
+              !isConfiguredAdminEmail(email)
+          );
+        });
+
+      if (eligibleUsers.length !== 1) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Expected exactly one eligible existing free account.",
+        });
+      }
+
+      const recipient = eligibleUsers[0];
+      await queueAccountEmail({
+        userId: recipient.id,
+        entityKey: `user:${recipient.id}`,
+        campaignKey: "owner-page-connection:v1",
+        kind: "onboarding-welcome",
+      });
+      const delivery = await runAccountEmailAutomation();
+
+      return {
+        queued: true,
+        dispatchRan: delivery.ran,
+        accepted: delivery.accepted,
+      };
+    }
+  ),
 
   /** All-time subscriber funnel counts for the owner dashboard. */
   funnelOverview: protectedProcedure.query(async ({ ctx }) => {

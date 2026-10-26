@@ -39,6 +39,10 @@ describe("onboarding email copy", () => {
     expect(email.subject).toContain("connect your Facebook Page");
     expect(email.html).toContain("Connect your Facebook Page");
     expect(email.html).toContain("https://snappostpro.com/dashboard#facebook-section");
+    expect(email.html).toContain("No business Facebook Page yet?");
+    expect(email.html).toContain("Use Manus or another AI");
+    expect(email.html).toContain("Create and manage the actual Page yourself");
+    expect(email.html).toContain("https://www.facebook.com/business/help/473994396650734");
     expect(email.html).not.toMatch(unsupportedLegacyClaims);
   });
 

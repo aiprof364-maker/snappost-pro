@@ -18,6 +18,7 @@ describe('newsletter content', () => {
     expect(m.text).toContain('In three days');
     expect(m.text).toContain('Tuesdays');
     expect(m.text).toContain('three branded post drafts total');
+    expect(m.text).toContain('Create your free preview: https://snappostpro.com/preview');
     expect(m.text).not.toMatch(/tradies|contractors|discount|early access|5\+ hours|guaranteed/i);
   });
   it('writes the complete follow-up without assuming the subscriber has an account', () => {
@@ -26,6 +27,7 @@ describe('newsletter content', () => {
     expect(m.text).toContain('permission');
     expect(m.text).toContain('review');
     expect(m.text).toContain('connected Facebook Page');
+    expect(m.text).toContain('Create your free preview: https://snappostpro.com/preview');
     expect(m.text).not.toContain('You have already');
   });
   it('provides 26 distinct evergreen issues with valid plain text and HTML', () => {
@@ -36,6 +38,7 @@ describe('newsletter content', () => {
       expect(m.subject).toBe(NEWSLETTER_WEEKLY_ISSUES[i].subject);
       expect(m.html).toContain('Unsubscribe from the newsletter');
       expect(m.text).toContain(unsubscribeUrl);
+      expect(m.text).toContain('https://snappostpro.com/preview');
       expect(m.text).not.toMatch(/\[your|\{\{.*?\}\}|tradies|contractors/i);
     }
     expect(getNewsletterMessage('weekly', unsubscribeUrl, 26).subject).toBe(NEWSLETTER_WEEKLY_ISSUES[0].subject);

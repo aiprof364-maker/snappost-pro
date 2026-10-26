@@ -247,17 +247,18 @@ export function getNewsletterMessage(kind: NewsletterKind, unsubscribeUrl: strin
   }
   const index = ((issueIndex % NEWSLETTER_WEEKLY_ISSUES.length) + NEWSLETTER_WEEKLY_ISSUES.length) % NEWSLETTER_WEEKLY_ISSUES.length;
   const issue = kind === 'welcome' ? welcome : kind === 'followup' ? followup : NEWSLETTER_WEEKLY_ISSUES[index];
-  const cta = kind === 'weekly' ? 'Prepare your next branded draft' : 'Try SnapPost Pro';
+  const cta = kind === 'weekly' ? 'Create your next branded preview' : 'Create your free preview';
+  const ctaUrl = 'https://snappostpro.com/preview';
   const footer = 'You are receiving this email because you subscribed to the SnapPost Pro newsletter. Unsubscribe at any time. Newsletter preferences do not change your account or billing emails.';
   const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033;line-height:1.65;padding:24px">
     <p style="font-weight:700;color:#5747e8;margin-bottom:24px">SnapPost Pro</p>
     <h1 style="font-size:24px;line-height:1.3">${escapeHtml(issue.subject)}</h1>
     ${issue.paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('\n')}
-    <p style="margin:28px 0"><a href="https://snappostpro.com" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700">${cta}</a></p>
+    <p style="margin:28px 0"><a href="${ctaUrl}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700">${cta}</a></p>
     <hr style="border:0;border-top:1px solid #ddd;margin:28px 0">
     <p style="font-size:12px;color:#64748b">${footer}<br>SnapPost Pro — photo-to-post for local businesses.<br>
     <a href="https://snappostpro.com/contact">Contact SnapPost Pro</a> · <a href="https://snappostpro.com/privacy">Privacy policy</a> · <a href="${escapeHtml(unsubscribeUrl)}">Unsubscribe from the newsletter</a></p>
   </div>`;
-  const text = `${issue.subject}\n\n${issue.paragraphs.join('\n\n')}\n\n${cta}: https://snappostpro.com\n\n${footer}\nSnapPost Pro — photo-to-post for local businesses.\nContact: https://snappostpro.com/contact\nPrivacy: https://snappostpro.com/privacy\nUnsubscribe: ${unsubscribeUrl}\n`;
+  const text = `${issue.subject}\n\n${issue.paragraphs.join('\n\n')}\n\n${cta}: ${ctaUrl}\n\n${footer}\nSnapPost Pro — photo-to-post for local businesses.\nContact: https://snappostpro.com/contact\nPrivacy: https://snappostpro.com/privacy\nUnsubscribe: ${unsubscribeUrl}\n`;
   return { subject: issue.subject, html, text };
 }

@@ -7,6 +7,7 @@ const ALERT_FROM = "SnapPost Pro Alerts <alerts@snappostpro.com>";
 
 export type AcceptedEmail = { id: string };
 export type AccountEmailKind =
+  | "onboarding-welcome"
   | "onboarding-day-1"
   | "onboarding-day-3"
   | "onboarding-day-5"
@@ -182,10 +183,24 @@ export async function sendOnboardingDay1(
 ) {
   return sendAccountMessage({
     to: email,
-    subject: "Welcome to SnapPost Pro — create your first branded post",
+    subject: "Welcome to SnapPost Pro — connect your Facebook Page",
     idempotencyKey,
     replyTo: getSupportReplyTo(),
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Welcome to SnapPost Pro, ${greetingName(userName)}!</h2><p>SnapPost Pro helps local businesses turn a completed photo into a branded, caption-ready Facebook post.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Getting started in 3 steps</h3><ol><li><strong>Upload a completed photo</strong> — choose a photo of your work, product, space, or result.</li><li><strong>Review your AI caption</strong> — SnapPost Pro creates a caption you can edit before posting.</li><li><strong>Add your logo and publish</strong> — SnapPost Pro applies your logo, then you can publish to your connected Facebook Page.</li></ol></div><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Start Creating</a></p>${accountFooter()}</div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Welcome to SnapPost Pro, ${greetingName(userName)}!</h2><p>Start by choosing the one Facebook Page where you want to publish. Then SnapPost Pro helps turn a real completed photo into a branded post with a caption you can review before publishing.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Getting started in 3 steps</h3><ol><li><strong>Connect your Facebook Page</strong> — choose one business portfolio and one Page.</li><li><strong>Upload a completed photo</strong> — choose a photo of your work, product, space, or result.</li><li><strong>Review and publish</strong> — add your logo, review the SnapPost Pro-written caption, then manually publish when ready.</li></ol></div><p><a href="https://snappostpro.com/dashboard#facebook-section" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Connect your Facebook Page</a></p>${accountFooter()}</div>`,
+  });
+}
+
+export async function sendOnboardingWelcome(
+  email: string,
+  userName: string | null | undefined,
+  idempotencyKey?: string
+) {
+  return sendAccountMessage({
+    to: email,
+    subject: "Your SnapPost Pro account is ready — connect your Facebook Page",
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Your account is ready, ${greetingName(userName)}!</h2><p>Your first step is to choose the one Facebook Page where you want to publish. SnapPost Pro then helps you prepare a branded post from a real photo and a caption you can review before publishing.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Start here</h3><ol><li><strong>Connect your Facebook Page</strong> — choose one business portfolio and one Page.</li><li><strong>Upload your logo and a real photo</strong> — add your logo if you have one.</li><li><strong>Review and publish</strong> — check the branded image and SnapPost Pro-written caption before you manually publish.</li></ol></div><p><a href="https://snappostpro.com/dashboard#facebook-section" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Connect your Facebook Page</a></p>${accountFooter()}</div>`,
   });
 }
 
@@ -196,10 +211,10 @@ export async function sendOnboardingDay3(
 ) {
   return sendAccountMessage({
     to: email,
-    subject: "A simple way to prepare your next Facebook post",
+    subject: "Connect your Page, then prepare your next Facebook post",
     idempotencyKey,
     replyTo: getSupportReplyTo(),
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Ready for your next post, ${greetingName(userName)}?</h2><p>Use SnapPost Pro whenever you have a completed photo you want to prepare for your Facebook Page.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Useful checks before you publish</h3><ul><li>Choose a finished photo you are comfortable showing on your business Page.</li><li>Review and edit the AI caption before publishing.</li><li>Confirm the uploaded logo is the one you want on the image.</li><li>Publish when ready to your connected Facebook Page.</li></ul></div><p>Your photo stays yours. SnapPost Pro adds your logo and prepares the caption; it does not alter the finished work shown in the image.</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Ready for your next post, ${greetingName(userName)}?</h2><p>First choose the Facebook Page you want to use. Then use SnapPost Pro whenever you have a completed photo to prepare for that Page.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Useful checks before you publish</h3><ul><li>Connect the one business Page where you will publish.</li><li>Choose a finished photo you are comfortable showing on that Page.</li><li>Confirm the uploaded logo is the one you want on the image.</li><li>Review and edit the SnapPost Pro-written caption before manually publishing.</li></ul></div><p>Your photo stays yours. SnapPost Pro adds your logo and prepares the caption; it does not alter the finished work shown in the image.</p><p><a href="https://snappostpro.com/dashboard#facebook-section" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Connect your Page and create a post</a></p>${accountFooter()}</div>`,
   });
 }
 
@@ -228,10 +243,10 @@ export async function sendOnboardingDay5(
     : "";
   return sendAccountMessage({
     to: email,
-    subject: "Your SnapPost Pro plan and next post",
+    subject: "Connect your Page and use your SnapPost Pro posts",
     idempotencyKey,
     replyTo: getSupportReplyTo(),
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Keep your Facebook Page up to date, ${greetingName(userName)}</h2><p>When you have a completed photo to share, use SnapPost Pro to add your logo, review an AI caption, and publish to your connected Facebook Page.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your current plan</h3><p><strong>${details.name} Plan:</strong> ${details.allowance}</p><ul><li>AI-generated captions</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Post history</li></ul></div>${upgrade}<p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Keep your Facebook Page up to date, ${greetingName(userName)}</h2><p>Choose the one Facebook Page you want to use, then prepare a post whenever you have a completed photo to share. Add your logo, review the SnapPost Pro-written caption, and manually publish when ready.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your current plan</h3><p><strong>${details.name} Plan:</strong> ${details.allowance}</p><ul><li>SnapPost Pro-written captions to review</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Post history</li></ul></div>${upgrade}<p><a href="https://snappostpro.com/dashboard#facebook-section" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Connect your Page and open SnapPost Pro</a></p>${accountFooter()}</div>`,
   });
 }
 
@@ -254,6 +269,8 @@ export async function sendAccountEmail(
   idempotencyKey: string
 ) {
   switch (kind) {
+    case "onboarding-welcome":
+      return sendOnboardingWelcome(input.email, input.userName, idempotencyKey);
     case "onboarding-day-1":
       return sendOnboardingDay1(input.email, input.userName, idempotencyKey);
     case "onboarding-day-3":

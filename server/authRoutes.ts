@@ -7,6 +7,10 @@ import {
   sessionCookieMaxAge,
 } from "./auth";
 import { logConversionEvent } from "./db";
+import {
+  queueAccountEmail,
+  runAccountEmailAutomation,
+} from "./accountEmailAutomation";
 
 function safeReturnPath(value: unknown) {
   return typeof value === "string" &&
@@ -55,6 +59,19 @@ export function registerAuthRoutes(app: Express) {
       });
       if (authResult.accountCreated) {
         redirectUrl.searchParams.set("account_created", "1");
+        if (authResult.user.role !== "admin") {
+          try {
+            await queueAccountEmail({
+              userId: authResult.user.id,
+              entityKey: `user:${authResult.user.id}`,
+              campaignKey: "onboarding-welcome:v1",
+              kind: "onboarding-welcome",
+            });
+            void runAccountEmailAutomation();
+          } catch {
+            console.error("[Onboarding] immediate welcome could not be queued");
+          }
+        }
       }
       res.redirect(302, `${redirectUrl.pathname}${redirectUrl.search}`);
     } catch (error) {

@@ -50,9 +50,6 @@ export default function AdminDashboard() {
     enabled: isAuthenticated && user?.role === "admin",
   });
 
-  const existingFreePageConnectionEmail =
-    trpc.admin.sendExistingFreePageConnectionEmail.useMutation();
-
   if (loading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -225,40 +222,6 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Existing free-account Page setup</CardTitle>
-              <CardDescription>
-                Send the approved Page-connection welcome to the one existing
-                real free account. This action refuses to run unless there is
-                exactly one eligible non-admin, non-test account.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => existingFreePageConnectionEmail.mutate()}
-                disabled={existingFreePageConnectionEmail.isPending}
-              >
-                {existingFreePageConnectionEmail.isPending
-                  ? "Sending…"
-                  : "Send Page-connection email"}
-              </Button>
-              {existingFreePageConnectionEmail.data && (
-                <p className="mt-3 text-sm text-emerald-700">
-                  {existingFreePageConnectionEmail.data.deliveryStatus?.status ===
-                  "accepted"
-                    ? "Email accepted for delivery."
-                    : `Delivery status: ${existingFreePageConnectionEmail.data.deliveryStatus?.status ?? "unknown"}.`}
-                </p>
-              )}
-              {existingFreePageConnectionEmail.error && (
-                <p className="mt-3 text-sm text-destructive">
-                  {existingFreePageConnectionEmail.error.message}
-                </p>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Account List */}
           <Card className="mb-8">

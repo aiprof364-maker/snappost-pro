@@ -111,7 +111,9 @@ export default function Dashboard() {
     const checkout = params.get("checkout");
     const accountCreated = params.get("account_created");
     const landing = params.get("landing");
-    if (fb === "connected") toast.success("Facebook connected.");
+    if (fb === "connected") {
+      toast.success("Facebook access granted. Now choose your business and Page.");
+    }
     else if (fb === "denied") toast.error("Facebook connection was cancelled.");
     else if (fb === "error") toast.error("Facebook connection failed.");
     else if (fb === "session")
@@ -156,7 +158,7 @@ export default function Dashboard() {
   const plan = overview.data?.plan ?? "free";
   const planLabel =
     plan === "free" ? "Free" : (PLANS[plan as "starter" | "pro"]?.name ?? plan);
-  const facebookConnected = overview.data?.facebook?.status === "connected";
+  const facebookConnected = overview.data?.facebook?.connected === true;
   const hasLogo = Boolean(overview.data?.hasLogo);
   const selectedPost = posts.data?.find(post => post.id === selectedPostId);
   const usage = overview.data?.usage;

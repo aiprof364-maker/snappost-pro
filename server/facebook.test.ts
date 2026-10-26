@@ -3,6 +3,7 @@ import {
   FACEBOOK_SCOPES,
   filterPagesForBusiness,
   getPublishedPostPermalink,
+  hasPublishingReadyFacebookPage,
   listBusinesses,
 } from "./facebook";
 
@@ -24,6 +25,30 @@ describe("facebook scopes", () => {
 
   it("does not include any extra permissions", () => {
     expect(FACEBOOK_SCOPES).toHaveLength(4);
+  });
+
+  it("counts Facebook as connected only after a selected Page and its publish token are saved", () => {
+    expect(
+      hasPublishingReadyFacebookPage({
+        status: "pending",
+        pageId: null,
+        pageAccessToken: null,
+      }),
+    ).toBe(false);
+    expect(
+      hasPublishingReadyFacebookPage({
+        status: "connected",
+        pageId: "page-1",
+        pageAccessToken: null,
+      }),
+    ).toBe(false);
+    expect(
+      hasPublishingReadyFacebookPage({
+        status: "connected",
+        pageId: "page-1",
+        pageAccessToken: "test-page-token",
+      }),
+    ).toBe(true);
   });
 
   it("returns only Page tokens belonging to the contractor-selected business portfolio", () => {

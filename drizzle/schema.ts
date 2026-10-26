@@ -194,7 +194,7 @@ export const onboardingChecklist = mysqlTable("onboarding_checklist", {
   /** Profile setup: uploaded logo or filled in business name. */
   profileCompleted: boolean("profileCompleted").default(false).notNull(),
   profileCompletedAt: timestamp("profileCompletedAt"),
-  /** Facebook connection: at least one page connected. */
+  /** Facebook completion: a selected Page with its page-scoped publish token. */
   facebookConnected: boolean("facebookConnected").default(false).notNull(),
   facebookConnectedAt: timestamp("facebookConnectedAt"),
   /** First post: at least one photo uploaded and branded. */

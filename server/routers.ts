@@ -33,6 +33,7 @@ import {
 import {
   FACEBOOK_SCOPES,
   getPublishedPostPermalink,
+  hasPublishingReadyFacebookPage,
   isFacebookConfigured,
   listBusinesses,
   listPagesForBusiness,
@@ -424,6 +425,7 @@ export const appRouter = router({
         await getUserById(ctx.user.id)
       );
       const integration = await getIntegration(ctx.user.id, "facebook");
+      const facebookConnected = hasPublishingReadyFacebookPage(integration);
       const plan = (user?.plan ?? "free") as "free" | PlanId;
       const trial = await getTrialEligibility({
         userId: ctx.user.id,
@@ -456,6 +458,7 @@ export const appRouter = router({
               status: integration.status,
               pageId: integration.pageId,
               pageName: integration.pageName,
+              connected: facebookConnected,
             }
           : null,
         facebookConfigured: isFacebookConfigured(),
@@ -609,12 +612,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND" });
         }
         const integration = await getIntegration(ctx.user.id, "facebook");
-        if (
-          !integration ||
-          integration.status !== "connected" ||
-          !integration.pageId ||
-          !integration.pageAccessToken
-        ) {
+        if (!hasPublishingReadyFacebookPage(integration)) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
@@ -673,6 +671,7 @@ export const appRouter = router({
               status: integration.status,
               pageId: integration.pageId,
               pageName: integration.pageName,
+              connected: hasPublishingReadyFacebookPage(integration),
             }
           : null,
       };
@@ -761,6 +760,7 @@ export const appRouter = router({
           pageAccessToken: page.access_token,
           status: "connected",
         });
+        await updateOnboardingStep(ctx.user.id, "facebookConnected", true);
         await logConversionEvent(ctx.user.id, "facebook_page_connected");
         return { success: true } as const;
       }),
@@ -768,6 +768,7 @@ export const appRouter = router({
     /** Disconnect Facebook. */
     disconnect: protectedProcedure.mutation(async ({ ctx }) => {
       await deleteIntegration(ctx.user.id, "facebook");
+      await updateOnboardingStep(ctx.user.id, "facebookConnected", false);
       return { success: true } as const;
     }),
   }),
@@ -980,7 +981,19 @@ export const appRouter = router({
   onboarding: router({
     /** Get the current user's onboarding checklist. */
     getChecklist: protectedProcedure.query(async ({ ctx }) => {
-      return await getOrCreateOnboardingChecklist(ctx.user.id);
+      const [checklist, integration] = await Promise.all([
+        getOrCreateOnboardingChecklist(ctx.user.id),
+        getIntegration(ctx.user.id, "facebook"),
+      ]);
+      const facebookConnected = hasPublishingReadyFacebookPage(integration);
+      if (checklist?.facebookConnected !== facebookConnected) {
+        return await updateOnboardingStep(
+          ctx.user.id,
+          "facebookConnected",
+          facebookConnected,
+        );
+      }
+      return checklist;
     }),
 
     /** Mark profile as completed (logo uploaded or business name filled in). */
@@ -990,7 +1003,12 @@ export const appRouter = router({
 
     /** Mark Facebook connection as completed. */
     completeFacebookConnection: protectedProcedure.mutation(async ({ ctx }) => {
-      return await updateOnboardingStep(ctx.user.id, "facebookConnected", true);
+      const integration = await getIntegration(ctx.user.id, "facebook");
+      return await updateOnboardingStep(
+        ctx.user.id,
+        "facebookConnected",
+        hasPublishingReadyFacebookPage(integration),
+      );
     }),
 
     /** Mark first post as created. */

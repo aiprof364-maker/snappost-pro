@@ -11,7 +11,6 @@ import {
   recordTrialClaim,
   updateUserSubscription,
   upsertIntegration,
-  updateOnboardingStep,
 } from "./db";
 import { entitlementFromSubscription, getStripe } from "./stripe";
 import { getSessionUser } from "./auth";
@@ -65,9 +64,8 @@ export function registerIntegrationRoutes(app: Express) {
         pageId: null,
         pageName: null,
         pageAccessToken: null,
-        status: "connected",
+        status: "pending",
       });
-      await updateOnboardingStep(userId, "facebookConnected", true);
 
       res.redirect(302, `${dashboard}?facebook=connected`);
     } catch (e) {

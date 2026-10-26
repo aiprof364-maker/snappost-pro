@@ -78,6 +78,32 @@ export type FacebookBusiness = {
 
 type FacebookBusinessPage = Pick<FacebookPage, "id" | "name">;
 
+/**
+ * OAuth consent alone is not a usable SnapPost Pro connection. A customer must
+ * select one Page and SnapPost Pro must retain that Page's publish token.
+ */
+type FacebookConnectionCandidate = {
+  status: string;
+  pageId: string | null;
+  pageAccessToken: string | null;
+};
+
+export function hasPublishingReadyFacebookPage<
+  T extends FacebookConnectionCandidate,
+>(
+  connection: T | null | undefined,
+): connection is T & {
+  status: "connected";
+  pageId: string;
+  pageAccessToken: string;
+} {
+  return Boolean(
+    connection?.status === "connected" &&
+      connection.pageId &&
+      connection.pageAccessToken,
+  );
+}
+
 /** List Meta business portfolios administered by the authenticated contractor. */
 export async function listBusinesses(userToken: string): Promise<FacebookBusiness[]> {
   const url = new URL(`${GRAPH}/me/businesses`);

@@ -21,6 +21,7 @@ import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 import { sendNewsletterSignupInvitation } from "./email";
 import { isConfiguredAdminEmail } from "./adminIdentity";
+import { hasPublishingReadyFacebookPage } from "./facebook";
 
 /**
  * Admin-only procedures for analytics and contractor management.
@@ -97,8 +98,7 @@ export const adminRouter = router({
       connectedPages: new Set(
         allIntegrations
           .filter(
-            integration =>
-              integration.status === "connected" && integration.pageId
+            integration => hasPublishingReadyFacebookPage(integration)
           )
           .filter(integration => customerIds.has(integration.userId))
           .map(integration => integration.userId)
@@ -206,8 +206,7 @@ export const adminRouter = router({
           .filter(
             integration =>
               newUserIds.has(integration.userId) &&
-              integration.status === "connected" &&
-              integration.pageId
+              hasPublishingReadyFacebookPage(integration)
           )
           .map(integration => integration.userId)
       ).size,

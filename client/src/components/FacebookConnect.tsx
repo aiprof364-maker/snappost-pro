@@ -84,7 +84,7 @@ export default function FacebookConnect({
             credentials are added and the app is approved by Meta.
           </p>
         </div>
-      ) : connection?.status === "connected" && connection.pageName ? (
+      ) : connection?.connected && connection.pageName ? (
         <div className="mt-4">
           <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm">
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />

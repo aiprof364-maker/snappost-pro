@@ -532,6 +532,9 @@ export async function updateOnboardingStep(
     if (completed) {
       const timestampField = `${step}At` as const;
       updates[timestampField] = new Date();
+    } else {
+      const timestampField = `${step}At` as const;
+      updates[timestampField] = null;
     }
 
     // Recalculate completion percentage

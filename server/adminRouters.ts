@@ -23,6 +23,7 @@ import { sendNewsletterSignupInvitation } from "./email";
 import { isConfiguredAdminEmail } from "./adminIdentity";
 import { hasPublishingReadyFacebookPage } from "./facebook";
 import {
+  getAccountEmailDeliveryStatus,
   queueAccountEmail,
   runAccountEmailAutomation,
 } from "./accountEmailAutomation";
@@ -120,11 +121,16 @@ export const adminRouter = router({
         kind: "onboarding-welcome",
       });
       const delivery = await runAccountEmailAutomation();
+      const deliveryStatus = await getAccountEmailDeliveryStatus(
+        `user:${recipient.id}`,
+        "owner-page-connection:v1"
+      );
 
       return {
         queued: true,
         dispatchRan: delivery.ran,
         accepted: delivery.accepted,
+        deliveryStatus,
       };
     }
   ),

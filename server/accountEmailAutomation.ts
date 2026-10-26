@@ -164,6 +164,30 @@ export async function queueAccountEmail(input: {
   );
 }
 
+/** Returns only non-personal delivery state for an owner-approved outbox item. */
+export async function getAccountEmailDeliveryStatus(
+  entityKey: string,
+  campaignKey: string
+) {
+  if (!(await initializeAccountEmailAutomation())) return null;
+  const [rows] = await getPool().execute<RowDataPacket[]>(
+    `SELECT status, attempts, acceptedAt, lastErrorClass
+     FROM account_email_delivery
+     WHERE entityKey = ? AND campaignKey = ?
+     LIMIT 1`,
+    [entityKey, campaignKey]
+  );
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    status: String(row.status),
+    attempts: Number(row.attempts),
+    acceptedAt: toDate(row.acceptedAt)?.toISOString() ?? null,
+    lastErrorClass:
+      typeof row.lastErrorClass === "string" ? row.lastErrorClass : null,
+  };
+}
+
 async function rolloutStartedAt(connection: PoolConnection, now: Date) {
   await connection.execute("INSERT IGNORE INTO account_email_rollout (rolloutKey, startedAt) VALUES (?, ?)", [ACCOUNT_EMAIL_ROLLOUT_KEY, now]);
   const [rows] = await connection.execute<RowDataPacket[]>("SELECT startedAt FROM account_email_rollout WHERE rolloutKey = ? LIMIT 1", [ACCOUNT_EMAIL_ROLLOUT_KEY]);

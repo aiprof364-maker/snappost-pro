@@ -246,9 +246,10 @@ export default function AdminDashboard() {
               </Button>
               {existingFreePageConnectionEmail.data && (
                 <p className="mt-3 text-sm text-emerald-700">
-                  {existingFreePageConnectionEmail.data.accepted > 0
+                  {existingFreePageConnectionEmail.data.deliveryStatus?.status ===
+                  "accepted"
                     ? "Email accepted for delivery."
-                    : "The delivery check completed; no duplicate email was sent."}
+                    : `Delivery status: ${existingFreePageConnectionEmail.data.deliveryStatus?.status ?? "unknown"}.`}
                 </p>
               )}
               {existingFreePageConnectionEmail.error && (

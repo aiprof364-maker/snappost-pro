@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { entitlementFromSubscription, hasPaidEntitlement } from "./stripe";
+import {
+  entitlementFromSubscription,
+  getVerifiedCheckoutOutcome,
+  hasPaidEntitlement,
+} from "./stripe";
 
 const originalStarterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
 const originalProPriceId = process.env.STRIPE_PRO_PRICE_ID;
@@ -52,5 +56,33 @@ describe("Stripe subscription entitlements", () => {
     expect(hasPaidEntitlement(unpaid)).toBe(false);
     expect(hasPaidEntitlement(incomplete)).toBe(false);
     expect(hasPaidEntitlement(unknown)).toBe(false);
+  });
+
+  it("returns a checkout conversion only for its signed-in owner and an entitled plan", () => {
+    const session = {
+      client_reference_id: "42",
+      metadata: { userId: "42" },
+    } as any;
+
+    expect(
+      getVerifiedCheckoutOutcome(session, subscription("trialing", "price_starter_test"), 42),
+    ).toMatchObject({
+      plan: "starter",
+      subscriptionStatus: "trialing",
+      conversion: "trial_started",
+    });
+    expect(
+      getVerifiedCheckoutOutcome(session, subscription("active", "price_pro_test"), 42),
+    ).toMatchObject({
+      plan: "pro",
+      subscriptionStatus: "active",
+      conversion: "subscription_started",
+    });
+    expect(
+      getVerifiedCheckoutOutcome(session, subscription("active", "price_pro_test"), 7),
+    ).toBeNull();
+    expect(
+      getVerifiedCheckoutOutcome(session, subscription("canceled", "price_pro_test"), 42),
+    ).toBeNull();
   });
 });

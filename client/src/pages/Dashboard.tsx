@@ -20,6 +20,7 @@ import { trpc } from "@/lib/trpc";
 import { isDashboardDataLoading } from "@/lib/dashboardDataState";
 import { trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
+import { getSubscriptionTrackingEvents } from "@/lib/subscriptionTracking";
 import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import {
@@ -109,6 +110,7 @@ export default function Dashboard() {
     const params = new URLSearchParams(window.location.search);
     const fb = params.get("facebook");
     const checkout = params.get("checkout");
+    const checkoutSessionId = params.get("session_id");
     const accountCreated = params.get("account_created");
     const landing = params.get("landing");
     if (fb === "connected") {
@@ -119,10 +121,34 @@ export default function Dashboard() {
     else if (fb === "session")
       toast.error("Please log in again to connect Facebook.");
     if (checkout === "success") {
-      toast.success("Subscription active. Welcome aboard!");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      const trackedCheckoutKey = checkoutSessionId
+        ? `snappost-tracked-checkout:${checkoutSessionId}`
+        : null;
+      const wasAlreadyTracked =
+        trackedCheckoutKey !== null &&
+        window.sessionStorage.getItem(trackedCheckoutKey) === "1";
+
+      if (checkoutSessionId && !wasAlreadyTracked) {
+        const checkoutTrackingKey = `snappost-tracked-checkout:${checkoutSessionId}`;
+        void utils.billing.checkoutOutcome
+          .fetch({ sessionId: checkoutSessionId })
+          .then(({ outcome }) => {
+            if (!outcome) return;
+            const tracking = getSubscriptionTrackingEvents(outcome);
+            trackMetaEvent(tracking.metaEvent, tracking.parameters);
+            trackGoogleAnalyticsEvent(tracking.googleEvent, tracking.parameters);
+            window.sessionStorage.setItem(checkoutTrackingKey, "1");
+            toast.success(
+              outcome.conversion === "trial_started"
+                ? "Your 7-day trial is active. Welcome aboard!"
+                : "Your subscription is active. Welcome aboard!",
+            );
+            setTimeout(() => window.location.reload(), 1500);
+          });
+      } else if (wasAlreadyTracked) {
+        toast.success("Your subscription is active. Welcome aboard!");
+        setTimeout(() => window.location.reload(), 1500);
+      }
     }
     if (accountCreated === "1") {
       trackMetaEvent(

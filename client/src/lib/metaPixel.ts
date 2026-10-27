@@ -117,7 +117,7 @@ function queueOrSendMetaEvent(event: PendingMetaEvent) {
 }
 
 export function trackMetaEvent(
-  eventName: "CompleteRegistration" | "Lead",
+  eventName: "CompleteRegistration" | "Lead" | "StartTrial" | "Subscribe",
   parameters?: MetaEventParameters,
 ) {
   return queueOrSendMetaEvent({ kind: "standard", name: eventName, parameters });

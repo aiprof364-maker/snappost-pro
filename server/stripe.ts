@@ -39,6 +39,13 @@ export type SubscriptionEntitlement = {
   stripeSubscriptionId?: string;
 };
 
+/** A Stripe-confirmed checkout outcome safe to expose to its signed-in owner. */
+export type VerifiedCheckoutOutcome = {
+  plan: PlanId;
+  subscriptionStatus: "trialing" | "active";
+  conversion: "trial_started" | "subscription_started";
+};
+
 export function hasPaidEntitlement(entitlement: Pick<SubscriptionEntitlement, "plan" | "subscriptionStatus">) {
   return entitlement.plan !== "free" && ["active", "trialing"].includes(entitlement.subscriptionStatus);
 }
@@ -55,6 +62,42 @@ export function entitlementFromSubscription(
     plan: paid && mappedPlan ? mappedPlan : "free",
     subscriptionStatus: subscription.status,
     stripeSubscriptionId: subscription.id,
+  };
+}
+
+/**
+ * Only return a conversion outcome when the Stripe Checkout session belongs to
+ * the signed-in user and its subscription unlocks a configured SnapPost plan.
+ */
+export function getVerifiedCheckoutOutcome(
+  session: Pick<Stripe.Checkout.Session, "client_reference_id" | "metadata">,
+  subscription: Pick<Stripe.Subscription, "id" | "status" | "items">,
+  userId: number,
+): VerifiedCheckoutOutcome | null {
+  const expectedUserId = String(userId);
+  if (
+    session.client_reference_id !== expectedUserId ||
+    session.metadata?.userId !== expectedUserId
+  ) {
+    return null;
+  }
+
+  const entitlement = entitlementFromSubscription(subscription);
+  if (
+    entitlement.plan === "free" ||
+    (entitlement.subscriptionStatus !== "trialing" &&
+      entitlement.subscriptionStatus !== "active")
+  ) {
+    return null;
+  }
+
+  return {
+    plan: entitlement.plan,
+    subscriptionStatus: entitlement.subscriptionStatus,
+    conversion:
+      entitlement.subscriptionStatus === "trialing"
+        ? "trial_started"
+        : "subscription_started",
   };
 }
 

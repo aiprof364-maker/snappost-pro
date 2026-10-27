@@ -108,7 +108,8 @@ export default function AdminDashboard() {
                 ["Created a draft", funnel.data?.activatedAccounts],
                 ["Connected a Page", funnel.data?.connectedPages],
                 ["Started checkout", funnel.data?.checkoutStarted],
-                ["Paid subscribers", funnel.data?.paidSubscribers],
+                ["Subscription trials", funnel.data?.subscriptionTrials],
+                ["Active paid subscribers", funnel.data?.paidSubscribers],
               ].map(([label, value]) => (
                 <Card key={label}>
                   <CardHeader className="pb-2">

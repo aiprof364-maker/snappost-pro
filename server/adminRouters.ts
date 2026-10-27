@@ -83,7 +83,6 @@ export const adminRouter = router({
       db.select().from(conversionEvents),
     ]);
 
-    const activePaidStatuses = new Set(["active", "trialing"]);
     const customerUsers = allUsers.filter(user => user.role !== "admin");
     const customerIds = new Set(customerUsers.map(user => user.id));
     return {
@@ -108,10 +107,15 @@ export const adminRouter = router({
           .filter(event => customerIds.has(event.userId))
           .map(event => event.userId)
       ).size,
+      subscriptionTrials: customerUsers.filter(
+        user =>
+          user.plan !== "free" &&
+          user.subscriptionStatus === "trialing"
+      ).length,
       paidSubscribers: customerUsers.filter(
         user =>
           user.plan !== "free" &&
-          activePaidStatuses.has(user.subscriptionStatus ?? "none")
+          user.subscriptionStatus === "active"
       ).length,
     };
   }),

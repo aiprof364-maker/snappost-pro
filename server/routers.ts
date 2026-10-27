@@ -41,6 +41,7 @@ import {
 } from "./facebook";
 import {
   getPriceId,
+  getVerifiedCheckoutOutcome,
   getStripe,
   hasPaidEntitlement,
   isStripeConfigured,
@@ -777,6 +778,34 @@ export const appRouter = router({
   billing: router({
     plans: publicProcedure.query(() => PLANS),
 
+    /**
+     * Confirm a completed Stripe Checkout belongs to the signed-in customer
+     * before a browser records an analytics conversion event.
+     */
+    checkoutOutcome: protectedProcedure
+      .input(z.object({ sessionId: z.string().min(1).max(255) }))
+      .query(async ({ ctx, input }) => {
+        const stripe = getStripe();
+        if (!stripe) return { outcome: null };
+
+        try {
+          const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+          const subscriptionId =
+            typeof session.subscription === "string"
+              ? session.subscription
+              : session.subscription?.id;
+          if (!subscriptionId) return { outcome: null };
+
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          return {
+            outcome: getVerifiedCheckoutOutcome(session, subscription, ctx.user.id),
+          };
+        } catch {
+          // Do not reveal whether a supplied Stripe session exists or belongs to another customer.
+          return { outcome: null };
+        }
+      }),
+
     /** Create a Stripe Checkout session for a plan. */
     createCheckout: protectedProcedure
       .input(
@@ -844,7 +873,7 @@ export const appRouter = router({
             facebookPageId: integration?.pageId ?? "",
           },
           subscription_data: getCheckoutTrialData(trial.eligible),
-          success_url: `${input.origin}/dashboard?checkout=success`,
+          success_url: `${input.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${input.origin}/pricing?checkout=cancel`,
         });
         console.log(`[Stripe] Session created:`, {

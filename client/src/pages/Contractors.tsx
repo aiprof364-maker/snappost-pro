@@ -28,9 +28,8 @@ const STEPS = [
   {
     number: "2",
     icon: Stamp,
-    title: "Add your logo",
-    description:
-      "SnapPost Pro adds your logo watermark to the lower-right of the image.",
+    title: "Add your logo if you have one",
+    description: "Optional. Your post draft is ready with or without a logo.",
   },
   {
     number: "3",
@@ -41,25 +40,25 @@ const STEPS = [
   {
     number: "4",
     icon: Facebook,
-    title: "Publish to your Facebook Page",
+    title: "Connect or create a Facebook Page",
     description:
-      "Connect one Facebook Page and publish when the post is ready.",
+      "When your post is ready, choose the Page to publish to. No Page yet? We show you how to create one.",
   },
 ] as const;
 
 const FREE_FEATURES = [
-  "3 branded Facebook posts total",
+  "3 Facebook posts total",
   "No card required",
   "SnapPost Pro-written captions to review",
-  "Logo watermark on your image",
-  "One connected Facebook Page",
+  "Logo optional",
+  "Connect or create one Facebook Page when you are ready to publish",
 ] as const;
 
 export default function Contractors() {
   const { isAuthenticated } = useAuth();
   const primaryCta = isAuthenticated
     ? "/dashboard"
-    : "/login?next=/preview?landing=contractors";
+    : "/preview?landing=contractors";
   const trackFreeStartClick = () => {
     if (!isAuthenticated) {
       trackMetaCustomEvent("FreeStartCtaClicked", {
@@ -88,16 +87,16 @@ export default function Contractors() {
             <div className="max-w-xl">
               <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" /> For
-                contractors with a Facebook Page
+                contractors — no Page or logo needed to start
               </span>
               <h1 className="font-display mt-3 text-4xl font-extrabold leading-[1.05] sm:text-5xl">
                 Turn finished job photos into{" "}
                 <span className="text-primary">branded Facebook posts.</span>
               </h1>
               <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-                Upload a completed-job photo. SnapPost Pro adds your logo and
-                writes your caption. You review it, then publish it to your
-                Facebook Page.
+                Upload a completed-job photo and see your post before you enter
+                an email. Add a logo if you have one, then connect or create a
+                Facebook Page only when you are ready to publish.
               </p>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 <a href={primaryCta} onClick={trackFreeStartClick}>
@@ -107,7 +106,7 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Start my 3 free posts"}{" "}
+                      : "Create my free post preview"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
@@ -122,8 +121,8 @@ export default function Contractors() {
                 </Link>
               </div>
               <p className="mt-3 text-sm font-medium text-muted-foreground">
-                3 posts total · No card required · Publish to one connected
-                Facebook Page
+                3 posts total · No card required · Logo optional · Connect a
+                Facebook Page when you are ready to publish
               </p>
               <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:p-6">
                 <h2 className="text-lg font-bold">Your free start includes</h2>
@@ -149,21 +148,21 @@ export default function Contractors() {
                   >
                     {isAuthenticated
                       ? "Go to dashboard"
-                      : "Start my 3 free posts"}{" "}
+                      : "Create my free post preview"}{" "}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </a>
               </div>
             </div>
 
-	            <BeforeAfterCaptionProof
-	              originalImageUrl={LANDING_MOCKUP.originalPhotoUrl}
-	              brandedImageUrl={LANDING_MOCKUP.brandedPhotoUrl}
-	              originalAlt="Completed outdoor deck photo before branding"
-	              brandedAlt="The same completed deck photo with a contractor logo watermark"
-	              caption={LANDING_MOCKUP.heroCaption}
-	              hashtags="#DeckBuild #OutdoorLiving #QualityWork"
-	            />
+            <BeforeAfterCaptionProof
+              originalImageUrl={LANDING_MOCKUP.originalPhotoUrl}
+              brandedImageUrl={LANDING_MOCKUP.brandedPhotoUrl}
+              originalAlt="Completed outdoor deck photo before branding"
+              brandedAlt="The same completed deck photo with a contractor logo watermark"
+              caption={LANDING_MOCKUP.heroCaption}
+              hashtags="#DeckBuild #OutdoorLiving #QualityWork"
+            />
           </div>
         </section>
 
@@ -208,8 +207,8 @@ export default function Contractors() {
                 Show your finished work without starting from scratch.
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-base leading-7 opacity-90">
-                Create three branded Facebook posts free. You review the image
-                and caption before anything is published.
+                See your first post preview before email. Add a logo or connect
+                a Facebook Page only when you are ready.
               </p>
               <a
                 href={primaryCta}
@@ -223,7 +222,7 @@ export default function Contractors() {
                 >
                   {isAuthenticated
                     ? "Go to dashboard"
-                    : "Start my 3 free posts"}{" "}
+                    : "Create my free post preview"}{" "}
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>

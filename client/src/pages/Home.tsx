@@ -27,12 +27,12 @@ const FEATURES = [
     desc: "Get a ready-to-post caption with hashtags written for you.",
   },
   {
-    title: "Auto logo branding",
-    desc: "Your logo is overlaid on every photo so every post markets your business.",
+    title: "Optional logo branding",
+    desc: "Add your logo when you have one, or create your post without it.",
   },
   {
     title: "Post to Facebook",
-    desc: "Publish the branded photo to your connected Facebook page in one click.",
+    desc: "Connect one Facebook Page when your post is ready, then manually publish it.",
   },
   {
     title: "Save hours every week",
@@ -45,11 +45,11 @@ const FEATURES = [
 ];
 
 const FREE_START_FEATURES = [
-  "3 branded Facebook posts total",
+  "3 Facebook posts total",
   "No card required",
   "SnapPost Pro-written captions to review",
-  "Logo watermark on your image",
-  "One connected Facebook Page",
+  "Logo optional",
+  "Connect or create one Facebook Page when you are ready to publish",
 ] as const;
 
 const LOCAL_BUSINESS_CATEGORIES = [
@@ -88,11 +88,11 @@ const LOCAL_BUSINESS_CATEGORIES = [
 const FAQS = [
   {
     q: "Do I need design or writing skills?",
-    a: "No. SnapPost Pro writes the caption and brands the image for you. You just upload a photo and click post.",
+    a: "No. SnapPost Pro writes the caption. Upload a photo, add a logo only if you have one, then review your draft.",
   },
   {
     q: "What do I need to post to Facebook?",
-    a: "You connect your Facebook page once. Facebook posting activates after your connected app is approved by Meta; everything else works immediately.",
+    a: "Create your draft first. When you are ready to publish, connect one Facebook Page or follow the steps to create one.",
   },
   {
     q: "Can I edit the caption before posting?",
@@ -110,7 +110,7 @@ const FAQS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
-  const primaryCta = isAuthenticated ? "/dashboard" : "/login?next=/preview";
+  const primaryCta = isAuthenticated ? "/dashboard" : "/preview";
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const subscribe = trpc.contact.subscribe.useMutation({
     onSuccess: () => {
@@ -140,9 +140,9 @@ export default function Home() {
 
             <div className="mx-auto w-full max-w-xl text-center xl:mx-0 xl:max-w-none xl:text-left">
               <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground xl:w-fit">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
-              for local businesses
-            </span>
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Photo-to-post
+                for local businesses
+              </span>
               <h1 className="font-display mt-3 space-y-0.5 text-left text-3xl font-extrabold leading-[1] sm:text-4xl md:text-5xl">
                 {[
                   "Buy back your time",
@@ -158,16 +158,16 @@ export default function Home() {
                 ))}
               </h1>
               <p className="mx-auto mt-3 max-w-md text-base text-muted-foreground xl:mx-0">
-                Upload a real photo. Add your logo if you have one. Review an
-                SnapPost Pro-written caption. Publish to your Facebook Page when you are
-                ready.
+                Upload a real photo and see your post before email. Add a logo
+                if you have one. Connect a Facebook Page only when you are ready
+                to publish.
               </p>
               <p className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-semibold text-foreground xl:justify-start">
                 <span>Upload a photo</span>
                 <span className="text-primary" aria-hidden="true">
                   →
                 </span>
-                <span>Add your logo</span>
+                <span>Add a logo if you have one</span>
                 <span className="text-primary" aria-hidden="true">
                   →
                 </span>
@@ -193,15 +193,15 @@ export default function Home() {
                       size="lg"
                       className="gap-2 w-full sm:w-auto px-8 py-6 text-base font-semibold"
                     >
-                      Start my 3 free posts{" "}
+                      Create my free post preview{" "}
                       <ArrowRight className="h-5 w-5 text-emerald-300" />
                     </Button>
                   </a>
                 )}
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                3 posts total · No card required · Publish to one connected
-                Facebook Page
+                3 posts total · No card required · Logo optional · Connect a
+                Facebook Page when you are ready to publish
               </p>
             </div>
           </div>
@@ -331,8 +331,8 @@ export default function Home() {
               caption and finding the right words to say.
             </p>
             <p className="text-2xl font-bold text-primary">
-              SnapPost Pro gives you a logo-branded image and SnapPost Pro-written caption
-              to review before you publish.
+              SnapPost Pro gives you a post image with an optional logo and a
+              SnapPost Pro-written caption to review before you publish.
             </p>
             <p className="text-lg text-muted-foreground">
               Keep your Facebook Page active while spending less time preparing
@@ -383,9 +383,8 @@ export default function Home() {
               Create your first branded post free.
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
-              Upload your photo and logo first, then review your branded image
-              and SnapPost Pro-written caption before you enter your email. No card
-              required.
+              Upload your photo first and see your post before email. Add a logo
+              only if you have one. No card required.
             </p>
             <div className="mt-8 flex justify-center">
               <a href={primaryCta}>
@@ -394,7 +393,7 @@ export default function Home() {
                   variant="secondary"
                   className="gap-2 px-8 py-6 text-base font-semibold"
                 >
-                  Start my 3 free posts <ArrowRight className="h-5 w-5" />
+                  Create my free post preview <ArrowRight className="h-5 w-5" />
                 </Button>
               </a>
             </div>

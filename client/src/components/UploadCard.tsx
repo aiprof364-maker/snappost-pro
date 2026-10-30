@@ -4,17 +4,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { refreshPostCreationQueries } from "@/lib/postQueryInvalidation";
-import { getFacebookPostUrl } from "@shared/facebookPost";
 import type { UploadLimitNotice } from "@shared/uploadLimit";
 import {
   CheckCircle2,
-  ExternalLink,
   ImagePlus,
   Loader2,
-  LockKeyhole,
   MessageSquareText,
-  Send,
-  Share2,
   Sparkles,
 } from "lucide-react";
 import { useRef, useState } from "react";
@@ -30,12 +25,10 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 type Props = {
-  facebookConnected: boolean;
   hasLogo: boolean;
-  emailVerified: boolean;
   atLimit?: boolean;
   limitNotice?: UploadLimitNotice | null;
-  onCreated?: () => void;
+  onCreated?: (post: { id: number; caption: string | null }) => void;
 };
 
 type StepCardProps = {
@@ -96,19 +89,8 @@ function StepCard({
   );
 }
 
-function LockedStep({ message }: { message: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-      <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
-      <p>{message}</p>
-    </div>
-  );
-}
-
 export default function UploadCard({
-  facebookConnected,
   hasLogo,
-  emailVerified,
   atLimit = false,
   limitNotice = null,
   onCreated,
@@ -120,17 +102,9 @@ export default function UploadCard({
   const [createdId, setCreatedId] = useState<number | null>(null);
   const [caption, setCaption] = useState("");
   const [brandedUrl, setBrandedUrl] = useState<string | null>(null);
-  const [publishedPost, setPublishedPost] = useState<{
-    facebookPostId: string;
-    facebookPostUrl: string;
-    pageName: string;
-  } | null>(null);
 
   const utils = trpc.useUtils();
-
   const completeFirstPost = trpc.onboarding.completeFirstPost.useMutation();
-  const completeFirstPostPublished =
-    trpc.onboarding.completeFirstPostPublished.useMutation();
 
   const createPost = trpc.posts.create.useMutation({
     onSuccess: post => {
@@ -143,13 +117,8 @@ export default function UploadCard({
         invalidatePosts: () => utils.posts.list.invalidate(),
         invalidateAccountOverview: () => utils.account.overview.invalidate(),
       });
-      onCreated?.();
-      toast.success("Photo branded and SnapPost Pro caption written.");
-      window.setTimeout(() => {
-        document
-          .getElementById("caption-section")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
+      onCreated?.({ id: post.id, caption: post.caption ?? null });
+      toast.success("Your post draft is ready.");
     },
     onError: e => toast.error(e.message),
   });
@@ -159,34 +128,9 @@ export default function UploadCard({
     onError: e => toast.error(e.message),
   });
 
-  const publish = trpc.posts.publish.useMutation({
-    onSuccess: result => {
-      setPublishedPost({
-        facebookPostId: result.facebookPostId,
-        facebookPostUrl: result.facebookPostUrl,
-        pageName: result.pageName,
-      });
-      toast.success(`Posted successfully to ${result.pageName}!`);
-      completeFirstPostPublished.mutate();
-      utils.posts.list.invalidate();
-      window.setTimeout(() => {
-        document
-          .getElementById("publish-section")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    },
-    onError: e => {
-      if (e.message.includes("Facebook")) {
-        toast.error("Connect your Facebook Page to publish posts.");
-      } else {
-        toast.error(e.message);
-      }
-    },
-  });
-
   const photoReady = Boolean(createdId && brandedUrl);
   const captionReady = Boolean(createdId);
-  const canUpload = facebookConnected && hasLogo && !atLimit;
+  const canUpload = !atLimit;
 
   const handleFile = async (file?: File) => {
     if (!file) return;
@@ -194,18 +138,11 @@ export default function UploadCard({
       toast.error("You've reached your post limit. Upgrade to continue.");
       return;
     }
-    if (!facebookConnected || !hasLogo) {
-      toast.error(
-        "Complete Facebook connection and logo setup before creating a post."
-      );
-      return;
-    }
     const dataUrl = await fileToDataUrl(file);
     setPreview(dataUrl);
     setCreatedId(null);
     setBrandedUrl(null);
     setCaption("");
-    setPublishedPost(null);
     createPost.mutate({
       image: dataUrl,
       trade: trade || undefined,
@@ -213,19 +150,17 @@ export default function UploadCard({
     });
   };
 
-  const uploadLockMessage = !facebookConnected
-    ? "Complete Step 1 first: connect the Facebook Page where you want to publish."
-    : !hasLogo
-      ? "Complete Step 2 first: upload your business logo so every new post is branded."
-      : null;
-
   return (
     <div className="space-y-5">
       <StepCard
         id="upload-section"
-        number={3}
+        number={1}
         title="Upload a photo"
-        description="Choose a real finished-job or business photo. We add your logo and create a new draft."
+        description={
+          hasLogo
+            ? "Choose a real finished-job or business photo. We add your saved logo and create a draft."
+            : "Choose a real finished-job or business photo. We create a saved draft; a logo is optional."
+        }
         complete={photoReady}
         icon={<ImagePlus className="h-6 w-6" aria-hidden="true" />}
       >
@@ -244,8 +179,6 @@ export default function UploadCard({
               </a>
             )}
           </div>
-        ) : uploadLockMessage ? (
-          <LockedStep message={uploadLockMessage} />
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -295,7 +228,7 @@ export default function UploadCard({
                 <>
                   <Loader2 className="h-7 w-7 animate-spin text-primary" />
                   <span className="text-base font-semibold text-foreground">
-                    Branding your photo and writing your caption…
+                    Preparing your photo and caption…
                   </span>
                   <span className="text-xs">This can take a moment.</span>
                 </>
@@ -315,7 +248,7 @@ export default function UploadCard({
         {(preview || brandedUrl) && (
           <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
             <p className="mb-3 text-sm font-semibold">
-              {photoReady ? "Your branded photo" : "Your photo"}
+              {photoReady ? "Your post image" : "Your photo"}
             </p>
             <img
               src={brandedUrl ?? preview ?? ""}
@@ -328,14 +261,16 @@ export default function UploadCard({
 
       <StepCard
         id="caption-section"
-        number={4}
+        number={2}
         title="Review your SnapPost Pro caption"
         description="Read, edit and save the caption before you decide to publish."
         complete={captionReady}
         icon={<MessageSquareText className="h-6 w-6" aria-hidden="true" />}
       >
         {!captionReady ? (
-          <LockedStep message="This unlocks after you upload a photo in Step 3." />
+          <p className="rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            This unlocks after you upload a photo in Step 1.
+          </p>
         ) : (
           <>
             <Label
@@ -366,79 +301,6 @@ export default function UploadCard({
               )}
             </Button>
           </>
-        )}
-      </StepCard>
-
-      <StepCard
-        id="publish-section"
-        number={5}
-        title="Publish to Facebook"
-        description="Your post stays a draft until you press publish."
-        complete={Boolean(publishedPost)}
-        icon={<Send className="h-6 w-6" aria-hidden="true" />}
-      >
-        {!captionReady ? (
-          <LockedStep message="This unlocks after your SnapPost Pro caption is ready in Step 4." />
-        ) : !emailVerified ? (
-          <LockedStep message="Verify your email using the message above before publishing to Facebook." />
-        ) : (
-          <>
-            <Button
-              size="lg"
-              className="w-full gap-2 sm:w-auto"
-              disabled={
-                !createdId ||
-                !facebookConnected ||
-                publish.isPending ||
-                Boolean(publishedPost)
-              }
-              onClick={() => createdId && publish.mutate({ id: createdId })}
-            >
-              {publish.isPending ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Publishing…
-                </>
-              ) : publishedPost ? (
-                <>
-                  <CheckCircle2 className="h-5 w-5" /> Published
-                </>
-              ) : (
-                <>
-                  <Share2 className="h-5 w-5" /> Publish to Facebook
-                </>
-              )}
-            </Button>
-            <p className="mt-3 text-sm text-muted-foreground">
-              We publish only when you press this button.
-            </p>
-          </>
-        )}
-
-        {publishedPost && (
-          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
-              <div>
-                <p className="font-semibold">
-                  Published to {publishedPost.pageName}
-                </p>
-                <p className="mt-1 text-sm text-emerald-800">
-                  Your branded image and caption are now live on Facebook.
-                </p>
-                <a
-                  href={
-                    publishedPost.facebookPostUrl ??
-                    getFacebookPostUrl(publishedPost.facebookPostId)
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-800 underline underline-offset-4 hover:text-emerald-950"
-                >
-                  View live Facebook post <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
-            </div>
-          </div>
         )}
       </StepCard>
     </div>

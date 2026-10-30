@@ -26,9 +26,7 @@ import { getUploadLimitNotice } from "@shared/uploadLimit";
 import {
   CheckCircle2,
   ExternalLink,
-  Facebook,
   ImageIcon,
-  LockKeyhole,
   Loader2,
   Share2,
   Stamp,
@@ -114,11 +112,22 @@ export default function Dashboard() {
     const accountCreated = params.get("account_created");
     const landing = params.get("landing");
     if (fb === "connected") {
-      toast.success("Facebook access granted. Now choose your business and Page.");
-    }
-    else if (fb === "denied") toast.error("Facebook connection was cancelled.");
-    else if (fb === "error") toast.error("Facebook connection failed.");
-    else if (fb === "session")
+      toast.success(
+        "Facebook access granted. Now choose your business and Page."
+      );
+      const pendingDraftId = Number(
+        window.sessionStorage.getItem("snappost-pending-facebook-post")
+      );
+      if (Number.isSafeInteger(pendingDraftId) && pendingDraftId > 0) {
+        setSelectedPostId(pendingDraftId);
+      }
+    } else if (fb === "denied") {
+      window.sessionStorage.removeItem("snappost-pending-facebook-post");
+      toast.error("Facebook connection was cancelled.");
+    } else if (fb === "error") {
+      window.sessionStorage.removeItem("snappost-pending-facebook-post");
+      toast.error("Facebook connection failed.");
+    } else if (fb === "session")
       toast.error("Please log in again to connect Facebook.");
     if (checkout === "success") {
       const trackedCheckoutKey = checkoutSessionId
@@ -136,12 +145,15 @@ export default function Dashboard() {
             if (!outcome) return;
             const tracking = getSubscriptionTrackingEvents(outcome);
             trackMetaEvent(tracking.metaEvent, tracking.parameters);
-            trackGoogleAnalyticsEvent(tracking.googleEvent, tracking.parameters);
+            trackGoogleAnalyticsEvent(
+              tracking.googleEvent,
+              tracking.parameters
+            );
             window.sessionStorage.setItem(checkoutTrackingKey, "1");
             toast.success(
               outcome.conversion === "trial_started"
                 ? "Your 7-day trial is active. Welcome aboard!"
-                : "Your subscription is active. Welcome aboard!",
+                : "Your subscription is active. Welcome aboard!"
             );
             setTimeout(() => window.location.reload(), 1500);
           });
@@ -187,6 +199,7 @@ export default function Dashboard() {
   const facebookConnected = overview.data?.facebook?.connected === true;
   const hasLogo = Boolean(overview.data?.hasLogo);
   const selectedPost = posts.data?.find(post => post.id === selectedPostId);
+  const firstDraft = posts.data?.find(post => post.status === "draft");
   const usage = overview.data?.usage;
   const subStatus = overview.data?.subscriptionStatus ?? "none";
   const emailVerified = user?.emailVerified ?? false;
@@ -316,140 +329,143 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="mt-6 grid gap-5 xl:grid-cols-2">
-            <section
-              id="facebook-section"
-              className={`scroll-mt-6 rounded-2xl border bg-card p-5 shadow-sm sm:p-6 ${
-                facebookConnected ? "border-emerald-200" : "border-border"
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                <span
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${facebookConnected ? "bg-emerald-100 text-emerald-700" : "bg-[#1877F2]/10 text-[#1877F2]"}`}
-                >
-                  <Facebook className="h-6 w-6" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
-                        Step 1
-                      </p>
-                      <h2 className="mt-1 font-display text-xl font-bold">
-                        Connect your Facebook Page
-                      </h2>
-                    </div>
-                    {facebookConnected && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
-                        <CheckCircle2 className="h-4 w-4" /> Connected
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {facebookConnected
-                      ? `Posting to ${overview.data?.facebook?.pageName ?? "your Facebook Page"}.`
-                      : "Choose the one business Page where you want to publish posts."}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-5">
-                <FacebookConnect compact />
-              </div>
-            </section>
+          <div className="mt-5">
+            <UploadCard
+              hasLogo={hasLogo}
+              atLimit={atLimit}
+              limitNotice={uploadLimitNotice}
+              onCreated={post => {
+                setSelectedPostId(post.id);
+                setSelectedCaption(post.caption ?? "");
+                window.setTimeout(() => {
+                  document
+                    .getElementById("post-ready-section")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 100);
+              }}
+            />
+          </div>
 
+          {firstDraft && (
             <section
-              id="logo-section"
-              className={`scroll-mt-6 rounded-2xl border bg-card p-5 shadow-sm sm:p-6 ${
-                hasLogo ? "border-emerald-200" : "border-border"
-              }`}
+              id="post-ready-section"
+              className="mt-5 scroll-mt-6 rounded-2xl border border-primary/30 bg-primary/[0.035] p-5 shadow-sm sm:p-6"
             >
               <div className="flex items-start gap-4">
-                <span
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${hasLogo ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"}`}
-                >
-                  <Stamp className="h-6 w-6" />
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <CheckCircle2 className="h-6 w-6" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
-                        Step 2
-                      </p>
-                      <h2 className="mt-1 font-display text-xl font-bold">
-                        Upload your logo
-                      </h2>
-                    </div>
-                    {hasLogo && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
-                        <CheckCircle2 className="h-4 w-4" /> Ready
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {hasLogo
-                      ? "Your logo is ready to be added as a watermark to every new post."
-                      : "Upload your business logo once. SnapPost Pro adds it as a watermark to every new post."}
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
+                    Your post is ready
                   </p>
-                  {hasLogo && overview.data?.logoUrl && (
-                    <div className="mt-4 inline-flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-2 pr-3">
-                      <img
-                        src={overview.data.logoUrl}
-                        alt="Saved business logo"
-                        className="h-11 w-11 rounded-lg object-contain bg-white p-1 ring-1 ring-emerald-100"
-                      />
-                      <span className="text-sm font-semibold text-emerald-800">
-                        Logo saved
-                      </span>
-                    </div>
-                  )}
+                  <h2 className="mt-1 font-display text-2xl font-bold">
+                    {facebookConnected
+                      ? `Ready to publish to ${overview.data?.facebook?.pageName ?? "your Facebook Page"}`
+                      : "Connect your Facebook Page to publish it"}
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Your draft is saved. You can return to it at any time.
+                  </p>
                 </div>
               </div>
-              <input
-                ref={logoRef}
-                type="file"
-                accept="image/png,image/jpeg"
-                className="hidden"
-                onChange={e => handleLogo(e.target.files?.[0])}
-              />
+
               {!facebookConnected ? (
-                <div className="mt-5 flex items-start gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
-                  <p>
-                    Complete Step 1 first to connect the Facebook Page you will
-                    post to.
-                  </p>
+                <div className="mt-5">
+                  <FacebookConnect
+                    compact
+                    postReady
+                    pendingPostId={firstDraft.id}
+                    onPageConnected={() => {
+                      window.sessionStorage.removeItem(
+                        "snappost-pending-facebook-post"
+                      );
+                      setSelectedPostId(firstDraft.id);
+                    }}
+                  />
                 </div>
               ) : (
                 <Button
-                  variant={hasLogo ? "outline" : "default"}
-                  className="mt-5"
-                  onClick={() => logoRef.current?.click()}
-                  disabled={uploadLogo.isPending}
+                  className="mt-5 gap-2"
+                  onClick={() => {
+                    setSelectedPostId(firstDraft.id);
+                    setSelectedCaption(firstDraft.caption ?? "");
+                  }}
                 >
-                  {uploadLogo.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Uploading
-                      logo…
-                    </>
-                  ) : hasLogo ? (
-                    "Replace logo"
-                  ) : (
-                    "Upload logo"
-                  )}
+                  <Share2 className="h-4 w-4" /> Review and publish post
                 </Button>
               )}
             </section>
-          </div>
+          )}
 
-          <div className="mt-5">
-            <UploadCard
-              facebookConnected={facebookConnected}
-              hasLogo={hasLogo}
-              emailVerified={emailVerified}
-              atLimit={atLimit}
-              limitNotice={uploadLimitNotice}
+          <section
+            id="logo-section"
+            className={`mt-5 scroll-mt-6 rounded-2xl border bg-card p-5 shadow-sm sm:p-6 ${
+              hasLogo ? "border-emerald-200" : "border-border"
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <span
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${hasLogo ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"}`}
+              >
+                <Stamp className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="font-display text-xl font-bold">
+                      {hasLogo ? "Your logo is ready" : "No logo? No problem."}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {hasLogo
+                        ? "New drafts include your saved logo as a watermark."
+                        : "This draft can publish without a logo. Add one later if you want it on future post images."}
+                    </p>
+                  </div>
+                  {hasLogo && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
+                      <CheckCircle2 className="h-4 w-4" /> Ready
+                    </span>
+                  )}
+                </div>
+                {hasLogo && overview.data?.logoUrl && (
+                  <div className="mt-4 inline-flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-2 pr-3">
+                    <img
+                      src={overview.data.logoUrl}
+                      alt="Saved business logo"
+                      className="h-11 w-11 rounded-lg bg-white p-1 object-contain ring-1 ring-emerald-100"
+                    />
+                    <span className="text-sm font-semibold text-emerald-800">
+                      Logo saved
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <input
+              ref={logoRef}
+              type="file"
+              accept="image/png,image/jpeg"
+              className="hidden"
+              onChange={e => handleLogo(e.target.files?.[0])}
             />
-          </div>
+            <Button
+              variant={hasLogo ? "outline" : "secondary"}
+              className="mt-5"
+              onClick={() => logoRef.current?.click()}
+              disabled={uploadLogo.isPending}
+            >
+              {uploadLogo.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Uploading logo…
+                </>
+              ) : hasLogo ? (
+                "Replace logo"
+              ) : (
+                "Add logo for future posts"
+              )}
+            </Button>
+          </section>
 
           {/* Post history */}
           <div className="mt-10">
@@ -562,10 +578,15 @@ export default function Dashboard() {
               {selectedPost && (
                 <>
                   <DialogHeader>
-                    <DialogTitle>Review draft post</DialogTitle>
+                    <DialogTitle>
+                      {facebookConnected
+                        ? `Ready to publish to ${overview.data?.facebook?.pageName ?? "your Facebook Page"}`
+                        : "Your post is ready"}
+                    </DialogTitle>
                     <DialogDescription>
-                      Edit the caption, then publish this saved draft when you
-                      are ready.
+                      {facebookConnected
+                        ? "Review or edit your caption, then manually publish this saved draft."
+                        : "Connect your Facebook Page to publish this saved draft. It will stay here while you set that up."}
                     </DialogDescription>
                   </DialogHeader>
                   <img
@@ -592,6 +613,24 @@ export default function Dashboard() {
                       className="mt-2"
                     />
                   </div>
+                  {!facebookConnected && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4">
+                      <p className="font-semibold">
+                        Connect your Facebook Page to publish it
+                      </p>
+                      <FacebookConnect
+                        compact
+                        postReady
+                        pendingPostId={selectedPost.id}
+                        onPageConnected={() => {
+                          window.sessionStorage.removeItem(
+                            "snappost-pending-facebook-post"
+                          );
+                          utils.account.overview.invalidate();
+                        }}
+                      />
+                    </div>
+                  )}
                   <DialogFooter>
                     <Button
                       variant="outline"
@@ -620,16 +659,11 @@ export default function Dashboard() {
                         "Posting..."
                       ) : (
                         <>
-                          <Share2 className="h-4 w-4" /> Post to Facebook
+                          <Share2 className="h-4 w-4" /> Publish post
                         </>
                       )}
                     </Button>
                   </DialogFooter>
-                  {!facebookConnected && (
-                    <p className="text-sm text-muted-foreground">
-                      Connect a Facebook Page before publishing this draft.
-                    </p>
-                  )}
                 </>
               )}
             </DialogContent>

@@ -692,6 +692,7 @@ export const appRouter = router({
         const { buildFacebookAuthUrl } = await import("./facebook");
         const redirectUri = `${input.origin}/api/facebook/callback`;
         const state = `${ctx.user.id}:${input.origin}`;
+        await logConversionEvent(ctx.user.id, "facebook_connection_clicked");
         return { url: buildFacebookAuthUrl(redirectUri, state) };
       }),
 
@@ -789,16 +790,23 @@ export const appRouter = router({
         if (!stripe) return { outcome: null };
 
         try {
-          const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+          const session = await stripe.checkout.sessions.retrieve(
+            input.sessionId
+          );
           const subscriptionId =
             typeof session.subscription === "string"
               ? session.subscription
               : session.subscription?.id;
           if (!subscriptionId) return { outcome: null };
 
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription =
+            await stripe.subscriptions.retrieve(subscriptionId);
           return {
-            outcome: getVerifiedCheckoutOutcome(session, subscription, ctx.user.id),
+            outcome: getVerifiedCheckoutOutcome(
+              session,
+              subscription,
+              ctx.user.id
+            ),
           };
         } catch {
           // Do not reveal whether a supplied Stripe session exists or belongs to another customer.
@@ -1019,7 +1027,7 @@ export const appRouter = router({
         return await updateOnboardingStep(
           ctx.user.id,
           "facebookConnected",
-          facebookConnected,
+          facebookConnected
         );
       }
       return checklist;
@@ -1036,7 +1044,7 @@ export const appRouter = router({
       return await updateOnboardingStep(
         ctx.user.id,
         "facebookConnected",
-        hasPublishingReadyFacebookPage(integration),
+        hasPublishingReadyFacebookPage(integration)
       );
     }),
 

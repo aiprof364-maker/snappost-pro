@@ -106,6 +106,10 @@ export default function AdminDashboard() {
                 ["Accounts", funnel.data?.accounts],
                 ["Free accounts", funnel.data?.freeAccounts],
                 ["Created a draft", funnel.data?.activatedAccounts],
+                [
+                  "Clicked Connect Page",
+                  funnel.data?.facebookConnectionClicked,
+                ],
                 ["Connected a Page", funnel.data?.connectedPages],
                 ["Started checkout", funnel.data?.checkoutStarted],
                 ["Subscription trials", funnel.data?.subscriptionTrials],
@@ -156,8 +160,12 @@ export default function AdminDashboard() {
                   signupFunnel.data?.freeAccessOpened,
                 ],
                 ["New Free accounts", signupFunnel.data?.freeAccountsCreated],
-                ["Connected a Page", signupFunnel.data?.connectedPages],
                 ["Created a draft", signupFunnel.data?.draftsCreated],
+                [
+                  "Clicked Connect Page",
+                  signupFunnel.data?.facebookConnectionClicked,
+                ],
+                ["Connected a Page", signupFunnel.data?.connectedPages],
                 ["Published a post", signupFunnel.data?.postsPublished],
               ].map(([label, value]) => (
                 <Card key={label}>

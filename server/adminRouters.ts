@@ -93,11 +93,15 @@ export const adminRouter = router({
           .filter(post => customerIds.has(post.userId))
           .map(post => post.userId)
       ).size,
+      facebookConnectionClicked: new Set(
+        allEvents
+          .filter(event => event.eventType === "facebook_connection_clicked")
+          .filter(event => customerIds.has(event.userId))
+          .map(event => event.userId)
+      ).size,
       connectedPages: new Set(
         allIntegrations
-          .filter(
-            integration => hasPublishingReadyFacebookPage(integration)
-          )
+          .filter(integration => hasPublishingReadyFacebookPage(integration))
           .filter(integration => customerIds.has(integration.userId))
           .map(integration => integration.userId)
       ).size,
@@ -108,14 +112,10 @@ export const adminRouter = router({
           .map(event => event.userId)
       ).size,
       subscriptionTrials: customerUsers.filter(
-        user =>
-          user.plan !== "free" &&
-          user.subscriptionStatus === "trialing"
+        user => user.plan !== "free" && user.subscriptionStatus === "trialing"
       ).length,
       paidSubscribers: customerUsers.filter(
-        user =>
-          user.plan !== "free" &&
-          user.subscriptionStatus === "active"
+        user => user.plan !== "free" && user.subscriptionStatus === "active"
       ).length,
     };
   }),
@@ -154,8 +154,7 @@ export const adminRouter = router({
     ]);
 
     const freeAccessRequests = allTokens.filter(
-      token =>
-        token.createdAt >= since && !isConfiguredAdminEmail(token.email)
+      token => token.createdAt >= since && !isConfiguredAdminEmail(token.email)
     );
     const freeAccessOpened = allTokens.filter(
       token =>
@@ -204,6 +203,16 @@ export const adminRouter = router({
       freeAccessRequested: freeAccessRequests.length,
       freeAccessOpened: freeAccessOpened.length,
       freeAccountsCreated: newFreeUsers.length,
+      facebookConnectionClicked: new Set(
+        allEvents
+          .filter(
+            event =>
+              event.eventType === "facebook_connection_clicked" &&
+              event.createdAt >= since &&
+              newUserIds.has(event.userId)
+          )
+          .map(event => event.userId)
+      ).size,
       connectedPages: new Set(
         allIntegrations
           .filter(

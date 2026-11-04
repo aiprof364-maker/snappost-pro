@@ -1,6 +1,14 @@
+import {
+  META_CONSENT_KEY,
+  isConsentChoice,
+  notifyConsentUpdated,
+  readConsentPreference,
+  writeConsentPreference,
+  type ConsentChoice,
+} from "./consentStorage";
+
 export const META_PIXEL_ID = "1579357956689832";
 
-const CONSENT_STORAGE_KEY = "snappost-meta-pixel-consent";
 const PENDING_EVENT_STORAGE_KEY = "snappost-pending-meta-event";
 
 type MetaEventParameters = Record<string, string | number | boolean>;
@@ -25,33 +33,35 @@ declare global {
   }
 }
 
-function canUseBrowserStorage() {
+function canUseBrowser() {
   return typeof window !== "undefined" && typeof document !== "undefined";
 }
 
 export function hasMetaPixelConsent() {
-  return canUseBrowserStorage() && window.localStorage.getItem(CONSENT_STORAGE_KEY) === "granted";
+  return (
+    canUseBrowser() && readConsentPreference(META_CONSENT_KEY) === "granted"
+  );
 }
 
 export function hasMetaPixelChoice() {
-  return canUseBrowserStorage() && window.localStorage.getItem(CONSENT_STORAGE_KEY) !== null;
+  return canUseBrowser() && readConsentPreference(META_CONSENT_KEY) !== null;
 }
 
-export function setMetaPixelConsent(choice: "granted" | "denied") {
-  if (!canUseBrowserStorage()) return;
-  window.localStorage.setItem(CONSENT_STORAGE_KEY, choice);
+export function setMetaPixelConsent(choice: ConsentChoice) {
+  if (!canUseBrowser() || !isConsentChoice(choice)) return false;
+  const persisted = writeConsentPreference(META_CONSENT_KEY, choice);
   if (choice === "granted") {
     initializeMetaPixel();
     flushPendingMetaEvent();
+  } else {
+    window.fbq?.("consent", "revoke");
   }
+  notifyConsentUpdated();
+  return persisted;
 }
 
-function installMetaPixelBaseCode(onLoaded: () => void) {
-  if (!canUseBrowserStorage()) return;
-  if (window.fbq) {
-    onLoaded();
-    return;
-  }
+function installMetaPixelBaseCode() {
+  if (window.fbq) return null;
 
   const fbq = ((...args: unknown[]) => {
     if (fbq.callMethod) {
@@ -72,31 +82,46 @@ function installMetaPixelBaseCode(onLoaded: () => void) {
   script.async = true;
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
   script.dataset.metaPixelId = META_PIXEL_ID;
-  script.addEventListener("load", onLoaded, { once: true });
-  document.head.appendChild(script);
+  script.addEventListener(
+    "load",
+    () => {
+      // Consent may have been withdrawn while the script was in flight.
+      scriptLoaded = true;
+      if (hasMetaPixelConsent()) window.fbq?.("consent", "grant");
+    },
+    { once: true }
+  );
+  return script;
 }
 
 let initialized = false;
+let scriptLoaded = false;
 
 export function initializeMetaPixel() {
   if (!hasMetaPixelConsent()) return false;
-  if (initialized) return true;
+  if (initialized) {
+    // An already initialized Pixel must resume after a new affirmative choice.
+    if (scriptLoaded) window.fbq?.("consent", "grant");
+    return true;
+  }
 
-  // Meta's consent API keeps every Pixel fire paused until the visitor has made
-  // an affirmative advertising-cookie choice. Queue the pause before Pixel
-  // setup, then release it only after Meta's script has initialized.
-  installMetaPixelBaseCode(() => {
-    window.fbq?.("consent", "grant");
-  });
+  const script = installMetaPixelBaseCode();
+  // Pause before initialization; release only for affirmative consent.
   window.fbq?.("consent", "revoke");
   window.fbq?.("init", META_PIXEL_ID);
   window.fbq?.("track", "PageView");
   initialized = true;
+  if (script) {
+    document.head.appendChild(script);
+  } else if (hasMetaPixelConsent()) {
+    scriptLoaded = true;
+    window.fbq?.("consent", "grant");
+  }
   return true;
 }
 
 function sendMetaEvent(event: PendingMetaEvent) {
-  initializeMetaPixel();
+  if (!initializeMetaPixel()) return;
   if (event.kind === "custom") {
     window.fbq?.("trackCustom", event.name, event.parameters);
     return;
@@ -106,8 +131,15 @@ function sendMetaEvent(event: PendingMetaEvent) {
 
 function queueOrSendMetaEvent(event: PendingMetaEvent) {
   if (!hasMetaPixelConsent()) {
-    if (canUseBrowserStorage()) {
-      window.sessionStorage.setItem(PENDING_EVENT_STORAGE_KEY, JSON.stringify(event));
+    if (canUseBrowser()) {
+      try {
+        window.sessionStorage.setItem(
+          PENDING_EVENT_STORAGE_KEY,
+          JSON.stringify(event)
+        );
+      } catch {
+        // Optional tracking must not break the app when storage is blocked.
+      }
     }
     return false;
   }
@@ -118,27 +150,41 @@ function queueOrSendMetaEvent(event: PendingMetaEvent) {
 
 export function trackMetaEvent(
   eventName: "CompleteRegistration" | "Lead" | "StartTrial" | "Subscribe",
-  parameters?: MetaEventParameters,
+  parameters?: MetaEventParameters
 ) {
-  return queueOrSendMetaEvent({ kind: "standard", name: eventName, parameters });
+  return queueOrSendMetaEvent({
+    kind: "standard",
+    name: eventName,
+    parameters,
+  });
 }
 
-export function trackMetaCustomEvent(eventName: string, parameters?: MetaEventParameters) {
+export function trackMetaCustomEvent(
+  eventName: string,
+  parameters?: MetaEventParameters
+) {
   return queueOrSendMetaEvent({ kind: "custom", name: eventName, parameters });
 }
 
 export function flushPendingMetaEvent() {
-  if (!canUseBrowserStorage() || !hasMetaPixelConsent()) return;
-  const rawEvent = window.sessionStorage.getItem(PENDING_EVENT_STORAGE_KEY);
-  if (rawEvent) {
-    try {
+  if (!canUseBrowser() || !hasMetaPixelConsent()) return;
+  try {
+    const rawEvent = window.sessionStorage.getItem(PENDING_EVENT_STORAGE_KEY);
+    if (rawEvent) {
       const event = JSON.parse(rawEvent) as PendingMetaEvent;
-      if ((event.kind === "standard" || event.kind === "custom") && typeof event.name === "string") {
+      if (
+        (event.kind === "standard" || event.kind === "custom") &&
+        typeof event.name === "string"
+      ) {
         sendMetaEvent(event);
       }
-    } catch {
-      // Ignore malformed local session data rather than preventing consent setup.
     }
+  } catch {
+    // Ignore unavailable storage or malformed data rather than blocking consent.
   }
-  window.sessionStorage.removeItem(PENDING_EVENT_STORAGE_KEY);
+  try {
+    window.sessionStorage.removeItem(PENDING_EVENT_STORAGE_KEY);
+  } catch {
+    // Session storage can be unavailable independently of preference storage.
+  }
 }

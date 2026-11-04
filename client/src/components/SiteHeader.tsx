@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const NAV = [
-  { label: "Features", href: "/#features" },
+  { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
   { label: "Changelog", href: "/changelog" },
   { label: "Contact", href: "/contact" },

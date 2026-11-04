@@ -1,7 +1,14 @@
-const MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID ?? "").trim();
-const CONSENT_STORAGE_KEY = "snappost-google-analytics-consent";
+import {
+  GOOGLE_CONSENT_KEY,
+  isConsentChoice,
+  notifyConsentUpdated,
+  readConsentPreference,
+  writeConsentPreference,
+  type ConsentChoice,
+} from "./consentStorage";
 
-type ConsentChoice = "granted" | "denied";
+const MEASUREMENT_ID = (import.meta.env.VITE_GA_MEASUREMENT_ID ?? "").trim();
+
 type GoogleAnalyticsEventParameters = Record<string, string | number | boolean>;
 type GtagFunction = (...args: unknown[]) => void;
 
@@ -50,32 +57,30 @@ function currentPagePath() {
 export function hasGoogleAnalyticsConsent() {
   return (
     canUseBrowserStorage() &&
-    window.localStorage.getItem(CONSENT_STORAGE_KEY) === "granted"
+    readConsentPreference(GOOGLE_CONSENT_KEY) === "granted"
   );
 }
 
 /** Whether the visitor has saved an Analytics preference. */
 export function hasGoogleAnalyticsChoice() {
   return (
-    canUseBrowserStorage() &&
-    window.localStorage.getItem(CONSENT_STORAGE_KEY) !== null
+    canUseBrowserStorage() && readConsentPreference(GOOGLE_CONSENT_KEY) !== null
   );
 }
 
 /** Save the visitor's Analytics preference and apply it to an already loaded tag. */
 export function setGoogleAnalyticsConsent(choice: ConsentChoice) {
-  if (!canUseBrowserStorage()) return;
+  if (!canUseBrowserStorage() || !isConsentChoice(choice)) return false;
 
-  window.localStorage.setItem(CONSENT_STORAGE_KEY, choice);
+  const persisted = writeConsentPreference(GOOGLE_CONSENT_KEY, choice);
   if (choice === "granted") {
     initializeGoogleAnalytics();
-    return;
-  }
-
-  lastTrackedPagePath = null;
-  if (window.gtag) {
+  } else if (window.gtag) {
+    lastTrackedPagePath = null;
     gtag("consent", "update", { analytics_storage: "denied" });
   }
+  notifyConsentUpdated();
+  return persisted;
 }
 
 /**

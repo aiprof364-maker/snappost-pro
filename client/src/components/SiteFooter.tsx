@@ -14,11 +14,30 @@ export default function SiteFooter() {
           <span className="font-display font-bold">SnapPost Pro</span>
         </div>
         <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <a href="/#features" className="hover:text-foreground">Features</a>
-          <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
-          <Link href="/changelog" className="hover:text-foreground">Changelog</Link>
-          <Link href="/contact" className="hover:text-foreground">Contact</Link>
-          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+          <Link href="/features" className="hover:text-foreground">
+            Features
+          </Link>
+          <Link href="/pricing" className="hover:text-foreground">
+            Pricing
+          </Link>
+          <Link href="/changelog" className="hover:text-foreground">
+            Changelog
+          </Link>
+          <Link href="/contact" className="hover:text-foreground">
+            Contact
+          </Link>
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <button
+            type="button"
+            className="hover:text-foreground"
+            onClick={() =>
+              window.dispatchEvent(new Event("snappost-open-cookie-settings"))
+            }
+          >
+            Cookie settings
+          </button>
         </nav>
         <p className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} SnapPost Pro. All rights reserved.

@@ -10,119 +10,148 @@ import {
   initializeGoogleAnalytics,
   setGoogleAnalyticsConsent,
 } from "@/lib/googleAnalytics";
+import {
+  CONSENT_UPDATED_EVENT,
+  OPEN_COOKIE_SETTINGS_EVENT,
+  type ConsentChoice,
+} from "@/lib/consentStorage";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
 
-type ConsentChoice = "granted" | "denied";
-
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
-  const [analyticsChoice, setAnalyticsChoice] =
-    useState<ConsentChoice>(() =>
-      hasGoogleAnalyticsConsent() ? "granted" : "denied"
-    );
-  const [advertisingChoice, setAdvertisingChoice] =
-    useState<ConsentChoice>(() =>
-      hasMetaPixelConsent() ? "granted" : "denied"
-    );
+  const [customizing, setCustomizing] = useState(false);
+  const [analyticsChoice, setAnalyticsChoice] = useState<ConsentChoice>(() =>
+    hasGoogleAnalyticsConsent() ? "granted" : "denied"
+  );
+  const [advertisingChoice, setAdvertisingChoice] = useState<ConsentChoice>(
+    () => (hasMetaPixelConsent() ? "granted" : "denied")
+  );
 
   useEffect(() => {
-    const hasAnalyticsPreference = hasGoogleAnalyticsChoice();
-    const hasAdvertisingPreference = hasMetaPixelChoice();
-    if (hasAnalyticsPreference) initializeGoogleAnalytics();
-    if (hasAdvertisingPreference) {
-      initializeMetaPixel();
-    }
-    setVisible(!hasAnalyticsPreference || !hasAdvertisingPreference);
+    const syncChoices = () => {
+      setAnalyticsChoice(hasGoogleAnalyticsConsent() ? "granted" : "denied");
+      setAdvertisingChoice(hasMetaPixelConsent() ? "granted" : "denied");
+    };
+    const openSettings = () => {
+      syncChoices();
+      setCustomizing(true);
+      setVisible(true);
+    };
+    const consentUpdated = () => {
+      syncChoices();
+      if (hasGoogleAnalyticsChoice() && hasMetaPixelChoice()) setVisible(false);
+    };
+
+    initializeGoogleAnalytics();
+    initializeMetaPixel();
+    setVisible(!hasGoogleAnalyticsChoice() || !hasMetaPixelChoice());
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
+    window.addEventListener(CONSENT_UPDATED_EVENT, consentUpdated);
+    return () => {
+      window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, openSettings);
+      window.removeEventListener(CONSENT_UPDATED_EVENT, consentUpdated);
+    };
   }, []);
 
-  const saveChoices = () => {
-    setGoogleAnalyticsConsent(analyticsChoice);
-    setMetaPixelConsent(advertisingChoice);
+  const applyChoices = (
+    analytics: ConsentChoice,
+    advertising: ConsentChoice
+  ) => {
+    setGoogleAnalyticsConsent(analytics);
+    setMetaPixelConsent(advertising);
+    setAnalyticsChoice(analytics);
+    setAdvertisingChoice(advertising);
     setVisible(false);
+    setCustomizing(false);
   };
-
-  const declineAll = () => {
-    setAnalyticsChoice("denied");
-    setAdvertisingChoice("denied");
-    setGoogleAnalyticsConsent("denied");
-    setMetaPixelConsent("denied");
-    setVisible(false);
-  };
+  const declineOptional = () => applyChoices("denied", "denied");
 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] border-t border-border bg-background/95 p-4 shadow-2xl backdrop-blur sm:p-5">
-      <div className="container max-w-5xl">
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Choose optional measurement below. You can decline and still use
-          SnapPost Pro. Read our{" "}
-          <Link href="/privacy" className="font-medium text-primary underline underline-offset-4">
-            Privacy Policy
-          </Link>
-          .
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <section className="rounded-xl border border-border bg-card p-3">
-            <p className="font-semibold">Analytics</p>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              Google Analytics measures visitor totals, pages and site actions.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={analyticsChoice === "granted" ? "default" : "outline"}
-                aria-pressed={analyticsChoice === "granted"}
-                onClick={() => setAnalyticsChoice("granted")}
-              >
-                Allow
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={analyticsChoice === "denied" ? "default" : "outline"}
-                aria-pressed={analyticsChoice === "denied"}
-                onClick={() => setAnalyticsChoice("denied")}
-              >
-                Decline
-              </Button>
-            </div>
-          </section>
-          <section className="rounded-xl border border-border bg-card p-3">
-            <p className="font-semibold">Advertising</p>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              Meta measures ad visits and free-account registrations.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={advertisingChoice === "granted" ? "default" : "outline"}
-                aria-pressed={advertisingChoice === "granted"}
-                onClick={() => setAdvertisingChoice("granted")}
-              >
-                Allow
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={advertisingChoice === "denied" ? "default" : "outline"}
-                aria-pressed={advertisingChoice === "denied"}
-                onClick={() => setAdvertisingChoice("denied")}
-              >
-                Decline
-              </Button>
-            </div>
-          </section>
+    <aside
+      aria-label="Cookie preferences"
+      className="fixed bottom-3 left-3 right-3 z-[100] rounded-xl border border-border bg-background p-4 shadow-lg sm:bottom-4 sm:left-auto sm:right-4 sm:w-[28rem]"
+    >
+      <button
+        type="button"
+        aria-label="Decline optional cookies and close"
+        title="Decline optional cookies and close"
+        onClick={declineOptional}
+        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+      <p className="pr-7 text-sm leading-5 text-muted-foreground">
+        Optional cookies help us measure site visits and ads. You can decline
+        and still use SnapPost Pro.
+      </p>
+      {customizing ? (
+        <div className="mt-3 space-y-3">
+          <label className="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={analyticsChoice === "granted"}
+              onChange={event =>
+                setAnalyticsChoice(event.target.checked ? "granted" : "denied")
+              }
+              className="h-4 w-4 accent-primary"
+            />
+            Google Analytics — site measurement
+          </label>
+          <label className="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={advertisingChoice === "granted"}
+              onChange={event =>
+                setAdvertisingChoice(
+                  event.target.checked ? "granted" : "denied"
+                )
+              }
+              className="h-4 w-4 accent-primary"
+            />
+            Meta — advertising measurement
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            className="w-full"
+            onClick={() => applyChoices(analyticsChoice, advertisingChoice)}
+          >
+            Save choices
+          </Button>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="outline" onClick={declineAll}>Decline all</Button>
-          <Button onClick={saveChoices}>Save choices</Button>
+      ) : (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Button type="button" size="sm" onClick={declineOptional}>
+            Decline optional
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => applyChoices("granted", "granted")}
+          >
+            Allow all
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="col-span-2"
+            onClick={() => setCustomizing(true)}
+          >
+            Customize
+          </Button>
         </div>
-      </div>
-    </div>
+      )}
+      <Link
+        href="/privacy"
+        className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-4"
+      >
+        Privacy Policy
+      </Link>
+    </aside>
   );
 }

@@ -62,10 +62,15 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem(
-      "snappost-user-info",
-      JSON.stringify(meQuery.data)
-    );
+    try {
+      window.localStorage.setItem(
+        "snappost-user-info",
+        JSON.stringify(meQuery.data)
+      );
+    } catch {
+      // This optional cache must not block public pages in restricted browsers.
+      // Authentication still comes from the server query, never this cache.
+    }
     return {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
@@ -85,10 +90,13 @@ export function useAuth(options?: UseAuthOptions) {
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
-    if (window.sessionStorage.getItem(INTENTIONAL_LOGOUT_STORAGE_KEY) === "true") return;
+    if (
+      window.sessionStorage.getItem(INTENTIONAL_LOGOUT_STORAGE_KEY) === "true"
+    )
+      return;
     if (window.location.pathname === redirectPath) return;
 
-    window.location.href = redirectPath
+    window.location.href = redirectPath;
   }, [
     redirectOnUnauthenticated,
     redirectPath,

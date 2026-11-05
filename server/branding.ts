@@ -1,12 +1,11 @@
 import sharp from "sharp";
+import { prepareLogoForBranding } from "./logoPreparation";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
 /**
- * Branding helper: composites a user's logo as a watermark onto a job-site photo.
- * Both inputs are storage keys; returns the storage key + url of the branded image.
- *
- * The logo is scaled to ~22% of the photo width and placed in the bottom-right
- * corner with a small margin and slight transparency so it reads as a brand mark.
+ * Add an optional, cleaned logo in the lower-right corner of the real photo.
+ * Logo artwork fits within 16% of image width and 20% of image height; it is
+ * never enlarged. Both public previews and saved customer drafts use this path.
  */
 export async function brandImage(params: {
   photoBuffer: Buffer;
@@ -15,45 +14,52 @@ export async function brandImage(params: {
 }): Promise<{ key: string; url: string }> {
   const { photoBuffer, logoBuffer, destKeyPrefix } = params;
 
-  const basePng = sharp(photoBuffer).rotate(); // respect EXIF orientation
-  const meta = await basePng.metadata();
-  const baseWidth = meta.width ?? 1080;
-  const baseHeight = meta.height ?? 1080;
-
-  // Normalize the base to a max width of 1080 for consistent social output.
-  const targetWidth = Math.min(baseWidth, 1080);
+  // Rotate before resizing so portrait EXIF images use their upright dimensions.
+  // A lossless intermediate avoids a second JPEG compression before compositing.
   const resizedBase = await sharp(photoBuffer)
     .rotate()
-    .resize({ width: targetWidth, withoutEnlargement: true })
+    .resize({ width: 1080, withoutEnlargement: true })
+    .png()
     .toBuffer();
-
   const resizedMeta = await sharp(resizedBase).metadata();
-  const finalWidth = resizedMeta.width ?? targetWidth;
-  const finalHeight = resizedMeta.height ?? baseHeight;
-
+  const finalWidth = resizedMeta.width!;
+  const finalHeight = resizedMeta.height!;
   let composited = sharp(resizedBase);
 
   if (logoBuffer) {
-    const logoWidth = Math.max(80, Math.round(finalWidth * 0.22));
-    const logoPng = await sharp(logoBuffer)
-      .resize({ width: logoWidth, withoutEnlargement: true })
-      .png()
-      .toBuffer();
-    const logoMeta = await sharp(logoPng).metadata();
-    const margin = Math.round(finalWidth * 0.03);
-    const left = Math.max(0, finalWidth - (logoMeta.width ?? logoWidth) - margin);
-    const top = Math.max(0, finalHeight - (logoMeta.height ?? logoWidth) - margin);
-
-    composited = composited.composite([
-      { input: logoPng, left, top, blend: "over" },
-    ]);
+    const logoPng = await prepareLogoForBranding(
+      logoBuffer,
+      finalWidth,
+      finalHeight
+    );
+    if (logoPng) {
+      const logoMeta = await sharp(logoPng).metadata();
+      const logoWidth = logoMeta.width!;
+      const logoHeight = logoMeta.height!;
+      const margin = Math.max(
+        0,
+        Math.min(
+          Math.round(Math.min(finalWidth, finalHeight) * 0.03),
+          Math.floor((finalWidth - logoWidth) / 2),
+          Math.floor((finalHeight - logoHeight) / 2)
+        )
+      );
+      composited = composited.composite([
+        {
+          input: logoPng,
+          left: finalWidth - logoWidth - margin,
+          top: finalHeight - logoHeight - margin,
+          blend: "over",
+        },
+      ]);
+    }
   }
 
   const outBuffer = await composited.jpeg({ quality: 90 }).toBuffer();
   const { key, url } = await storagePut(
     `${destKeyPrefix}/branded.jpg`,
     outBuffer,
-    "image/jpeg",
+    "image/jpeg"
   );
   return { key, url };
 }

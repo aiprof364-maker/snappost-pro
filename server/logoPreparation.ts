@@ -8,7 +8,7 @@ function checkerboardTones(
   pixels: Buffer,
   width: number,
   height: number
-): { low: number; high: number } | null {
+): { low: number; high: number; cell: number } | null {
   const patchSize = Math.min(96, Math.floor(Math.min(width, height) / 4));
   if (patchSize < 16) return null;
 
@@ -91,7 +91,7 @@ function checkerboardTones(
         score(cell * 2, false, true) >= 0.83
       );
     });
-    if (matches) return { low, high };
+    if (matches) return { low, high, cell };
   }
   return null;
 }
@@ -136,19 +136,22 @@ export async function prepareLogoForBranding(
     const queue = new Int32Array(width * height);
     let head = 0;
     let tail = 0;
-    const enqueue = (pixel: number) => {
-      if (background[pixel]) return;
+    const isBackgroundTone = (pixel: number) => {
       const i = pixel * 4;
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
       const brightness = (r + g + b) / 3;
       // Include JPEG/grid-edge interpolation between the two detected tones.
-      if (
+      return (
         Math.max(r, g, b) - Math.min(r, g, b) <= 18 &&
         brightness >= tones.low - 40 &&
         brightness <= tones.high + 40
-      ) {
+      );
+    };
+    const enqueue = (pixel: number) => {
+      if (background[pixel]) return;
+      if (isBackgroundTone(pixel)) {
         background[pixel] = 1;
         queue[tail++] = pixel;
       }
@@ -173,6 +176,66 @@ export async function prepareLogoForBranding(
       if (x + 1 < width && y > 0) enqueue(pixel - width + 1);
       if (x > 0 && y + 1 < height) enqueue(pixel + width - 1);
       if (x + 1 < width && y + 1 < height) enqueue(pixel + width + 1);
+    }
+    // Holes in letters/symbols can contain the SAME baked-in grid. Only remove
+    // small enclosed regions with independently confirmed two-axis periodicity.
+    // Large enclosed patterns and solid-grey/white artwork remain untouched.
+    const visited = new Uint8Array(width * height);
+    const maxHole = Math.floor(width * height * 0.04);
+    const midpoint = (tones.low + tones.high) / 2;
+    const bit = (pixel: number) => {
+      const i = pixel * 4;
+      return (data[i] + data[i + 1] + data[i + 2]) / 3 >= midpoint;
+    };
+    for (let start = 0; start < visited.length; start++) {
+      if (background[start] || visited[start] || !isBackgroundTone(start))
+        continue;
+      head = 0;
+      tail = 0;
+      queue[tail++] = start;
+      visited[start] = 1;
+      while (head < tail) {
+        const pixel = queue[head++];
+        const x = pixel % width;
+        const y = Math.floor(pixel / width);
+        const neighbours = [
+          x > 0 ? pixel - 1 : -1,
+          x + 1 < width ? pixel + 1 : -1,
+          y > 0 ? pixel - width : -1,
+          y + 1 < height ? pixel + width : -1,
+        ];
+        for (const neighbour of neighbours) {
+          if (neighbour < 0 || visited[neighbour] || background[neighbour])
+            continue;
+          if (isBackgroundTone(neighbour)) {
+            visited[neighbour] = 1;
+            queue[tail++] = neighbour;
+          }
+        }
+      }
+      if (tail < 16 || tail > maxHole) continue;
+      const regionPixels = Array.from(queue.subarray(0, tail));
+      const region = new Set(regionPixels);
+      const score = (offset: number, horizontal: boolean, same: boolean) => {
+        let matching = 0;
+        let count = 0;
+        for (const pixel of regionPixels) {
+          if (horizontal && (pixel % width) + offset >= width) continue;
+          const neighbour = pixel + (horizontal ? offset : offset * width);
+          if (!region.has(neighbour)) continue;
+          if ((bit(pixel) === bit(neighbour)) === same) matching++;
+          count++;
+        }
+        return count >= 12 ? matching / count : 0;
+      };
+      if (
+        score(tones.cell, true, false) >= 0.7 &&
+        score(tones.cell, false, false) >= 0.7 &&
+        score(tones.cell * 2, true, true) >= 0.75 &&
+        score(tones.cell * 2, false, true) >= 0.75
+      ) {
+        for (const pixel of regionPixels) background[pixel] = 1;
+      }
     }
     for (let pixel = 0; pixel < background.length; pixel++) {
       if (background[pixel]) data[pixel * 4 + 3] = 0;

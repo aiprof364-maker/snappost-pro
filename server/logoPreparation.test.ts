@@ -45,6 +45,9 @@ describe("prepareLogoForBranding", () => {
     const { data, info } = await pixels(output!);
     expect(info.width).toBeLessThan(180);
     expect(info.height).toBeLessThan(150);
+    // A verified checker-filled hole inside the real roof symbol, not just its
+    // outer rectangular backdrop, must become transparent too.
+    expect(data[(39 * info.width + 69) * 4 + 3]).toBe(0);
     let transparent = 0;
     let blueInk = 0;
     for (let i = 0; i < data.length; i += 4) {

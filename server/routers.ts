@@ -12,6 +12,12 @@ import { createNewsletterSubscriber } from "./db";
 import { attemptImmediateNewsletterWelcome } from "./newsletterAutomation";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { configuredAdminEmail } from "./adminIdentity";
+import {
+  PREVIEW_BUSINESS_NAME_MAX,
+  PREVIEW_CALL_TO_ACTION,
+  PREVIEW_SUBURB_MAX,
+  cleanPreviewText,
+} from "@shared/previewCaption";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { generateCaption } from "./captions";
 import {
@@ -314,6 +320,8 @@ export const appRouter = router({
           logo: z.string().min(10).max(2_800_000).optional(),
           trade: z.string().max(60).optional(),
           tone: z.string().max(40).optional(),
+          businessName: z.string().max(PREVIEW_BUSINESS_NAME_MAX).optional(),
+          suburb: z.string().max(PREVIEW_SUBURB_MAX).optional(),
           landing: z.enum(["contractors", "hairdressers"]).optional(),
         })
       )
@@ -326,6 +334,11 @@ export const appRouter = router({
         const logo = input.logo
           ? decodePreviewImage(input.logo, 2 * 1024 * 1024)
           : null;
+        const businessName = cleanPreviewText(
+          input.businessName,
+          PREVIEW_BUSINESS_NAME_MAX
+        );
+        const suburb = cleanPreviewText(input.suburb, PREVIEW_SUBURB_MAX);
         const createdAt = Date.now();
         const keyPrefix = `previews/${createdAt}`;
         const ext = photoMime.includes("png") ? "png" : "jpg";
@@ -353,11 +366,20 @@ export const appRouter = router({
             imageUrl: signedUrl,
             trade: input.trade,
             tone: input.tone,
+            businessName,
+            suburb,
+            callToAction: PREVIEW_CALL_TO_ACTION,
           });
           const branded = await brandImage({
             photoBuffer,
             logoBuffer: logo?.buffer,
             destKeyPrefix: keyPrefix,
+            frame: "square",
+            textBadge: {
+              businessName,
+              suburb,
+              callToAction: PREVIEW_CALL_TO_ACTION,
+            },
           });
           return await createPreviewDraft({
             landing: previewLanding(input.landing),
@@ -367,6 +389,8 @@ export const appRouter = router({
             brandedImageKey: branded.key,
             brandedImageUrl: branded.url,
             caption,
+            businessName,
+            suburb,
           });
         } catch (error) {
           console.error("[Preview] Creation failed", error);

@@ -165,6 +165,10 @@ export const previewDrafts = mysqlTable(
     brandedImageKey: varchar("brandedImageKey", { length: 256 }).notNull(),
     brandedImageUrl: varchar("brandedImageUrl", { length: 512 }).notNull(),
     caption: text("caption").notNull(),
+    /** Visitor-supplied name shown on a no-logo preview. Never invented. */
+    businessName: varchar("businessName", { length: 80 }),
+    /** Visitor-supplied suburb shown on a no-logo preview. Never invented. */
+    suburb: varchar("suburb", { length: 60 }),
     emailRequestedAt: timestamp("emailRequestedAt"),
     userId: int("userId"),
     postId: int("postId"),

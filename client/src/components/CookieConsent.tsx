@@ -28,6 +28,7 @@ export default function CookieConsent() {
   const [advertisingChoice, setAdvertisingChoice] = useState<ConsentChoice>(
     () => (hasMetaPixelConsent() ? "granted" : "denied")
   );
+  const [bannerNode, setBannerNode] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     const syncChoices = () => {
@@ -55,6 +56,26 @@ export default function CookieConsent() {
     };
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!visible) {
+      root?.style?.removeProperty("--cookie-offset");
+      return;
+    }
+    if (!bannerNode || !root?.style) return;
+    const apply = () => {
+      root.style.setProperty("--cookie-offset", `${bannerNode.offsetHeight}px`);
+    };
+    apply();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(apply);
+    observer.observe(bannerNode);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--cookie-offset");
+    };
+  }, [bannerNode, customizing, visible]);
+
   const applyChoices = (
     analytics: ConsentChoice,
     advertising: ConsentChoice
@@ -72,9 +93,11 @@ export default function CookieConsent() {
 
   return (
     <aside
+      ref={setBannerNode}
       aria-label="Cookie preferences"
-      className="fixed bottom-3 left-3 right-3 z-[100] rounded-xl border border-border bg-background p-4 shadow-lg sm:bottom-4 sm:left-auto sm:right-4 sm:w-[28rem]"
+      className="fixed top-0 right-0 left-0 z-[60] border-b border-border bg-background shadow-sm"
     >
+      <style>{`:root{--cookie-offset:196px}`}</style>
       <button
         type="button"
         aria-label="Decline optional cookies and close"
@@ -84,74 +107,86 @@ export default function CookieConsent() {
       >
         <span aria-hidden="true">×</span>
       </button>
-      <p className="pr-7 text-sm leading-5 text-muted-foreground">
-        Optional cookies help us measure site visits and ads. You can decline
-        and still use SnapPost Pro.
-      </p>
-      {customizing ? (
-        <div className="mt-3 space-y-3">
-          <label className="flex items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={analyticsChoice === "granted"}
-              onChange={event =>
-                setAnalyticsChoice(event.target.checked ? "granted" : "denied")
-              }
-              className="h-4 w-4 accent-primary"
-            />
-            Google Analytics — site measurement
-          </label>
-          <label className="flex items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={advertisingChoice === "granted"}
-              onChange={event =>
-                setAdvertisingChoice(
-                  event.target.checked ? "granted" : "denied"
-                )
-              }
-              className="h-4 w-4 accent-primary"
-            />
-            Meta — advertising measurement
-          </label>
-          <Button
-            type="button"
-            size="sm"
-            className="w-full"
-            onClick={() => applyChoices(analyticsChoice, advertisingChoice)}
+      <div className="container py-3 pr-10 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <p className="text-sm leading-5 text-muted-foreground">
+            Optional cookies help us measure site visits and ads. You can
+            decline and still use SnapPost Pro.
+          </p>
+          <Link
+            href="/privacy"
+            className="mt-1 inline-block text-xs text-muted-foreground underline underline-offset-4"
           >
-            Save choices
-          </Button>
+            Privacy Policy
+          </Link>
         </div>
-      ) : (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button type="button" size="sm" onClick={declineOptional}>
-            Decline optional
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => applyChoices("granted", "granted")}
-          >
-            Allow all
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="col-span-2"
-            onClick={() => setCustomizing(true)}
-          >
-            Customize
-          </Button>
-        </div>
-      )}
-      <Link
-        href="/privacy"
-        className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-4"
-      >
-        Privacy Policy
-      </Link>
+        {customizing ? (
+          <div className="mt-3 space-y-3 sm:mt-0 sm:w-72">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={analyticsChoice === "granted"}
+                onChange={event =>
+                  setAnalyticsChoice(
+                    event.target.checked ? "granted" : "denied"
+                  )
+                }
+                className="h-4 w-4 accent-primary"
+              />
+              Google Analytics — site measurement
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={advertisingChoice === "granted"}
+                onChange={event =>
+                  setAdvertisingChoice(
+                    event.target.checked ? "granted" : "denied"
+                  )
+                }
+                className="h-4 w-4 accent-primary"
+              />
+              Meta — advertising measurement
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              className="w-full"
+              onClick={() => applyChoices(analyticsChoice, advertisingChoice)}
+            >
+              Save choices
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-2 sm:mt-0 sm:shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              className="min-w-36 flex-1 sm:flex-none"
+              onClick={declineOptional}
+            >
+              Decline optional
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="min-w-36 flex-1 sm:flex-none"
+              onClick={() => applyChoices("granted", "granted")}
+            >
+              Allow all
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => setCustomizing(true)}
+            >
+              Customize
+            </Button>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

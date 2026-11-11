@@ -78,6 +78,13 @@
       "when": 1792439119622,
       "tag": "0010_make_preview_logo_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1794367335199,
+      "tag": "0011_preview_business_details",
+      "breakpoints": true
     }
   ]
 }

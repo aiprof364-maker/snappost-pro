@@ -16,10 +16,15 @@ const NAV = [
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [location] = useLocation();
   const { isAuthenticated, loading, logout } = useAuth();
+  const onPreview = location.startsWith("/preview");
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <header
+      className="sticky z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md"
+      style={{ top: "var(--cookie-offset, 0px)" }}
+    >
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <img
@@ -67,13 +72,21 @@ export default function SiteHeader() {
           )}
         </div>
 
-        <button
-          className="md:hidden"
-          onClick={() => setOpen(v => !v)}
-          aria-label="Toggle menu"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {!loading && !isAuthenticated && !onPreview && (
+            <a href="/preview">
+              <Button size="sm">Free preview</Button>
+            </a>
+          )}
+          {!loading && isAuthenticated && (
+            <Link href="/dashboard">
+              <Button size="sm">Dashboard</Button>
+            </Link>
+          )}
+          <button onClick={() => setOpen(v => !v)} aria-label="Toggle menu">
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
       </div>
 
       {open && (

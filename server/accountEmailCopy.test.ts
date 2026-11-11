@@ -53,6 +53,11 @@ describe("account email copy", () => {
     const message = payload();
     expect(message.subject).toBe("Your secure SnapPost Pro access link");
     expect(message.html).toContain("Open SnapPost Pro");
+    expect(message.html).toContain("stays active for 24 hours");
+    expect(message.html).toContain("more than once");
+    expect(message.html).toContain("request a new one");
+    expect(message.html).not.toContain("15 minutes");
+    expect(message.html).not.toContain("can only be used once");
     expect(message.html).not.toContain("Sign in to SnapPost Pro");
   });
 

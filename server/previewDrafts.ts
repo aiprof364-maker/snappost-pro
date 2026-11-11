@@ -225,7 +225,7 @@ export async function markPreviewEmailRequested(token: string) {
 
 /**
  * Turn one anonymous preview into one saved draft after its owner opens the
- * one-time email link. The row claim and draft creation are one transaction,
+ * email access link. The row claim and draft creation are one transaction,
  * so the same preview cannot be claimed twice.
  */
 export async function claimPreviewDraft(input: {

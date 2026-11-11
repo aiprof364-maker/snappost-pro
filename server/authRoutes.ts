@@ -28,23 +28,39 @@ function supportedLanding(
     : undefined;
 }
 
+function loginProblemPath(
+  error: "expired-link" | "invalid-link" | "sign-in-failed",
+  next: string
+) {
+  const params = new URLSearchParams({ error, next });
+  return `/login?${params.toString()}`;
+}
+
 export function registerAuthRoutes(app: Express) {
   app.get("/api/auth/verify", async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Referrer-Policy", "no-referrer");
     const token = typeof req.query.token === "string" ? req.query.token : "";
+    const next = safeReturnPath(req.query.next);
     if (!token) {
-      res.redirect(302, "/login?error=invalid-link");
+      res.redirect(302, loginProblemPath("invalid-link", next));
       return;
     }
     try {
-      const next = safeReturnPath(req.query.next);
       const redirectUrl = new URL(next, "https://snappostpro.com");
       const landing = supportedLanding(redirectUrl.searchParams.get("landing"));
       const authResult = await consumeMagicLinkToken(
         token,
         landing ? { landing } : undefined
       );
-      if (!authResult) {
-        res.redirect(302, "/login?error=expired-link");
+      if (authResult.status !== "ok") {
+        res.redirect(
+          302,
+          loginProblemPath(
+            authResult.status === "expired" ? "expired-link" : "invalid-link",
+            next
+          )
+        );
         return;
       }
       await logConversionEvent(
@@ -76,7 +92,7 @@ export function registerAuthRoutes(app: Express) {
       res.redirect(302, `${redirectUrl.pathname}${redirectUrl.search}`);
     } catch (error) {
       console.error("[Auth] Magic-link verification failed", error);
-      res.redirect(302, "/login?error=sign-in-failed");
+      res.redirect(302, loginProblemPath("sign-in-failed", next));
     }
   });
 }

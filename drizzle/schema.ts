@@ -55,7 +55,10 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-/** One-time passwordless email sign-in links for the Railway-hosted app. */
+/**
+ * Passwordless email access links. A link stays valid until expiresAt and can
+ * be opened again during that window. usedAt records the first successful open.
+ */
 export const authTokens = mysqlTable("auth_tokens", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),

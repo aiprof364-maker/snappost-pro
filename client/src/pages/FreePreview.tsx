@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
+import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
 import {
   ArrowRight,
   CheckCircle2,
@@ -550,8 +551,10 @@ export default function FreePreview() {
                       Your secure access link is on its way.
                     </p>
                     <p className="mt-1 text-sm text-emerald-800">
-                      Open the email from SnapPost Pro within 15 minutes. Your
-                      preview will be waiting in your dashboard.
+                      Open the email from SnapPost Pro when you can. The link stays
+                      active for {ACCESS_LINK_LIFETIME_LABEL}, and you can open
+                      it more than once if you get interrupted. Your preview
+                      will be waiting in your dashboard.
                     </p>
                   </div>
                 ) : (

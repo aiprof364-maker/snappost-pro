@@ -1,10 +1,15 @@
-import express, { type Express } from "express";
+import type { Express } from "express";
 import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import {
+  applyHtmlDocumentCacheHeaders,
+  cachedStatic,
+  sendSpaShell,
+} from "./staticCache";
 
 const PREVIEW_PAGE_TITLE =
   "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
@@ -76,18 +81,20 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-export function serveStatic(app: Express) {
-  const distPath =
-    process.env.NODE_ENV === "development"
-      ? path.resolve(import.meta.dirname, "../..", "dist", "public")
-      : path.resolve(import.meta.dirname, "public");
+function staticDistPath() {
+  return process.env.NODE_ENV === "development"
+    ? path.resolve(import.meta.dirname, "../..", "dist", "public")
+    : path.resolve(import.meta.dirname, "public");
+}
+
+export function serveStatic(app: Express, distPath = staticDistPath()) {
   if (!fs.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(cachedStatic(distPath));
 
   app.get("/preview", async (_req, res, next) => {
     try {
@@ -95,10 +102,9 @@ export function serveStatic(app: Express) {
         path.resolve(distPath, "index.html"),
         "utf-8"
       );
-      res
-        .status(200)
-        .set({ "Content-Type": "text/html" })
-        .end(withPreviewMetadata(template));
+      res.status(200).set({ "Content-Type": "text/html" });
+      applyHtmlDocumentCacheHeaders(res);
+      res.end(withPreviewMetadata(template));
     } catch (error) {
       next(error);
     }
@@ -106,6 +112,6 @@ export function serveStatic(app: Express) {
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    sendSpaShell(res, distPath);
   });
 }

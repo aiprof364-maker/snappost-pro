@@ -1,8 +1,10 @@
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import BeforeAfterCaptionProof from "@/components/BeforeAfterCaptionProof";
+import LandingPromoVideo from "@/components/LandingPromoVideo";
 import { Button } from "@/components/ui/button";
 import { LANDING_MOCKUP } from "@/lib/landingMockup";
+import { LANDING_PROMOS } from "@/lib/landingPromos";
 import { trackMetaCustomEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -98,27 +100,34 @@ export default function Contractors() {
                 an email. Add a logo if you have one, then connect or create a
                 Facebook Page only when you are ready to publish.
               </p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <a href={primaryCta} onClick={trackFreeStartClick}>
-                  <Button
-                    size="lg"
-                    className="w-full gap-2 px-8 py-6 text-base font-bold sm:w-auto"
+              <div className="mt-6 flex items-center gap-4 sm:gap-5">
+                <LandingPromoVideo {...LANDING_PROMOS.contractors} />
+                <div className="flex min-w-0 flex-1 flex-col gap-3">
+                  <a
+                    href={primaryCta}
+                    onClick={trackFreeStartClick}
+                    className="flex"
                   >
-                    {isAuthenticated
-                      ? "Go to dashboard"
-                      : "Create my free post preview"}{" "}
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </a>
-                <Link href="/pricing">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full px-8 py-6 text-base font-semibold sm:w-auto"
-                  >
-                    View pricing
-                  </Button>
-                </Link>
+                    <Button
+                      size="lg"
+                      className="h-auto w-full whitespace-normal px-4 py-4 text-left text-sm font-bold leading-snug sm:px-6 sm:py-5 sm:text-base"
+                    >
+                      {isAuthenticated
+                        ? "Go to dashboard"
+                        : "Create my free post preview"}{" "}
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </a>
+                  <Link href="/pricing" className="flex">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-auto w-full whitespace-normal px-4 py-4 text-sm font-semibold sm:px-6 sm:py-5 sm:text-base"
+                    >
+                      View pricing
+                    </Button>
+                  </Link>
+                </div>
               </div>
               <p className="mt-3 text-sm font-medium text-muted-foreground">
                 3 posts total · No card required · Logo optional · Connect a

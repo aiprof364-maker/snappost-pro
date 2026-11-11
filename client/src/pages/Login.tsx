@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Loader2, Mail, ShieldCheck } from "lucide-react";
+import {
+  ACCESS_LINK_LIFETIME_LABEL,
+  accessLinkProblem,
+  accessLinkProblemHelp,
+  accessLinkSentHint,
+} from "@shared/accessLink";
 import { trpc } from "@/lib/trpc";
 import { trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
@@ -19,6 +25,7 @@ export default function Login() {
   const isAdminAccess = nextUrl.pathname === "/admin";
   const isFreeStart =
     nextUrl.pathname === "/dashboard" || nextUrl.pathname === "/preview";
+  const problem = accessLinkProblem(query.get("error"));
   const requestLink = trpc.auth.requestSignInLink.useMutation({
     onSuccess: () => {
       trackMetaEvent("Lead", {
@@ -51,19 +58,6 @@ export default function Login() {
     return () => window.clearInterval(timer);
   }, [cooldown]);
 
-  useEffect(() => {
-    const error = query.get("error");
-    if (error === "expired-link") {
-      setMessage(
-        "That access link has expired. Enter your email below and we’ll send a new one."
-      );
-    } else if (error === "invalid-link" || error === "sign-in-failed") {
-      setMessage(
-        "That access link could not be used. Enter your email below and we’ll send a new one."
-      );
-    }
-  }, [query]);
-
   const requestSignInLink = () => {
     setMessage("");
     requestLink.mutate({ email, origin: window.location.origin, next });
@@ -79,6 +73,21 @@ export default function Login() {
     requestSignInLink();
   };
 
+  const title = problem
+    ? problem.title
+    : isAdminAccess
+      ? "Admin access"
+      : isFreeStart
+        ? "Start your 3 free posts"
+        : "Sign in securely";
+  const intro = problem
+    ? `${problem.body} ${accessLinkProblemHelp(isAdminAccess)}`
+    : isAdminAccess
+      ? `Send a secure access link to the SnapPost Pro admin inbox. It stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once.`
+      : isFreeStart
+        ? `No password or card required. Enter your business email and we’ll send a free access link so you can create your first branded post. The link stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once.`
+        : `Enter your email and we’ll send a sign-in link. It stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once. No Manus account is needed.`;
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,#e9e7ff_0,transparent_32%),linear-gradient(135deg,#fafbff,#f7f6ee)] px-5 py-12 text-slate-950">
       <section className="mx-auto max-w-md rounded-3xl border border-white/80 bg-white/90 p-8 shadow-xl shadow-slate-900/10 backdrop-blur">
@@ -88,19 +97,16 @@ export default function Login() {
         <div className="mt-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Mail className="h-6 w-6" />
         </div>
-        <h1 className="mt-5 text-3xl font-black tracking-tight">
-          {isAdminAccess
-            ? "Admin access"
-            : isFreeStart
-              ? "Start your 3 free posts"
-              : "Sign in securely"}
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          {isAdminAccess
-            ? "Send a secure one-tap access link to the SnapPost Pro admin inbox."
-            : isFreeStart
-              ? "No password or card required. Enter your business email and we’ll send a one-tap free access link so you can create your first branded post."
-              : "Enter your email and we’ll send a one-time sign-in link. No Manus account is needed."}
+        <h1 className="mt-5 text-3xl font-black tracking-tight">{title}</h1>
+        <p
+          className={
+            problem
+              ? "mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+              : "mt-2 text-sm leading-6 text-slate-600"
+          }
+          role={problem ? "status" : undefined}
+        >
+          {intro}
         </p>
         {sent ? (
           <div className="mt-7 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950">
@@ -114,8 +120,8 @@ export default function Login() {
                       : "Your free access link is on its way."}
                   </strong>
                   <br />
-                  Open the email from SnapPost Pro and tap the link. It expires
-                  in 15 minutes.
+                  Open the email from SnapPost Pro and tap the link.{" "}
+                  {accessLinkSentHint()}
                 </p>
                 <p className="mt-3 text-emerald-800">
                   No email after two minutes? Check spam, then request another
@@ -153,6 +159,8 @@ export default function Login() {
             >
               {requestAdminAccessLink.isPending ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : problem ? (
+                problem.adminAction
               ) : (
                 "Send admin access link"
               )}
@@ -167,6 +175,7 @@ export default function Login() {
                 autoComplete="email"
                 inputMode="email"
                 required
+                autoFocus={Boolean(problem)}
                 value={email}
                 onChange={event => setEmail(event.target.value)}
                 placeholder="you@yourbusiness.com"
@@ -181,6 +190,8 @@ export default function Login() {
             >
               {requestLink.isPending ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : problem ? (
+                problem.emailAction
               ) : isFreeStart ? (
                 "Send my free access link"
               ) : (

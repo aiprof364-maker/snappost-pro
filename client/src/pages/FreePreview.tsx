@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import {
+  PREVIEW_BUSINESS_NAME_MAX,
+  PREVIEW_SUBURB_MAX,
+} from "@shared/previewCaption";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
@@ -33,9 +37,26 @@ type PreviewResult = {
   originalImageUrl: string;
   brandedImageUrl: string;
   hasLogo: boolean;
+  businessName: string | null;
+  suburb: string | null;
   caption: string;
   expiresAt: Date;
 };
+
+function previewImageAlt(preview: PreviewResult) {
+  if (preview.hasLogo) return "Your photo with your business logo watermark";
+  const details = [preview.businessName, preview.suburb].filter(Boolean);
+  if (details.length === 0) return "Your photo ready for Facebook";
+  return `Your photo branded with ${details.join(", ")} and a call to action`;
+}
+
+function previewImageCaption(preview: PreviewResult) {
+  if (preview.hasLogo) return "Your photo with your logo watermark";
+  if (preview.businessName || preview.suburb) {
+    return "Your photo branded with your business details and a call to action";
+  }
+  return "Your photo, ready to post";
+}
 
 const PREVIEW_PAGE_TITLE =
   "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
@@ -45,7 +66,7 @@ const PREVIEW_PAGE_DESCRIPTION =
 function updateMetaContent(
   attribute: "name" | "property",
   value: string,
-  content: string,
+  content: string
 ) {
   const selector = `meta[${attribute}="${value}"]`;
   let element = document.head.querySelector<HTMLMetaElement>(selector);
@@ -167,6 +188,8 @@ export default function FreePreview() {
   );
   const [photo, setPhoto] = useState<File | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
+  const [businessName, setBusinessName] = useState("");
+  const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState("");
   const [tone, setTone] = useState("");
   const [photoPermission, setPhotoPermission] = useState(false);
@@ -179,8 +202,8 @@ export default function FreePreview() {
   const [claimMessage, setClaimMessage] = useState("");
   const claimStarted = useRef(false);
   const registrationTracked = useRef(false);
-  const [accountCreated] = useState(() =>
-    initialSearch.get("account_created") === "1"
+  const [accountCreated] = useState(
+    () => initialSearch.get("account_created") === "1"
   );
 
   useEffect(() => {
@@ -189,22 +212,22 @@ export default function FreePreview() {
     const restoreDescription = updateMetaContent(
       "name",
       "description",
-      PREVIEW_PAGE_DESCRIPTION,
+      PREVIEW_PAGE_DESCRIPTION
     );
     const restoreOgTitle = updateMetaContent(
       "property",
       "og:title",
-      PREVIEW_PAGE_TITLE,
+      PREVIEW_PAGE_TITLE
     );
     const restoreOgDescription = updateMetaContent(
       "property",
       "og:description",
-      PREVIEW_PAGE_DESCRIPTION,
+      PREVIEW_PAGE_DESCRIPTION
     );
     const restoreOgUrl = updateMetaContent(
       "property",
       "og:url",
-      "https://snappostpro.com/preview",
+      "https://snappostpro.com/preview"
     );
 
     return () => {
@@ -342,6 +365,8 @@ export default function FreePreview() {
         logo: logoImage,
         trade: trade.trim() || undefined,
         tone: tone.trim() || undefined,
+        businessName: businessName.trim() || undefined,
+        suburb: suburb.trim() || undefined,
         landing,
       });
     } catch {
@@ -376,6 +401,8 @@ export default function FreePreview() {
     setCaption("");
     setPhoto(null);
     setLogo(null);
+    setBusinessName("");
+    setSuburb("");
     setPhotoPermission(false);
     setFormError("");
     setSent(false);
@@ -435,7 +462,8 @@ export default function FreePreview() {
             <div className="container max-w-3xl py-4 text-center text-emerald-950">
               <p className="font-bold">Your 3 free posts are ready.</p>
               <p className="mt-1 text-sm text-emerald-900">
-                Add a photo of your work now to create your first branded Facebook post.
+                Add a photo of your work now to create your first branded
+                Facebook post.
               </p>
             </div>
           </section>
@@ -444,7 +472,8 @@ export default function FreePreview() {
           <div className="container max-w-3xl pb-5 pt-10 sm:pb-7 sm:pt-14">
             <div className="mx-auto max-w-2xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> Free branded Facebook-post preview
+                <Sparkles className="h-3.5 w-3.5" /> Free branded Facebook-post
+                preview
               </span>
               <h1 className="font-display mt-4 text-3xl font-extrabold sm:text-5xl">
                 Turn one photo of your work into a branded Facebook post — free.
@@ -493,22 +522,17 @@ export default function FreePreview() {
                   <figure className="border-b border-border/70 bg-muted/20 p-4 md:border-b-0 md:border-r">
                     <img
                       src={preview.brandedImageUrl}
-                      alt={
-                        preview.hasLogo
-                          ? "Your photo with your business logo watermark"
-                          : "Your photo ready for Facebook"
-                      }
-                      className="aspect-square w-full rounded-xl object-contain bg-white"
+                      alt={previewImageAlt(preview)}
+                      className="aspect-square w-full rounded-xl object-cover bg-white"
                     />
                     <figcaption className="mt-3 text-sm font-semibold text-muted-foreground">
-                      {preview.hasLogo
-                        ? "Your photo with your logo watermark"
-                        : "Your photo, ready to post"}
+                      {previewImageCaption(preview)}
                     </figcaption>
                   </figure>
                   <div className="p-5 sm:p-7">
                     <div className="flex items-center gap-2 text-sm font-bold text-primary">
-                      <PenLine className="h-4 w-4" /> SnapPost Pro-written caption
+                      <PenLine className="h-4 w-4" /> SnapPost Pro-written
+                      caption
                     </div>
                     <Label htmlFor="preview-caption" className="sr-only">
                       Your caption
@@ -538,10 +562,10 @@ export default function FreePreview() {
                       Save this post and start your 3 free posts
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                      Enter your business email and we will send one secure link.
-                      It saves this branded image and caption to your dashboard,
-                      ready for you to connect your Facebook Page and publish if
-                      you choose.
+                      Enter your business email and we will send one secure
+                      link. It saves this branded image and caption to your
+                      dashboard, ready for you to connect your Facebook Page and
+                      publish if you choose.
                     </p>
                   </div>
                 </div>
@@ -643,11 +667,50 @@ export default function FreePreview() {
                 <FilePicker
                   id="preview-logo"
                   label="Add your logo (optional)"
-                  helper="Have a logo? We will add it in the lower-right. No logo? Keep going."
+                  helper="Have a logo? We add it in the lower-right. No logo? Add your business name and suburb below."
                   value={logo}
                   maxBytes={MAX_LOGO_BYTES}
                   onChange={setLogo}
                 />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="preview-business-name">
+                      Business name{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (optional)
+                      </span>
+                    </Label>
+                    <Input
+                      id="preview-business-name"
+                      value={businessName}
+                      onChange={event => setBusinessName(event.target.value)}
+                      maxLength={PREVIEW_BUSINESS_NAME_MAX}
+                      placeholder="e.g. Northside Decks"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="preview-suburb">
+                      Suburb{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (optional)
+                      </span>
+                    </Label>
+                    <Input
+                      id="preview-suburb"
+                      value={suburb}
+                      onChange={event => setSuburb(event.target.value)}
+                      maxLength={PREVIEW_SUBURB_MAX}
+                      placeholder="e.g. Richmond"
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+                <p className="-mt-2 text-sm leading-6 text-muted-foreground">
+                  If you skip the logo, your business name and suburb appear on
+                  the preview with "Call us for a free quote". Blank fields stay
+                  blank. Your caption uses the same details.
+                </p>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="preview-trade">
@@ -710,8 +773,8 @@ export default function FreePreview() {
                   >
                     {createPreview.isPending ? (
                       <>
-                        <Loader2 className="h-5 w-5 animate-spin" /> Creating your
-                        preview…
+                        <Loader2 className="h-5 w-5 animate-spin" /> Creating
+                        your preview…
                       </>
                     ) : (
                       <>

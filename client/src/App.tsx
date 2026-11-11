@@ -62,8 +62,8 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <Router />
           <CookieConsent />
+          <Router />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

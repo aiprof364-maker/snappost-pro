@@ -37,6 +37,8 @@ function publicPreviewFields(draft: typeof previewDrafts.$inferSelect) {
     originalImageUrl: draft.originalImageUrl,
     brandedImageUrl: draft.brandedImageUrl,
     hasLogo: Boolean(draft.logoImageKey),
+    businessName: draft.businessName ?? null,
+    suburb: draft.suburb ?? null,
     caption: draft.caption,
     expiresAt: draft.expiresAt,
   };
@@ -80,6 +82,8 @@ export async function ensurePreviewDraftSchema() {
         brandedImageKey VARCHAR(256) NOT NULL,
         brandedImageUrl VARCHAR(512) NOT NULL,
         caption TEXT NOT NULL,
+        businessName VARCHAR(80) NULL,
+        suburb VARCHAR(60) NULL,
         emailRequestedAt TIMESTAMP NULL,
         userId INT NULL,
         postId INT NULL,
@@ -99,11 +103,57 @@ export async function ensurePreviewDraftSchema() {
         "ALTER TABLE preview_drafts MODIFY COLUMN logoImageKey VARCHAR(256) NULL"
       )
     );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN businessName VARCHAR(80) NULL"
+    );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN suburb VARCHAR(60) NULL"
+    );
   })().catch(error => {
     previewSchemaPromise = null;
     throw error;
   });
   return previewSchemaPromise;
+}
+
+function isDuplicateColumn(error: unknown) {
+  const messages: string[] = [];
+  const codes: Array<string | number | undefined> = [];
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current; depth++) {
+    if (current instanceof Error) messages.push(current.message);
+    if (typeof current === "object") {
+      const record = current as {
+        code?: string;
+        errno?: number;
+        cause?: unknown;
+      };
+      codes.push(record.code, record.errno);
+      current = record.cause;
+      continue;
+    }
+    break;
+  }
+  return (
+    codes.includes(1060) ||
+    codes.includes("ER_DUP_FIELDNAME") ||
+    messages.some(message => /duplicate column/i.test(message))
+  );
+}
+
+/** Additive column for databases created before business name and suburb. */
+async function ensurePreviewColumn(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  statement: string
+) {
+  try {
+    await db.execute(sql.raw(statement));
+  } catch (error) {
+    if (isDuplicateColumn(error)) return;
+    throw error;
+  }
 }
 
 /** Store the anonymous preview with a random token that is never persisted raw. */
@@ -115,6 +165,8 @@ export async function createPreviewDraft(input: {
   brandedImageKey: string;
   brandedImageUrl: string;
   caption: string;
+  businessName?: string;
+  suburb?: string;
 }) {
   await ensurePreviewDraftSchema();
   const db = await getDb();
@@ -132,6 +184,8 @@ export async function createPreviewDraft(input: {
     brandedImageKey: input.brandedImageKey,
     brandedImageUrl: input.brandedImageUrl,
     caption: input.caption,
+    businessName: input.businessName ?? null,
+    suburb: input.suburb ?? null,
     expiresAt,
   });
 
@@ -142,6 +196,8 @@ export async function createPreviewDraft(input: {
       originalImageUrl: input.originalImageUrl,
       logoImageKey: input.logoImageKey ?? null,
       brandedImageUrl: input.brandedImageUrl,
+      businessName: input.businessName ?? null,
+      suburb: input.suburb ?? null,
       caption: input.caption,
       expiresAt,
     } as typeof previewDrafts.$inferSelect),

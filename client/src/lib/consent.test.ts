@@ -378,6 +378,9 @@ describe("compact cookie notice", () => {
     expect(tree?.type).toBe("aside");
     expect(tree?.props["aria-label"]).toBe("Cookie preferences");
     expect(tree?.props["aria-modal"]).toBeUndefined();
+    expect(String(tree?.props.className)).toContain("top-0");
+    expect(String(tree?.props.className)).not.toContain("bottom-");
+    expect(text(tree)).toContain("--cookie-offset");
     expect(text(tree)).toContain(
       "Optional cookies help us measure site visits and ads. You can decline and still use SnapPost Pro."
     );

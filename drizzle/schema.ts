@@ -246,6 +246,19 @@ export type PreviewDraft = typeof previewDrafts.$inferSelect;
 export type InsertPreviewDraft = typeof previewDrafts.$inferInsert;
 
 /**
+ * UTC-day counter for anonymous photo-to-post previews.
+ * One row per day keeps the caption-model spend under a hard cap.
+ */
+export const previewDailyUsage = mysqlTable("preview_daily_usage", {
+  day: varchar("day", { length: 10 }).primaryKey(),
+  count: int("count").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PreviewDailyUsage = typeof previewDailyUsage.$inferSelect;
+export type InsertPreviewDailyUsage = typeof previewDailyUsage.$inferInsert;
+
+/**
  * Onboarding checklist tracking for new contractors.
  * Tracks completion of key setup steps to improve retention.
  */
@@ -280,7 +293,8 @@ export type InsertOnboardingChecklist = typeof onboardingChecklist.$inferInsert;
  */
 export const conversionEvents = mysqlTable("conversion_events", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+  /** Null for anonymous tool events such as tool_used and tool_signup_click. */
+  userId: int("userId"),
   eventType: varchar("eventType", { length: 64 }).notNull(),
   metadata: text("metadata"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

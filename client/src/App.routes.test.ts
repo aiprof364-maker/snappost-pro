@@ -42,4 +42,13 @@ describe("route splitting", () => {
   it("does not pull the component showcase into the app shell", () => {
     expect(source).not.toContain("ComponentShowcase");
   });
+
+  it("keeps the marketing shell from importing the preview page", () => {
+    const home = readFileSync(
+      new URL("./pages/Home.tsx", import.meta.url),
+      "utf8"
+    );
+    expect(home).not.toContain("./pages/FreePreview");
+    expect(home).not.toContain("pages/FreePreview");
+  });
 });

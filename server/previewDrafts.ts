@@ -29,6 +29,11 @@ function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/** Stable key for anonymous conversion events. The raw preview token is never stored. */
+export function anonymousPreviewDedupeKey(token: string) {
+  return tokenHash(token);
+}
+
 function startOfMonth(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -43,6 +48,9 @@ function publicPreviewFields(draft: typeof previewDrafts.$inferSelect) {
     landing: draft.landing,
     originalImageUrl: draft.originalImageUrl,
     brandedImageUrl: draft.brandedImageUrl,
+    hasWatermark: Boolean(
+      draft.cleanImageKey && draft.cleanImageKey !== draft.brandedImageKey
+    ),
     hasLogo: Boolean(draft.logoImageKey),
     businessName: draft.businessName ?? null,
     suburb: draft.suburb ?? null,
@@ -125,6 +133,21 @@ export async function ensurePreviewDraftSchema() {
     await ensurePreviewColumn(
       db,
       "ALTER TABLE preview_drafts ADD COLUMN cleanImageUrl VARCHAR(512) NULL"
+    );
+    // Same boot-time pattern as the referral columns: the daily cap table and
+    // anonymous conversion events must exist even if migration 0013 has not run.
+    await db.execute(
+      sql.raw(`
+      CREATE TABLE IF NOT EXISTS preview_daily_usage (
+        day VARCHAR(10) NOT NULL,
+        count INT NOT NULL,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (day)
+      ) ENGINE=InnoDB
+    `)
+    );
+    await db.execute(
+      sql.raw("ALTER TABLE conversion_events MODIFY COLUMN userId INT NULL")
     );
   })().catch(error => {
     previewSchemaPromise = null;
@@ -214,7 +237,9 @@ export async function createPreviewDraft(input: {
       landing: input.landing ?? null,
       originalImageUrl: input.originalImageUrl,
       logoImageKey: input.logoImageKey ?? null,
+      brandedImageKey: input.brandedImageKey,
       brandedImageUrl: input.brandedImageUrl,
+      cleanImageKey: input.cleanImageKey ?? null,
       businessName: input.businessName ?? null,
       suburb: input.suburb ?? null,
       caption: input.caption,
@@ -456,6 +481,9 @@ export async function cleanupExpiredPreviewDrafts() {
       storageDelete(draft.originalImageKey),
       storageDelete(draft.brandedImageKey),
       ...(draft.logoImageKey ? [storageDelete(draft.logoImageKey)] : []),
+      ...(draft.cleanImageKey && draft.cleanImageKey !== draft.brandedImageKey
+        ? [storageDelete(draft.cleanImageKey)]
+        : []),
     ]);
     await db.delete(previewDrafts).where(eq(previewDrafts.id, draft.id));
   }

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { createHash } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -642,11 +642,30 @@ export async function getStalledOnboardingUsers(hoursAgo: number): Promise<
 }
 
 
+let anonymousConversionSchema: Promise<void> | null = null;
+
+/** Allow tool_used and tool_signup_click before a visitor has an account. */
+async function ensureAnonymousConversionEvents() {
+  if (anonymousConversionSchema) return anonymousConversionSchema;
+  anonymousConversionSchema = (async () => {
+    const db = await getDb();
+    if (!db) return;
+    await db.execute(
+      sql.raw("ALTER TABLE conversion_events MODIFY COLUMN userId INT NULL")
+    );
+  })().catch(error => {
+    anonymousConversionSchema = null;
+    throw error;
+  });
+  return anonymousConversionSchema;
+}
+
 /**
  * Log a conversion event for funnel tracking.
+ * Pass null for anonymous events such as tool_used and tool_signup_click.
  */
 export async function logConversionEvent(
-  userId: number,
+  userId: number | null,
   eventType: string,
   metadata?: Record<string, any>
 ): Promise<void> {
@@ -654,6 +673,7 @@ export async function logConversionEvent(
   if (!db) return;
 
   try {
+    if (userId === null) await ensureAnonymousConversionEvents();
     const { conversionEvents } = await import("../drizzle/schema");
     await db.insert(conversionEvents).values({
       userId,
@@ -662,6 +682,42 @@ export async function logConversionEvent(
     });
   } catch (error) {
     console.error("[Database] Error logging conversion event:", error);
+  }
+}
+
+/**
+ * Record one anonymous funnel event per dedupe key.
+ * The key is a hash, never a raw preview token, email, or IP address.
+ */
+export async function logAnonymousConversionOnce(
+  eventType: string,
+  dedupeKey: string,
+  metadata?: Record<string, any>
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const safeKey = dedupeKey.replace(/[^a-f0-9]/gi, "").slice(0, 64);
+  if (!safeKey) return;
+
+  try {
+    await ensureAnonymousConversionEvents();
+    const { conversionEvents } = await import("../drizzle/schema");
+    const marker = `"dedupeKey":"${safeKey}"`;
+    const existing = await db
+      .select({ id: conversionEvents.id })
+      .from(conversionEvents)
+      .where(
+        and(
+          isNull(conversionEvents.userId),
+          eq(conversionEvents.eventType, eventType),
+          sql`${conversionEvents.metadata} LIKE ${`%${marker}%`}`
+        )
+      )
+      .limit(1);
+    if (existing.length > 0) return;
+    await logConversionEvent(null, eventType, { ...metadata, dedupeKey: safeKey });
+  } catch (error) {
+    console.error("[Database] Error logging anonymous conversion event:", error);
   }
 }
 

@@ -3,6 +3,12 @@ import sharp from "sharp";
 
 const MARK_TEXT = "Made with SnapPost";
 const MIN_SHORT_SIDE = 160;
+
+/** True when the upright photo is large enough for the shared free-plan mark. */
+export async function photoFitsSnapPostMark(photoBuffer: Buffer) {
+  const meta = await sharp(photoBuffer).rotate().metadata();
+  return Math.min(meta.width ?? 0, meta.height ?? 0) >= MIN_SHORT_SIDE;
+}
 let fontCss: string | null = null;
 
 function markFontCss() {

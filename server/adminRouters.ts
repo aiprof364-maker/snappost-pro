@@ -121,7 +121,9 @@ export const adminRouter = router({
       facebookConnectionClicked: new Set(
         allEvents
           .filter(event => event.eventType === "facebook_connection_clicked")
-          .filter(event => customerIds.has(event.userId))
+          .filter(
+            event => event.userId !== null && customerIds.has(event.userId)
+          )
           .map(event => event.userId)
       ).size,
       connectedPages: new Set(
@@ -133,7 +135,9 @@ export const adminRouter = router({
       checkoutStarted: new Set(
         allEvents
           .filter(event => event.eventType === "checkout_started")
-          .filter(event => customerIds.has(event.userId))
+          .filter(
+            event => event.userId !== null && customerIds.has(event.userId)
+          )
           .map(event => event.userId)
       ).size,
       subscriptionTrials: customerUsers.filter(
@@ -200,6 +204,7 @@ export const adminRouter = router({
     for (const event of allEvents) {
       if (
         event.eventType !== "free_account_created" ||
+        event.userId === null ||
         !newUserIds.has(event.userId)
       )
         continue;
@@ -235,6 +240,7 @@ export const adminRouter = router({
             event =>
               event.eventType === "facebook_connection_clicked" &&
               event.createdAt >= since &&
+              event.userId !== null &&
               newUserIds.has(event.userId)
           )
           .map(event => event.userId)

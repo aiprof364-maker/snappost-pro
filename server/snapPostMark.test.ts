@@ -1,6 +1,10 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { compositeSnapPostMark, renderSnapPostMarkOverlay } from "./snapPostMark";
+import {
+  compositeSnapPostMark,
+  photoFitsSnapPostMark,
+  renderSnapPostMarkOverlay,
+} from "./snapPostMark";
 
 describe("Made with SnapPost mark", () => {
   it("draws a small dark credit in the top-left and leaves the logo corner clear", async () => {
@@ -42,5 +46,6 @@ describe("Made with SnapPost mark", () => {
       .jpeg()
       .toBuffer();
     expect(await compositeSnapPostMark(tiny)).toBeNull();
+    expect(await photoFitsSnapPostMark(tiny)).toBe(false);
   });
 });

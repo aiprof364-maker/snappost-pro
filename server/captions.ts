@@ -39,7 +39,7 @@ export async function generateCaption(params: {
 
   const personalization =
     businessName || suburb || callToAction
-      ? " If a business name, suburb, or call to action is provided, weave those exact words into the caption. Do not invent a business name, suburb, phone number, website, or offer."
+      ? " If a business name, city, or call to action is provided, weave those exact words into the caption. Do not invent a business name, city, phone number, website, or offer."
       : "";
   const system =
     "You are a social media copywriter for trade businesses (builders, plumbers, " +
@@ -51,7 +51,7 @@ export async function generateCaption(params: {
 
   const context: string[] = [];
   if (businessName) context.push(`Business name: ${businessName}.`);
-  if (suburb) context.push(`Suburb: ${suburb}.`);
+  if (suburb) context.push(`City or suburb: ${suburb}.`);
   if (callToAction) context.push(`Call to action: ${callToAction}.`);
   if (trade) context.push(`Trade: ${trade}.`);
   if (tone) context.push(`Tone: ${tone}.`);

@@ -61,4 +61,18 @@ describe("free-to-paid funnel", () => {
     expect(summary.referralCreditsApplied).toBe(1);
     expect(summary.referralCreditsWaiting).toBe(0);
   });
+
+  it("ignores anonymous tool events that have no account yet", () => {
+    const summary = summarizeFreeToPaidFunnel(
+      [{ id: 1, role: "user", plan: "free", subscriptionStatus: "none" }],
+      [
+        { userId: null, eventType: "tool_used", metadata: null },
+        { userId: null, eventType: "tool_signup_click", metadata: null },
+        { userId: null, eventType: "free_posts_exhausted", metadata: null },
+      ],
+    );
+
+    expect(summary.freePostsExhausted).toBe(0);
+    expect(summary.paywallShown).toBe(0);
+  });
 });

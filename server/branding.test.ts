@@ -214,6 +214,50 @@ describe("shared branding generator", () => {
       0
     );
   });
+
+  it("stores a clean image and a Made with SnapPost copy for anonymous previews", async () => {
+    const photoBuffer = await sharp({
+      create: { width: 640, height: 640, channels: 3, background: "white" },
+    })
+      .png()
+      .toBuffer();
+    const result = await brandImage({
+      photoBuffer,
+      destKeyPrefix: "previews/test",
+      frame: "square",
+      watermark: true,
+    });
+    expect(result.key).toBe("previews/test/branded.jpg");
+    expect(result.watermarkedKey).toBe("previews/test/watermarked.jpg");
+    const clean = storage.put.mock.calls.find(call =>
+      String(call[0]).endsWith("branded.jpg")
+    )?.[1] as Buffer;
+    const marked = storage.put.mock.calls.find(call =>
+      String(call[0]).endsWith("watermarked.jpg")
+    )?.[1] as Buffer;
+    const darkCorner = async (buffer: Buffer) => {
+      const raw = await sharp(buffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      let dark = 0;
+      for (let y = 0; y < 80; y++) {
+        for (let x = 400; x < raw.info.width; x++) {
+          const index = (y * raw.info.width + x) * raw.info.channels;
+          if (
+            raw.data[index] < 90 &&
+            raw.data[index + 1] < 90 &&
+            raw.data[index + 2] < 90
+          ) {
+            dark += 1;
+          }
+        }
+      }
+      return dark;
+    };
+    expect(await darkCorner(clean)).toBe(0);
+    expect(await darkCorner(marked)).toBeGreaterThan(20);
+    expect(storage.put).toHaveBeenCalledTimes(2);
+  });
 });
 
 function countColors(

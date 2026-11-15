@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { ANONYMOUS_PREVIEW_WATERMARK } from "@shared/const";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_SUBURB_MAX,
 } from "@shared/previewCaption";
+import { PREVIEW_TRADE_GROUPS, PREVIEW_TRADES } from "@shared/previewTrades";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
@@ -34,8 +36,8 @@ type Landing = "contractors" | "hairdressers" | undefined;
 type PreviewResult = {
   token: string;
   landing: string | null;
-  originalImageUrl: string;
   brandedImageUrl: string;
+  hasWatermark: boolean;
   hasLogo: boolean;
   businessName: string | null;
   suburb: string | null;
@@ -59,9 +61,9 @@ function previewImageCaption(preview: PreviewResult) {
 }
 
 const PREVIEW_PAGE_TITLE =
-  "Create a Branded Facebook Post From Your Photo | SnapPost Pro";
+  "Turn a Job Photo into a Facebook Post | SnapPost Pro";
 const PREVIEW_PAGE_DESCRIPTION =
-  "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and SnapPost Pro-written caption free.";
+  "No account needed. Upload one job photo, add your business name and logo if you have them, pick a trade, and review a branded Facebook post with an AI caption. Sign up to keep it: 3 free posts, no card.";
 
 function updateMetaContent(
   attribute: "name" | "property",
@@ -190,7 +192,13 @@ export default function FreePreview() {
   const [logo, setLogo] = useState<File | null>(null);
   const [businessName, setBusinessName] = useState("");
   const [suburb, setSuburb] = useState("");
-  const [trade, setTrade] = useState("");
+  const [trade, setTrade] = useState(() =>
+    landing === "hairdressers"
+      ? "hair-salon"
+      : landing === "contractors"
+        ? "general-contractor"
+        : ""
+  );
   const [tone, setTone] = useState("");
   const [photoPermission, setPhotoPermission] = useState(false);
   const [formError, setFormError] = useState("");
@@ -476,8 +484,13 @@ export default function FreePreview() {
                 preview
               </span>
               <h1 className="font-display mt-4 text-3xl font-extrabold sm:text-5xl">
-                Turn one photo of your work into a branded Facebook post — free.
+                Turn a job photo into a branded Facebook post.
               </h1>
+              <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
+                No account needed to try it. Upload one photo, add your business
+                name and logo if you have them, and pick your trade. Then sign
+                up to keep the post: 3 free posts, no card.
+              </p>
             </div>
           </div>
         </section>
@@ -520,13 +533,22 @@ export default function FreePreview() {
                 </div>
                 <div className="grid gap-0 md:grid-cols-2">
                   <figure className="border-b border-border/70 bg-muted/20 p-4 md:border-b-0 md:border-r">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Preview only · nothing is posted to Facebook
+                    </p>
                     <img
                       src={preview.brandedImageUrl}
-                      alt={previewImageAlt(preview)}
+                      alt={
+                        preview.hasWatermark
+                          ? `${previewImageAlt(preview)}. Marked ${ANONYMOUS_PREVIEW_WATERMARK}`
+                          : previewImageAlt(preview)
+                      }
                       className="aspect-square w-full rounded-xl object-cover bg-white"
                     />
                     <figcaption className="mt-3 text-sm font-semibold text-muted-foreground">
-                      {previewImageCaption(preview)}
+                      {preview.hasWatermark
+                        ? `Marked “${ANONYMOUS_PREVIEW_WATERMARK}”. Sign up to save the clean post.`
+                        : previewImageCaption(preview)}
                     </figcaption>
                   </figure>
                   <div className="p-5 sm:p-7">
@@ -559,13 +581,13 @@ export default function FreePreview() {
                   </span>
                   <div>
                     <h2 className="font-display text-2xl font-bold">
-                      Save this post and start your 3 free posts
+                      Sign up free and keep this post
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                      Enter your business email and we will send one secure
-                      link. It saves this branded image and caption to your
-                      dashboard, ready for you to connect your Facebook Page and
-                      publish if you choose.
+                      Create your account with your business email. You get 3
+                      free posts, and no card is required. Starter is $19/mo and
+                      Pro is $29/mo after that. Nothing is posted to Facebook
+                      until you choose to publish.
                     </p>
                   </div>
                 </div>
@@ -575,10 +597,10 @@ export default function FreePreview() {
                       Your secure access link is on its way.
                     </p>
                     <p className="mt-1 text-sm text-emerald-800">
-                      Open the email from SnapPost Pro when you can. The link stays
-                      active for {ACCESS_LINK_LIFETIME_LABEL}, and you can open
-                      it more than once if you get interrupted. Your preview
-                      will be waiting in your dashboard.
+                      Open the email from SnapPost Pro when you can. The link
+                      stays active for {ACCESS_LINK_LIFETIME_LABEL}, and you can
+                      open it more than once if you get interrupted. Your
+                      preview will be waiting in your dashboard.
                     </p>
                   </div>
                 ) : (
@@ -623,7 +645,7 @@ export default function FreePreview() {
                         </>
                       ) : (
                         <>
-                          Send my secure link and save this post{" "}
+                          Sign up free — keep this post{" "}
                           <ArrowRight className="h-5 w-5" />
                         </>
                       )}
@@ -648,10 +670,11 @@ export default function FreePreview() {
                 </span>
                 <div>
                   <h2 className="font-display text-2xl font-bold">
-                    3 free posts on us
+                    Try it with one job photo
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Create a free preview first, or skip straight to sign up.
+                    See the branded post and caption before you sign up. 3 free
+                    posts when you do, no card required.
                   </p>
                 </div>
               </div>
@@ -667,7 +690,7 @@ export default function FreePreview() {
                 <FilePicker
                   id="preview-logo"
                   label="Add your logo (optional)"
-                  helper="Have a logo? We add it in the lower-right. No logo? Add your business name and suburb below."
+                  helper="Have a logo? We add it in the lower-right. No logo? Add your business name and city below."
                   value={logo}
                   maxBytes={MAX_LOGO_BYTES}
                   onChange={setLogo}
@@ -691,7 +714,7 @@ export default function FreePreview() {
                   </div>
                   <div>
                     <Label htmlFor="preview-suburb">
-                      Suburb{" "}
+                      City or suburb{" "}
                       <span className="font-normal text-muted-foreground">
                         (optional)
                       </span>
@@ -701,35 +724,43 @@ export default function FreePreview() {
                       value={suburb}
                       onChange={event => setSuburb(event.target.value)}
                       maxLength={PREVIEW_SUBURB_MAX}
-                      placeholder="e.g. Richmond"
+                      placeholder="e.g. Austin"
                       className="mt-2"
                     />
                   </div>
                 </div>
                 <p className="-mt-2 text-sm leading-6 text-muted-foreground">
-                  If you skip the logo, your business name and suburb appear on
+                  If you skip the logo, your business name and city appear on
                   the preview with "Call us for a free quote". Blank fields stay
                   blank. Your caption uses the same details.
                 </p>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="preview-trade">
-                      Business type{" "}
+                      Trade{" "}
                       <span className="font-normal text-muted-foreground">
                         (optional)
                       </span>
                     </Label>
-                    <Input
+                    <select
                       id="preview-trade"
                       value={trade}
                       onChange={event => setTrade(event.target.value)}
-                      placeholder={
-                        landing === "hairdressers"
-                          ? "e.g. Hair salon"
-                          : "e.g. Builder"
-                      }
-                      className="mt-2"
-                    />
+                      className="mt-2 h-12 w-full rounded-md border border-input bg-transparent px-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    >
+                      <option value="">Choose a trade</option>
+                      {PREVIEW_TRADE_GROUPS.map(group => (
+                        <optgroup key={group} label={group}>
+                          {PREVIEW_TRADES.filter(
+                            item => item.group === group
+                          ).map(item => (
+                            <option key={item.id} value={item.id}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="preview-tone">
@@ -785,18 +816,18 @@ export default function FreePreview() {
                   </Button>
                   <div className="flex items-center justify-center gap-3 sm:justify-start">
                     <span className="text-sm font-semibold text-muted-foreground">
-                      Skip preview
+                      Or sign up first
                     </span>
                     <Link href="/login?next=/dashboard">
                       <Button type="button" size="lg" variant="outline">
-                        Sign up here
+                        3 free posts, no card
                       </Button>
                     </Link>
                   </div>
                 </div>
                 <p className="text-center text-xs leading-5 text-muted-foreground sm:text-left">
-                  See the result before email. No card required. Nothing is
-                  published automatically.
+                  See the result before email. The preview is marked{" "}
+                  {ANONYMOUS_PREVIEW_WATERMARK}. Nothing is posted to Facebook.
                 </p>
               </form>
             </section>

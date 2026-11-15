@@ -173,6 +173,9 @@ export const previewDrafts = mysqlTable(
     businessName: varchar("businessName", { length: 80 }),
     /** Visitor-supplied suburb shown on a no-logo preview. Never invented. */
     suburb: varchar("suburb", { length: 60 }),
+    /** Anonymous copy with the Made with SnapPost mark. Account drafts use the clean image. */
+    watermarkedImageKey: varchar("watermarkedImageKey", { length: 256 }),
+    watermarkedImageUrl: varchar("watermarkedImageUrl", { length: 512 }),
     emailRequestedAt: timestamp("emailRequestedAt"),
     userId: int("userId"),
     postId: int("postId"),
@@ -190,6 +193,19 @@ export const previewDrafts = mysqlTable(
 
 export type PreviewDraft = typeof previewDrafts.$inferSelect;
 export type InsertPreviewDraft = typeof previewDrafts.$inferInsert;
+
+/**
+ * UTC-day counter for anonymous photo-to-post previews.
+ * One row per day keeps the caption-model spend under a hard cap.
+ */
+export const previewDailyUsage = mysqlTable("preview_daily_usage", {
+  day: varchar("day", { length: 10 }).primaryKey(),
+  count: int("count").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PreviewDailyUsage = typeof previewDailyUsage.$inferSelect;
+export type InsertPreviewDailyUsage = typeof previewDailyUsage.$inferInsert;
 
 /**
  * Onboarding checklist tracking for new contractors.
@@ -226,7 +242,8 @@ export type InsertOnboardingChecklist = typeof onboardingChecklist.$inferInsert;
  */
 export const conversionEvents = mysqlTable("conversion_events", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+  /** Null for anonymous tool events such as tool_used and tool_signup_click. */
+  userId: int("userId"),
   eventType: varchar("eventType", { length: 64 }).notNull(),
   metadata: text("metadata"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -1,6 +1,11 @@
 import sharp from "sharp";
 import { prepareLogoForBranding } from "./logoPreparation";
-import { renderTextBadgeOverlay, type TextBadgeInput } from "./textBadge";
+import {
+  renderMadeWithSnapPostWatermark,
+  renderTextBadgeOverlay,
+  WATERMARK_MIN_SIDE,
+  type TextBadgeInput,
+} from "./textBadge";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
 /**
@@ -26,12 +31,20 @@ async function squareFacebookFrame(photoBuffer: Buffer) {
     .toBuffer();
 }
 
+/** Anonymous previews need enough pixels for the Made with SnapPost mark. */
+export async function photoCanTakeWatermark(photoBuffer: Buffer) {
+  const meta = await sharp(photoBuffer).rotate().metadata();
+  return Math.min(meta.width ?? 0, meta.height ?? 0) >= WATERMARK_MIN_SIDE;
+}
+
 /**
  * Add an optional, cleaned logo in the lower-right corner of the real photo.
  * Logo artwork fits within 16% of image width and 20% of image height; it is
  * never enlarged. Saved customer drafts keep the original crop. Public
  * previews pass frame "square". When a preview has no logo, a text badge can
  * be drawn in the lower-left from the visitor's own business name and suburb.
+ * Anonymous previews also store a top-right "Made with SnapPost" copy. The
+ * clean file remains the one saved into an account.
  */
 export async function brandImage(params: {
   photoBuffer: Buffer;
@@ -39,7 +52,13 @@ export async function brandImage(params: {
   destKeyPrefix: string;
   frame?: "original" | "square";
   textBadge?: TextBadgeInput | null;
-}): Promise<{ key: string; url: string }> {
+  watermark?: boolean;
+}): Promise<{
+  key: string;
+  url: string;
+  watermarkedKey?: string;
+  watermarkedUrl?: string;
+}> {
   const { photoBuffer, logoBuffer, destKeyPrefix, textBadge } = params;
   const frame = params.frame ?? "original";
 
@@ -110,7 +129,29 @@ export async function brandImage(params: {
     outBuffer,
     "image/jpeg"
   );
-  return { key, url };
+  if (!params.watermark) return { key, url };
+
+  const markedMeta = await sharp(outBuffer).metadata();
+  const overlay = await renderMadeWithSnapPostWatermark(
+    markedMeta.width ?? 0,
+    markedMeta.height ?? 0
+  );
+  if (!overlay) return { key, url };
+  const marked = await sharp(outBuffer)
+    .composite([{ input: overlay, left: 0, top: 0, blend: "over" }])
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  const watermarked = await storagePut(
+    `${destKeyPrefix}/watermarked.jpg`,
+    marked,
+    "image/jpeg"
+  );
+  return {
+    key,
+    url,
+    watermarkedKey: watermarked.key,
+    watermarkedUrl: watermarked.url,
+  };
 }
 
 /** Download bytes for a stored object via its signed URL. */

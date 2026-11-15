@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import { and, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
 import { previewDrafts, posts, users } from "../drizzle/schema";
 import { PLAN_POST_LIMITS, type PlanId } from "@shared/const";
+import { previewImageUrls } from "@shared/previewTrades";
 import { getDb } from "./db";
 import { storageDelete } from "./storage";
 
@@ -28,6 +29,11 @@ function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/** Stable key for anonymous conversion events. The raw preview token is never stored. */
+export function anonymousPreviewDedupeKey(token: string) {
+  return tokenHash(token);
+}
+
 function startOfMonth(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -38,10 +44,11 @@ function usageStartForPlan(plan: "free" | PlanId): Date {
 }
 
 function publicPreviewFields(draft: typeof previewDrafts.$inferSelect) {
+  const images = previewImageUrls(draft);
   return {
     landing: draft.landing,
-    originalImageUrl: draft.originalImageUrl,
-    brandedImageUrl: draft.brandedImageUrl,
+    brandedImageUrl: images.publicImageUrl,
+    hasWatermark: Boolean(draft.watermarkedImageUrl),
     hasLogo: Boolean(draft.logoImageKey),
     businessName: draft.businessName ?? null,
     suburb: draft.suburb ?? null,
@@ -117,6 +124,24 @@ export async function ensurePreviewDraftSchema() {
       db,
       "ALTER TABLE preview_drafts ADD COLUMN suburb VARCHAR(60) NULL"
     );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN watermarkedImageKey VARCHAR(256) NULL"
+    );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN watermarkedImageUrl VARCHAR(512) NULL"
+    );
+    await db.execute(
+      sql.raw(`
+      CREATE TABLE IF NOT EXISTS preview_daily_usage (
+        day VARCHAR(10) NOT NULL,
+        count INT NOT NULL,
+        updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (day)
+      ) ENGINE=InnoDB
+    `)
+    );
   })().catch(error => {
     previewSchemaPromise = null;
     throw error;
@@ -173,6 +198,8 @@ export async function createPreviewDraft(input: {
   caption: string;
   businessName?: string;
   suburb?: string;
+  watermarkedImageKey: string;
+  watermarkedImageUrl: string;
 }) {
   await ensurePreviewDraftSchema();
   const db = await getDb();
@@ -192,6 +219,8 @@ export async function createPreviewDraft(input: {
     caption: input.caption,
     businessName: input.businessName ?? null,
     suburb: input.suburb ?? null,
+    watermarkedImageKey: input.watermarkedImageKey,
+    watermarkedImageUrl: input.watermarkedImageUrl,
     expiresAt,
   });
 
@@ -202,6 +231,7 @@ export async function createPreviewDraft(input: {
       originalImageUrl: input.originalImageUrl,
       logoImageKey: input.logoImageKey ?? null,
       brandedImageUrl: input.brandedImageUrl,
+      watermarkedImageUrl: input.watermarkedImageUrl,
       businessName: input.businessName ?? null,
       suburb: input.suburb ?? null,
       caption: input.caption,
@@ -359,7 +389,7 @@ export async function claimPreviewDraft(input: {
           plan === "free"
             ? `You've reached the free limit of ${limit} posts. Your preview is still available until it expires.`
             : "You've reached this month's post limit. Your preview is still available until it expires.",
-          plan === "free" ? "free_limit" : "plan_limit",
+          plan === "free" ? "free_limit" : "plan_limit"
         );
       }
     }
@@ -370,6 +400,7 @@ export async function claimPreviewDraft(input: {
         userId: input.userId,
         originalImageKey: draft.originalImageKey,
         originalImageUrl: draft.originalImageUrl,
+        // Account drafts keep the clean image. The watermark stays on the public preview only.
         brandedImageKey: draft.brandedImageKey,
         brandedImageUrl: draft.brandedImageUrl,
         caption: draft.caption,
@@ -417,6 +448,9 @@ export async function cleanupExpiredPreviewDrafts() {
       storageDelete(draft.originalImageKey),
       storageDelete(draft.brandedImageKey),
       ...(draft.logoImageKey ? [storageDelete(draft.logoImageKey)] : []),
+      ...(draft.watermarkedImageKey
+        ? [storageDelete(draft.watermarkedImageKey)]
+        : []),
     ]);
     await db.delete(previewDrafts).where(eq(previewDrafts.id, draft.id));
   }

@@ -18,7 +18,12 @@ import {
   PREVIEW_SUBURB_MAX,
   cleanPreviewText,
 } from "@shared/previewCaption";
-import { brandImage, fetchStorageBytes } from "./branding";
+import { previewTradeLabel } from "@shared/previewTrades";
+import {
+  brandImage,
+  fetchStorageBytes,
+  photoCanTakeWatermark,
+} from "./branding";
 import { generateCaption } from "./captions";
 import {
   countUserPostsSince,
@@ -33,6 +38,7 @@ import {
   updateUserLogo,
   logConversionEvent,
   logConversionEventOnce,
+  logAnonymousConversionOnce,
   upsertIntegration,
   getOrCreateOnboardingChecklist,
   updateOnboardingStep,
@@ -56,7 +62,10 @@ import {
 } from "./stripe";
 import { createMagicLinkToken, SESSION_COOKIE } from "./auth";
 import { storageGetSignedUrl, storagePut } from "./storage";
-import { getCheckoutTrialData, getTrialCheckoutBlock } from "./trialEligibility";
+import {
+  getCheckoutTrialData,
+  getTrialCheckoutBlock,
+} from "./trialEligibility";
 import {
   queueFreePostsUsedSequence,
   runAccountEmailAutomation,
@@ -66,6 +75,7 @@ import {
   findActivePromotionCode,
 } from "./promotionCodes";
 import {
+  anonymousPreviewDedupeKey,
   claimPreviewDraft,
   cleanupExpiredPreviewDrafts,
   createPreviewDraft,
@@ -75,11 +85,23 @@ import {
   updatePublicPreviewCaption,
   type PreviewLanding,
 } from "./previewDrafts";
+import {
+  consumePreviewAllowance,
+  previewClientKey,
+  previewLimitMessage,
+  readPreviewLimitConfig,
+  refundPreviewAllowance,
+  sharedPreviewRateStore,
+} from "./previewLimits";
+import {
+  releasePreviewDailySlot,
+  reservePreviewDailySlot,
+} from "./previewUsage";
 import { adminRouter } from "./adminRouters";
 
 async function noteFreePostsExhausted(
   userId: number,
-  metadata: { used: number; limit: number },
+  metadata: { used: number; limit: number }
 ) {
   await logConversionEventOnce(userId, "free_posts_exhausted", metadata);
   try {
@@ -101,12 +123,6 @@ async function maybeNoteFreePostsExhausted(userId: number) {
 
 const magicLinkRequestTimes = new Map<string, number>();
 const MAGIC_LINK_COOLDOWN_MS = 60_000;
-const previewRequestCounts = new Map<
-  string,
-  { count: number; startedAt: number }
->();
-const PREVIEW_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-const PREVIEW_RATE_LIMIT = 4;
 
 /** Decode a data URL or base64 string to a Buffer. */
 function decodeBase64Image(input: string): { buffer: Buffer; mime: string } {
@@ -133,34 +149,6 @@ function decodePreviewImage(input: string, maxBytes: number) {
     });
   }
   return decoded;
-}
-
-function previewRequestKey(
-  headers: Record<string, string | string[] | undefined>
-) {
-  const forwarded = headers["x-forwarded-for"];
-  const address = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  return address?.split(",")[0]?.trim() || "unknown";
-}
-
-function enforcePreviewRateLimit(
-  headers: Record<string, string | string[] | undefined>
-) {
-  const key = previewRequestKey(headers);
-  const now = Date.now();
-  const existing = previewRequestCounts.get(key);
-  if (!existing || now - existing.startedAt >= PREVIEW_RATE_LIMIT_WINDOW_MS) {
-    previewRequestCounts.set(key, { count: 1, startedAt: now });
-    return;
-  }
-  if (existing.count >= PREVIEW_RATE_LIMIT) {
-    throw new TRPCError({
-      code: "TOO_MANY_REQUESTS",
-      message:
-        "You can create up to 4 previews an hour. Please try again shortly.",
-    });
-  }
-  existing.count += 1;
 }
 
 function previewLanding(value: string | undefined): PreviewLanding {
@@ -205,6 +193,11 @@ export const appRouter = router({
                 "This preview has expired. Create a new free preview to continue.",
             });
           }
+          await logAnonymousConversionOnce(
+            "tool_signup_click",
+            anonymousPreviewDedupeKey(input.previewToken),
+            { source: "preview_signup" }
+          );
         }
         const lastRequestedAt = magicLinkRequestTimes.get(email) ?? 0;
         const remainingMs =
@@ -358,7 +351,8 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        enforcePreviewRateLimit(ctx.req.headers);
+        // Anonymous visitors never publish. This procedure only stores a draft
+        // preview. Publishing stays on the signed-in post action.
         const { buffer: photoBuffer, mime: photoMime } = decodePreviewImage(
           input.image,
           8 * 1024 * 1024
@@ -366,14 +360,58 @@ export const appRouter = router({
         const logo = input.logo
           ? decodePreviewImage(input.logo, 2 * 1024 * 1024)
           : null;
+        const limits = readPreviewLimitConfig();
+        const clientKey = previewClientKey({
+          headers: ctx.req.headers,
+          ip: ctx.req.ip || ctx.req.socket?.remoteAddress,
+        });
+        const allowance = consumePreviewAllowance(
+          sharedPreviewRateStore(),
+          clientKey,
+          Date.now(),
+          limits
+        );
+        if (!allowance.ok) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: previewLimitMessage(allowance.scope, limits),
+          });
+        }
+        let canMark = false;
+        try {
+          canMark = await photoCanTakeWatermark(photoBuffer);
+        } catch {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Please use a JPG or PNG photo.",
+          });
+        }
+        if (!canMark) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Please use a larger photo so we can prepare your preview.",
+          });
+        }
+
         const businessName = cleanPreviewText(
           input.businessName,
           PREVIEW_BUSINESS_NAME_MAX
         );
         const suburb = cleanPreviewText(input.suburb, PREVIEW_SUBURB_MAX);
+        const trade = previewTradeLabel(input.trade);
+        const tone = cleanPreviewText(input.tone, 40);
         const createdAt = Date.now();
         const keyPrefix = `previews/${createdAt}`;
         const ext = photoMime.includes("png") ? "png" : "jpg";
+        let aiStarted = false;
+        let reservedDay: string | null = null;
+        let ipRefunded = false;
+        const giveBackIp = () => {
+          if (ipRefunded || aiStarted) return;
+          ipRefunded = true;
+          refundPreviewAllowance(sharedPreviewRateStore(), clientKey);
+        };
 
         // Cleanup never blocks a visitor's preview when storage is unavailable.
         void cleanupExpiredPreviewDrafts().catch(error => {
@@ -381,6 +419,18 @@ export const appRouter = router({
         });
 
         try {
+          const reservation = await reservePreviewDailySlot(
+            limits.globalDailyCap
+          );
+          if (!reservation.ok) {
+            giveBackIp();
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: previewLimitMessage("global", limits),
+            });
+          }
+          reservedDay = reservation.day;
+
           const original = await storagePut(
             `${keyPrefix}/original.${ext}`,
             photoBuffer,
@@ -394,10 +444,11 @@ export const appRouter = router({
               )
             : null;
           const signedUrl = await storageGetSignedUrl(original.key);
+          aiStarted = true;
           const caption = await generateCaption({
             imageUrl: signedUrl,
-            trade: input.trade,
-            tone: input.tone,
+            trade,
+            tone,
             businessName,
             suburb,
             callToAction: PREVIEW_CALL_TO_ACTION,
@@ -407,24 +458,54 @@ export const appRouter = router({
             logoBuffer: logo?.buffer,
             destKeyPrefix: keyPrefix,
             frame: "square",
+            watermark: true,
             textBadge: {
               businessName,
               suburb,
               callToAction: PREVIEW_CALL_TO_ACTION,
             },
           });
-          return await createPreviewDraft({
+          if (!branded.watermarkedKey || !branded.watermarkedUrl) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                "Please use a larger photo so we can prepare your preview.",
+            });
+          }
+          const draft = await createPreviewDraft({
             landing: previewLanding(input.landing),
             originalImageKey: original.key,
             originalImageUrl: original.url,
             logoImageKey: uploadedLogo?.key,
             brandedImageKey: branded.key,
             brandedImageUrl: branded.url,
+            watermarkedImageKey: branded.watermarkedKey,
+            watermarkedImageUrl: branded.watermarkedUrl,
             caption,
             businessName,
             suburb,
           });
+          await logConversionEvent(null, "tool_used", {
+            source: "job_photo_preview",
+            landing: input.landing ?? null,
+            trade: trade ?? null,
+            hasLogo: Boolean(logo),
+            hasBusinessName: Boolean(businessName),
+          });
+          return draft;
         } catch (error) {
+          if (!aiStarted) {
+            giveBackIp();
+            if (reservedDay) {
+              void releasePreviewDailySlot(reservedDay).catch(releaseError => {
+                console.error(
+                  "[Preview] Could not release daily slot",
+                  releaseError
+                );
+              });
+            }
+          }
+          if (error instanceof TRPCError) throw error;
           console.error("[Preview] Creation failed", error);
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

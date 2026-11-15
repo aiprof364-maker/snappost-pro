@@ -10,7 +10,7 @@ export type FunnelUser = {
 };
 
 export type FunnelEvent = {
-  userId: number;
+  userId: number | null;
   eventType: string;
   metadata: string | null;
 };
@@ -29,7 +29,7 @@ export function summarizeFreeToPaidFunnel(users: FunnelUser[], events: FunnelEve
   const redemptions = new Map<string, number>();
 
   for (const event of events) {
-    if (!customerIds.has(event.userId)) continue;
+    if (event.userId === null || !customerIds.has(event.userId)) continue;
     if (event.eventType === "free_posts_exhausted") exhausted.add(event.userId);
     if (event.eventType === "paywall_shown") paywallShown.add(event.userId);
     if (event.eventType.startsWith("upgrade_")) {

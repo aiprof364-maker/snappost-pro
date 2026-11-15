@@ -47,10 +47,16 @@ export const users = mysqlTable("users", {
   emailVerificationToken: varchar("emailVerificationToken", { length: 256 }),
   /** Email verification token expiry. */
   emailVerificationTokenExpiry: timestamp("emailVerificationTokenExpiry"),
+  /** Public code for this account's referral link. Null until first requested. */
+  referralCode: varchar("referralCode", { length: 16 }),
+  /** Extra lifetime free posts earned from referrals. Paid plans ignore these. */
+  bonusFreePosts: int("bonusFreePosts").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
+}, table => ({
+  referralCodeUnique: uniqueIndex("users_referral_code_uq").on(table.referralCode),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -65,6 +71,8 @@ export const authTokens = mysqlTable("auth_tokens", {
   tokenHash: varchar("tokenHash", { length: 128 }).notNull().unique(),
   expiresAt: timestamp("expiresAt").notNull(),
   usedAt: timestamp("usedAt"),
+  /** Referral code captured when the access link was requested. */
+  referralCode: varchar("referralCode", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -90,6 +98,43 @@ export const trialClaims = mysqlTable("trial_claims", {
 
 export type TrialClaim = typeof trialClaims.$inferSelect;
 export type InsertTrialClaim = typeof trialClaims.$inferInsert;
+
+/**
+ * One row per referred account. Signup bonus posts are granted immediately.
+ * The paid credit stays pending until that account pays, then moves to
+ * qualified (waiting on the referrer's Stripe customer) or applied.
+ */
+export const referrals = mysqlTable(
+  "referrals",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    referrerUserId: int("referrerUserId").notNull(),
+    referredUserId: int("referredUserId").notNull(),
+    code: varchar("code", { length: 16 }).notNull(),
+    signupBonusPosts: int("signupBonusPosts").default(0).notNull(),
+    paidCreditCents: int("paidCreditCents").default(0).notNull(),
+    paidCreditStatus: mysqlEnum("paidCreditStatus", [
+      "pending",
+      "qualified",
+      "applied",
+      "skipped",
+    ])
+      .default("pending")
+      .notNull(),
+    stripeBalanceTransactionId: varchar("stripeBalanceTransactionId", {
+      length: 128,
+    }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    referrerIndex: index("referrals_referrer_idx").on(table.referrerUserId),
+    referredUnique: uniqueIndex("referrals_referred_uq").on(table.referredUserId),
+  })
+);
+
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = typeof referrals.$inferInsert;
 
 /**
  * Social integrations (Facebook pages). Stores OAuth tokens and the selected page.
@@ -144,6 +189,12 @@ export const posts = mysqlTable("posts", {
   facebookPostId: varchar("facebookPostId", { length: 128 }),
   /** Error message if publishing failed. */
   errorMessage: text("errorMessage"),
+  /**
+   * Free-plan copy of the branded image with the SnapPost mark.
+   * Paid and trial publishing always use brandedImageKey instead.
+   */
+  markedImageKey: varchar("markedImageKey", { length: 256 }),
+  markedImageUrl: varchar("markedImageUrl", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -168,6 +219,9 @@ export const previewDrafts = mysqlTable(
     logoImageKey: varchar("logoImageKey", { length: 256 }),
     brandedImageKey: varchar("brandedImageKey", { length: 256 }).notNull(),
     brandedImageUrl: varchar("brandedImageUrl", { length: 512 }).notNull(),
+    /** Clean branded image without the SnapPost mark, used if a paid account claims it. */
+    cleanImageKey: varchar("cleanImageKey", { length: 256 }),
+    cleanImageUrl: varchar("cleanImageUrl", { length: 512 }),
     caption: text("caption").notNull(),
     /** Visitor-supplied name shown on a no-logo preview. Never invented. */
     businessName: varchar("businessName", { length: 80 }),

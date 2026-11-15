@@ -16,6 +16,7 @@ import {
   integrations,
   conversionEvents,
   previewDrafts,
+  referrals,
 } from "../drizzle/schema";
 import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
@@ -23,6 +24,7 @@ import { sendNewsletterSignupInvitation } from "./email";
 import { isConfiguredAdminEmail } from "./adminIdentity";
 import { hasPublishingReadyFacebookPage } from "./facebook";
 import { summarizeFreeToPaidFunnel } from "./funnelStats";
+import { ensureReferralSchema } from "./referralSchema";
 
 /**
  * Admin-only procedures for analytics and contractor management.
@@ -77,11 +79,13 @@ export const adminRouter = router({
       });
     }
 
-    const [allUsers, allPosts, allIntegrations, allEvents] = await Promise.all([
+    await ensureReferralSchema();
+    const [allUsers, allPosts, allIntegrations, allEvents, allReferrals] = await Promise.all([
       db.select().from(users),
       db.select().from(posts),
       db.select().from(integrations),
       db.select().from(conversionEvents),
+      db.select().from(referrals),
     ]);
 
     const customerUsers = allUsers.filter(user => user.role !== "admin");
@@ -97,6 +101,13 @@ export const adminRouter = router({
         userId: event.userId,
         eventType: event.eventType,
         metadata: event.metadata,
+      })),
+      allReferrals.map(referral => ({
+        referrerUserId: referral.referrerUserId,
+        referredUserId: referral.referredUserId,
+        signupBonusPosts: referral.signupBonusPosts,
+        paidCreditStatus: referral.paidCreditStatus,
+        paidCreditCents: referral.paidCreditCents,
       })),
     );
     return {

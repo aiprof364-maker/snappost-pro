@@ -14,6 +14,7 @@ import {
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
+import { captureReferralCode } from "@/lib/referralCode";
 import {
   ArrowRight,
   CheckCircle2,
@@ -389,6 +390,7 @@ export default function FreePreview() {
         origin: window.location.origin,
         next: previewPath(token, landing),
         previewToken: token,
+        referralCode: captureReferralCode(),
       });
     } catch {
       // Each mutation supplies the visitor-safe error message above.

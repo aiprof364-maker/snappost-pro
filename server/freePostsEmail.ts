@@ -28,8 +28,8 @@ export const FREE_POSTS_EMAIL_STEPS: Array<{
   {
     kind: "free-posts-used-1",
     daysAfter: 0,
-    subject: "Your 3 free SnapPost Pro posts are ready — keep posting",
-    intro: "Your 3 free posts are ready.",
+    subject: "Your free SnapPost Pro posts are ready — keep posting",
+    intro: "Your free posts are ready.",
   },
   {
     kind: "free-posts-used-2",

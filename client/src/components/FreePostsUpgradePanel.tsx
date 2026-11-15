@@ -13,6 +13,7 @@ type LatestPost = {
 
 type Props = {
   trialEligible: boolean;
+  freePostLimit?: number | null;
   latestPost?: LatestPost | null;
 };
 
@@ -20,6 +21,7 @@ const PLAN_ORDER: PlanId[] = ["starter", "pro"];
 
 export default function FreePostsUpgradePanel({
   trialEligible,
+  freePostLimit,
   latestPost,
 }: Props) {
   const { startCheckout, isPending, pendingPlan } = usePlanCheckout();
@@ -50,7 +52,7 @@ export default function FreePostsUpgradePanel({
             Free posts used
           </p>
           <h2 className="mt-2 font-display text-2xl font-bold">
-            You've used your 3 free posts
+            You've used your {freePostLimit ?? 3} free posts
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {upgradeOfferLine(trialEligible)} Your posts stay in this account.

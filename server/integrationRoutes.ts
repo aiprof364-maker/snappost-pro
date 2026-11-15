@@ -16,6 +16,7 @@ import { entitlementFromSubscription, getStripe } from "./stripe";
 import { getSessionUser } from "./auth";
 import { queueAccountEmail } from "./accountEmailAutomation";
 import { promotionCodeUsedOnCheckout } from "./promotionCodes";
+import { onReferralInvoicePaid, settleQualifiedCredits } from "./referrals";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -206,7 +207,14 @@ export function registerIntegrationRoutes(app: Express) {
               } else {
                 console.error("[Stripe] Purchase email held: subscription plan could not be mapped", { eventId: event.id });
               }
+              await settleQualifiedCredits(userId, stripe).catch(error => {
+                console.error("[Referral] credit was not applied after checkout", error);
+              });
             }
+            break;
+          }
+          case "invoice.paid": {
+            await onReferralInvoicePaid(stripe, event.data.object as any);
             break;
           }
           case "customer.subscription.updated":

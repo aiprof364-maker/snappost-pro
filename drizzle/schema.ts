@@ -72,7 +72,8 @@ export type AuthToken = typeof authTokens.$inferSelect;
 
 /**
  * A durable ledger of first-time trial claims. Email is stored as a SHA-256
- * hash and a connected Facebook Page is an additional anti-abuse signal.
+ * hash so a trial can be claimed once per email. A Facebook Page is optional
+ * at checkout and, when present, is an additional anti-abuse signal.
  */
 export const trialClaims = mysqlTable("trial_claims", {
   id: int("id").autoincrement().primaryKey(),

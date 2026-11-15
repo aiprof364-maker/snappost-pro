@@ -12,9 +12,15 @@ let previewSchemaPromise: Promise<void> | null = null;
 export type PreviewLanding = "contractors" | "hairdressers" | undefined;
 
 export class PreviewDraftError extends Error {
-  constructor(message: string) {
+  code: "free_limit" | "plan_limit" | "unavailable";
+
+  constructor(
+    message: string,
+    code: "free_limit" | "plan_limit" | "unavailable" = "unavailable",
+  ) {
     super(message);
     this.name = "PreviewDraftError";
+    this.code = code;
   }
 }
 
@@ -352,7 +358,8 @@ export async function claimPreviewDraft(input: {
         throw new PreviewDraftError(
           plan === "free"
             ? `You've reached the free limit of ${limit} posts. Your preview is still available until it expires.`
-            : "You've reached this month's post limit. Your preview is still available until it expires."
+            : "You've reached this month's post limit. Your preview is still available until it expires.",
+          plan === "free" ? "free_limit" : "plan_limit",
         );
       }
     }

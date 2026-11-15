@@ -13,6 +13,7 @@ export type TrialEligibility = {
 /**
  * A customer can receive one introductory trial only. A completed Stripe
  * checkout, prior email claim, or reused business Page ends eligibility.
+ * A connected Facebook Page is not required to start that trial.
  */
 export function determineTrialEligibility(input: {
   hasStripeBillingHistory: boolean;
@@ -33,4 +34,16 @@ export function determineTrialEligibility(input: {
 
 export function getCheckoutTrialData(trialEligible: boolean) {
   return trialEligible ? { trial_period_days: FIRST_TIME_TRIAL_DAYS } : {};
+}
+
+/**
+ * Checkout can start the one introductory trial before a Facebook Page is
+ * connected. Publishing still needs a Page, and trial_claims still allow only
+ * one trial per email.
+ */
+export function getTrialCheckoutBlock(_input: {
+  trialEligible: boolean;
+  facebookPageId?: string | null;
+}): "facebook_page_required" | null {
+  return null;
 }

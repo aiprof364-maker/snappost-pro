@@ -22,6 +22,7 @@ import { PLAN_POST_LIMITS } from "@shared/const";
 import { sendNewsletterSignupInvitation } from "./email";
 import { isConfiguredAdminEmail } from "./adminIdentity";
 import { hasPublishingReadyFacebookPage } from "./facebook";
+import { summarizeFreeToPaidFunnel } from "./funnelStats";
 
 /**
  * Admin-only procedures for analytics and contractor management.
@@ -85,6 +86,19 @@ export const adminRouter = router({
 
     const customerUsers = allUsers.filter(user => user.role !== "admin");
     const customerIds = new Set(customerUsers.map(user => user.id));
+    const upgradeFunnel = summarizeFreeToPaidFunnel(
+      allUsers.map(user => ({
+        id: user.id,
+        role: user.role,
+        plan: user.plan,
+        subscriptionStatus: user.subscriptionStatus,
+      })),
+      allEvents.map(event => ({
+        userId: event.userId,
+        eventType: event.eventType,
+        metadata: event.metadata,
+      })),
+    );
     return {
       accounts: customerUsers.length,
       freeAccounts: customerUsers.filter(user => user.plan === "free").length,
@@ -117,6 +131,7 @@ export const adminRouter = router({
       paidSubscribers: customerUsers.filter(
         user => user.plan !== "free" && user.subscriptionStatus === "active"
       ).length,
+      ...upgradeFunnel,
     };
   }),
 

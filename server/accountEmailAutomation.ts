@@ -1,7 +1,17 @@
 import cron from "node-cron";
 import mysql, { type Pool, type PoolConnection, type ResultSetHeader, type RowDataPacket } from "mysql2/promise";
-import { getStripe } from "./stripe";
+import { getTrialEligibility } from "./db";
 import { sendAccountEmail, type AccountEmailKind } from "./email";
+import {
+  FREE_POSTS_USED_KINDS,
+  ONBOARDING_EMAIL_KINDS,
+  freePostsEmailSchedule,
+  isFreePostsUsedKind,
+  shouldSkipFreePostsEmail,
+  shouldSuppressOnboardingEmail,
+  sqlStringList,
+} from "./freePostsEmail";
+import { getStripe } from "./stripe";
 
 const ACCOUNT_EMAIL_LOCK = "snappost_account_email_dispatch_v1";
 const ACCOUNT_EMAIL_ROLLOUT_KEY = "account-email-v1";
@@ -24,6 +34,10 @@ type AccountDeliveryRow = RowDataPacket & {
   email: string | null;
   name: string | null;
   plan: "free" | "starter" | "pro" | null;
+  subscriptionStatus: string | null;
+  stripeCustomerId: string | null;
+  facebookPageId: string | null;
+  freePostsSequenceCount: number | string | null;
   metadata: string | null;
 };
 
@@ -176,8 +190,13 @@ async function enqueueOnboarding(connection: PoolConnection, now: Date) {
     "SELECT id, createdAt FROM users WHERE email IS NOT NULL AND createdAt >= ? AND createdAt <= ?",
     [rolloutAt, now],
   );
+  const [suppressedRows] = await connection.execute<RowDataPacket[]>(
+    `SELECT DISTINCT userId AS userId FROM account_email_delivery WHERE userId IS NOT NULL AND kind IN (${sqlStringList(FREE_POSTS_USED_KINDS)})`,
+  );
+  const suppressedUserIds = new Set(suppressedRows.map(row => Number(row.userId)));
   let queued = 0;
   for (const user of users) {
+    if (suppressedUserIds.has(Number(user.id))) continue;
     const createdAt = toDate(user.createdAt);
     if (!createdAt) continue;
     const offsets: Array<[1 | 3 | 5, AccountEmailKind]> = [[1, "onboarding-day-1"], [3, "onboarding-day-3"], [5, "onboarding-day-5"]];
@@ -243,7 +262,10 @@ async function enqueueSubscriptionReminders(connection: PoolConnection, now: Dat
 export function buildDueAccountEmailQuery(now: Date) {
   return {
     sql: `SELECT d.id, d.userId, d.recipientEmail, d.entityKey, d.campaignKey, d.kind, d.status, d.attempts, d.firstAttemptAt,
-                 COALESCE(d.recipientEmail, u.email) AS email, u.name, u.plan, d.metadata
+                 COALESCE(d.recipientEmail, u.email) AS email, u.name, u.plan, u.subscriptionStatus, u.stripeCustomerId,
+                 (SELECT i.pageId FROM integrations i WHERE i.userId = d.userId AND i.provider = 'facebook' ORDER BY i.id DESC LIMIT 1) AS facebookPageId,
+                 (SELECT COUNT(*) FROM account_email_delivery seq WHERE seq.userId = d.userId AND seq.kind IN (${sqlStringList(FREE_POSTS_USED_KINDS)})) AS freePostsSequenceCount,
+                 d.metadata
           FROM account_email_delivery d
           LEFT JOIN users u ON u.id = d.userId
           WHERE d.status IN ('pending', 'retry')
@@ -268,7 +290,61 @@ function metadataDates(metadata: string | null) {
   }
 }
 
+async function suppressPendingOnboardingForFreePosts(connection: PoolConnection) {
+  const [rows] = await connection.execute<RowDataPacket[]>(
+    `SELECT DISTINCT userId AS userId FROM account_email_delivery WHERE userId IS NOT NULL AND kind IN (${sqlStringList(FREE_POSTS_USED_KINDS)})`,
+  );
+  const ids = rows.map(row => Number(row.userId)).filter(id => Number.isInteger(id));
+  if (ids.length === 0) return;
+  await connection.execute(
+    `UPDATE account_email_delivery
+     SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = 'superseded_by_free_posts'
+     WHERE status IN ('pending', 'retry')
+       AND kind IN (${sqlStringList(ONBOARDING_EMAIL_KINDS)})
+       AND userId IN (${ids.join(",")})`,
+  );
+}
+
+export async function queueFreePostsUsedSequence(userId: number, exhaustedAt = new Date()) {
+  if (!(await initializeAccountEmailAutomation())) throw new Error("Account email outbox is unavailable");
+  for (const step of freePostsEmailSchedule(exhaustedAt)) {
+    await getPool().execute(
+      `INSERT IGNORE INTO account_email_delivery
+        (userId, entityKey, campaignKey, kind, status, availableAt, nextAttemptAt)
+       VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+      [userId, `user:${userId}`, step.campaignKey, step.kind, step.availableAt, step.availableAt],
+    );
+  }
+  await getPool().execute(
+    `UPDATE account_email_delivery
+     SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = 'superseded_by_free_posts'
+     WHERE userId = ? AND status IN ('pending', 'retry') AND kind IN (${sqlStringList(ONBOARDING_EMAIL_KINDS)})`,
+    [userId],
+  );
+}
+
 async function deliverOne(connection: PoolConnection, delivery: AccountDeliveryRow, now: Date) {
+  if (
+    shouldSuppressOnboardingEmail({
+      kind: delivery.kind,
+      hasFreePostsSequence: Number(delivery.freePostsSequenceCount) > 0,
+    }) ||
+    (isFreePostsUsedKind(delivery.kind) &&
+      shouldSkipFreePostsEmail({
+        plan: delivery.plan,
+        subscriptionStatus: delivery.subscriptionStatus,
+        stripeCustomerId: delivery.stripeCustomerId,
+      }))
+  ) {
+    await connection.execute(
+      "UPDATE account_email_delivery SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = ? WHERE id = ? AND status IN ('pending', 'retry')",
+      [
+        isFreePostsUsedKind(delivery.kind) ? "plan_started" : "superseded_by_free_posts",
+        delivery.id,
+      ],
+    );
+    return false;
+  }
   if (!delivery.email || (!delivery.userId && delivery.kind !== "contact-owner-alert")) {
     await connection.execute("UPDATE account_email_delivery SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = 'recipient_unavailable' WHERE id = ?", [delivery.id]);
     return false;
@@ -282,6 +358,20 @@ async function deliverOne(connection: PoolConnection, delivery: AccountDeliveryR
   if (claimed.affectedRows !== 1) return false;
   try {
     const dates = metadataDates(delivery.metadata);
+    let trialEligible = false;
+    if (isFreePostsUsedKind(delivery.kind) && delivery.userId && delivery.email) {
+      try {
+        const trial = await getTrialEligibility({
+          userId: delivery.userId,
+          email: delivery.email,
+          facebookPageId: delivery.facebookPageId,
+          stripeCustomerId: delivery.stripeCustomerId,
+        });
+        trialEligible = trial.eligible;
+      } catch {
+        trialEligible = false;
+      }
+    }
     let contact: { name: string; email: string; message: string; ownerEmail: string } | undefined;
     if (delivery.kind === "contact-owner-alert") {
       if (!dates.contactId) throw new Error("contact_missing");
@@ -302,6 +392,7 @@ async function deliverOne(connection: PoolConnection, delivery: AccountDeliveryR
       email: delivery.email,
       userName: delivery.name,
       plan: delivery.plan,
+      trialEligible,
       trialEndsAt: dates.trialEndsAt,
       renewalAt: dates.renewalAt,
       subscriptionStatus: dates.subscriptionStatus,
@@ -336,6 +427,7 @@ export async function runAccountEmailAutomation(options: { now?: Date } = {}) {
         "UPDATE account_email_delivery SET status = 'retry', nextAttemptAt = ?, lastErrorClass = COALESCE(lastErrorClass, 'recovered') WHERE status = 'processing'",
         [now],
       );
+      await suppressPendingOnboardingForFreePosts(connection);
       const onboardingQueued = await enqueueOnboarding(connection, now);
       const subscriptionQueued = await enqueueSubscriptionReminders(connection, now);
       const { sql, params } = buildDueAccountEmailQuery(now);

@@ -15,10 +15,20 @@ import {
 import { entitlementFromSubscription, getStripe } from "./stripe";
 import { getSessionUser } from "./auth";
 import { queueAccountEmail } from "./accountEmailAutomation";
+import { promotionCodeUsedOnCheckout } from "./promotionCodes";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function stripeReferenceId(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value;
+  if (value && typeof value === "object" && "id" in value) {
+    const id = (value as { id?: unknown }).id;
+    if (typeof id === "string" && id.trim()) return id;
+  }
+  return null;
 }
 
 async function resolveUserId(req: Request): Promise<number | null> {
@@ -130,26 +140,39 @@ export function registerIntegrationRoutes(app: Express) {
                   .where(eq(users.id, userId))
                   .limit(1);
                 const user = rows[0];
-                if (user && user.email) {
-                  if (
-                    session.metadata?.trialEligible === "true" &&
-                    session.metadata?.facebookPageId
-                  ) {
+                if (user && user.email && session.metadata?.trialEligible === "true") {
+                  const pageId =
+                    typeof session.metadata?.facebookPageId === "string"
+                      ? session.metadata.facebookPageId.trim()
+                      : "";
+                  try {
                     await recordTrialClaim({
                       userId,
                       email: user.email,
-                      facebookPageId: session.metadata.facebookPageId,
-                      stripeCustomerId: session.customer ?? undefined,
-                      stripeSubscriptionId: session.subscription ?? undefined,
+                      facebookPageId: pageId || null,
+                      stripeCustomerId: stripeReferenceId(session.customer),
+                      stripeSubscriptionId: stripeReferenceId(session.subscription),
                     });
+                  } catch {
+                    console.error("[Stripe] trial claim could not be recorded");
                   }
                 }
+              }
+              let promotionCode: string | null = null;
+              try {
+                promotionCode = await promotionCodeUsedOnCheckout(stripe, {
+                  session,
+                  subscription: stripeSubscription,
+                });
+              } catch {
+                promotionCode = null;
               }
               // Log conversion event for funnel tracking
               await logConversionEvent(userId, `upgrade_${plan || "starter"}`, {
                 plan: plan || "starter",
                 amount: plan === "pro" ? 29 : 19,
                 stripeSessionId: session.id,
+                ...(promotionCode ? { promotionCode } : {}),
               }).catch(e => console.error("[Conversion] Failed to log upgrade event", e));
               await updateUserSubscription(userId, {
                 stripeCustomerId: session.customer ?? undefined,

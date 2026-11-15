@@ -32,6 +32,7 @@ import {
   updatePost,
   updateUserLogo,
   logConversionEvent,
+  logConversionEventOnce,
   upsertIntegration,
   getOrCreateOnboardingChecklist,
   updateOnboardingStep,
@@ -55,17 +56,48 @@ import {
 } from "./stripe";
 import { createMagicLinkToken, SESSION_COOKIE } from "./auth";
 import { storageGetSignedUrl, storagePut } from "./storage";
-import { getCheckoutTrialData } from "./trialEligibility";
-import { adminRouter } from "./adminRouters";
+import { getCheckoutTrialData, getTrialCheckoutBlock } from "./trialEligibility";
+import {
+  queueFreePostsUsedSequence,
+  runAccountEmailAutomation,
+} from "./accountEmailAutomation";
+import {
+  checkoutPromotionParams,
+  findActivePromotionCode,
+} from "./promotionCodes";
 import {
   claimPreviewDraft,
   cleanupExpiredPreviewDrafts,
   createPreviewDraft,
   getPublicPreviewDraft,
   markPreviewEmailRequested,
+  PreviewDraftError,
   updatePublicPreviewCaption,
   type PreviewLanding,
 } from "./previewDrafts";
+import { adminRouter } from "./adminRouters";
+
+async function noteFreePostsExhausted(
+  userId: number,
+  metadata: { used: number; limit: number },
+) {
+  await logConversionEventOnce(userId, "free_posts_exhausted", metadata);
+  try {
+    await queueFreePostsUsedSequence(userId);
+    void runAccountEmailAutomation();
+  } catch {
+    console.error("[Account email] free-posts sequence could not be queued");
+  }
+}
+
+async function maybeNoteFreePostsExhausted(userId: number) {
+  const user = await getUserById(userId);
+  if ((user?.plan ?? "free") !== "free") return;
+  const limit = PLAN_POST_LIMITS.free;
+  if (limit === null) return;
+  const used = await countUserPostsSince(userId, new Date(0));
+  if (used >= limit) await noteFreePostsExhausted(userId, { used, limit });
+}
 
 const magicLinkRequestTimes = new Map<string, number>();
 const MAGIC_LINK_COOLDOWN_MS = 60_000;
@@ -431,14 +463,23 @@ export const appRouter = router({
     claim: protectedProcedure
       .input(z.object({ token: z.string().min(32).max(128) }))
       .mutation(async ({ ctx, input }) => {
-        const result = await claimPreviewDraft({
-          token: input.token,
-          userId: ctx.user.id,
-        });
-        if (!result.alreadyClaimed) {
-          await logConversionEvent(ctx.user.id, "preview_draft_claimed");
+        try {
+          const result = await claimPreviewDraft({
+            token: input.token,
+            userId: ctx.user.id,
+          });
+          if (!result.alreadyClaimed) {
+            await logConversionEvent(ctx.user.id, "preview_draft_claimed");
+            await maybeNoteFreePostsExhausted(ctx.user.id);
+          }
+          return result;
+        } catch (error) {
+          if (error instanceof PreviewDraftError && error.code === "free_limit") {
+            const limit = PLAN_POST_LIMITS.free ?? 3;
+            await noteFreePostsExhausted(ctx.user.id, { used: limit, limit });
+          }
+          throw error;
         }
-        return result;
       }),
   }),
 
@@ -531,12 +572,15 @@ export const appRouter = router({
         );
         const plan = (user0?.plan ?? "free") as "free" | PlanId;
         const limit = PLAN_POST_LIMITS[plan];
+        const used =
+          limit === null
+            ? 0
+            : await countUserPostsSince(ctx.user.id, usageStartForPlan(plan));
         if (limit !== null) {
-          const used = await countUserPostsSince(
-            ctx.user.id,
-            usageStartForPlan(plan)
-          );
           if (used >= limit) {
+            if (plan === "free") {
+              await noteFreePostsExhausted(ctx.user.id, { used, limit });
+            }
             throw new TRPCError({
               code: "FORBIDDEN",
               message:
@@ -602,6 +646,9 @@ export const appRouter = router({
           status: "draft",
         });
         await logConversionEvent(ctx.user.id, "post_draft_created", { plan });
+        if (plan === "free" && limit !== null && used + 1 >= limit) {
+          await noteFreePostsExhausted(ctx.user.id, { used: used + 1, limit });
+        }
         return post;
       }),
 
@@ -838,10 +885,20 @@ export const appRouter = router({
         }
       }),
 
+    /** Record that the in-dashboard upgrade panel was shown. */
+    trackPaywallShown: protectedProcedure.mutation(async ({ ctx }) => {
+      await logConversionEvent(ctx.user.id, "paywall_shown");
+      return { success: true } as const;
+    }),
+
     /** Create a Stripe Checkout session for a plan. */
     createCheckout: protectedProcedure
       .input(
-        z.object({ plan: z.enum(["starter", "pro"]), origin: z.string().url() })
+        z.object({
+          plan: z.enum(["starter", "pro"]),
+          origin: z.string().url(),
+          promotionCode: z.string().trim().max(100).optional(),
+        })
       )
       .mutation(async ({ ctx, input }) => {
         const stripe = getStripe();
@@ -881,18 +938,29 @@ export const appRouter = router({
           facebookPageId: integration?.pageId,
           stripeCustomerId: user?.stripeCustomerId,
         });
-        if (trial.eligible && !integration?.pageId) {
+        const trialBlock = getTrialCheckoutBlock({
+          trialEligible: trial.eligible,
+          facebookPageId: integration?.pageId,
+        });
+        if (trialBlock === "facebook_page_required") {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
             message:
               "Connect your Facebook business Page before starting your one 7-day trial. This protects the trial from duplicate claims.",
           });
         }
+        let promotion: { id: string; code: string } | null = null;
+        try {
+          promotion = await findActivePromotionCode(stripe, input.promotionCode);
+        } catch {
+          console.error("[Stripe] promotion code lookup failed");
+          promotion = null;
+        }
         console.log(
           `[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`
         );
-        const session = await stripe.checkout.sessions.create({
-          mode: "subscription",
+        const sessionParams = {
+          mode: "subscription" as const,
           line_items: [{ price: priceId, quantity: 1 }],
           ...(user?.stripeCustomerId
             ? { customer: user.stripeCustomerId }
@@ -907,7 +975,25 @@ export const appRouter = router({
           subscription_data: getCheckoutTrialData(trial.eligible),
           success_url: `${input.origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${input.origin}/pricing?checkout=cancel`,
-        });
+        };
+        let session;
+        let appliedPromotion = promotion;
+        try {
+          session = await stripe.checkout.sessions.create({
+            ...sessionParams,
+            ...checkoutPromotionParams(promotion?.id ?? null),
+          });
+        } catch (error) {
+          if (!promotion) throw error;
+          appliedPromotion = null;
+          console.error("[Stripe] promotion code was not applied", {
+            code: promotion.code,
+          });
+          session = await stripe.checkout.sessions.create({
+            ...sessionParams,
+            allow_promotion_codes: true,
+          });
+        }
         console.log(`[Stripe] Session created:`, {
           id: session.id,
           url: session.url,
@@ -922,6 +1008,7 @@ export const appRouter = router({
         await logConversionEvent(ctx.user.id, "checkout_started", {
           plan: input.plan,
           trialEligible: trial.eligible,
+          ...(appliedPromotion ? { promotionCode: appliedPromotion.code } : {}),
         });
         return { url: session.url };
       }),

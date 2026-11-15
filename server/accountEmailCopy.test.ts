@@ -33,6 +33,8 @@ describe("account email copy", () => {
     const message = payload();
     expect(message.subject).toBe("Welcome to SnapPost Pro Starter");
     expect(message.html).toContain("7-day trial is active");
+    expect(message.html).toContain("Connect your Facebook Page");
+    expect(message.html).toContain("before that Page is connected");
     expect(message.html).not.toContain("Next billing date");
     expect(message.replyTo).toBe("admin@snappostpro.com");
   });

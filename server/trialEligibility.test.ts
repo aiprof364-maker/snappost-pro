@@ -3,6 +3,7 @@ import {
   FIRST_TIME_TRIAL_DAYS,
   determineTrialEligibility,
   getCheckoutTrialData,
+  getTrialCheckoutBlock,
 } from "./trialEligibility";
 
 describe("single-trial eligibility", () => {
@@ -28,6 +29,18 @@ describe("single-trial eligibility", () => {
       }),
     ).toEqual({ eligible: false, blocker: "stripe_history" });
     expect(getCheckoutTrialData(false)).toEqual({});
+  });
+
+  it("lets the first trial start before a Facebook Page is connected", () => {
+    expect(
+      getTrialCheckoutBlock({ trialEligible: true, facebookPageId: null }),
+    ).toBeNull();
+    expect(
+      getTrialCheckoutBlock({ trialEligible: true, facebookPageId: "page_1" }),
+    ).toBeNull();
+    expect(getCheckoutTrialData(true)).toEqual({
+      trial_period_days: FIRST_TIME_TRIAL_DAYS,
+    });
   });
 
   it("withholds another trial for a reused email or Facebook business Page", () => {

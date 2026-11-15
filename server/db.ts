@@ -226,6 +226,18 @@ export async function updateUserLogo(userId: number, logoKey: string): Promise<v
   await db.update(users).set({ logoKey }).where(eq(users.id, userId));
 }
 
+/** Save the business name, town, and trade shown on no-logo posts. */
+export async function updateUserBrand(
+  userId: number,
+  data: Partial<
+    Pick<InsertUser, "businessName" | "suburb" | "trade" | "brandSetupSkipped">
+  >
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
 /* ----------------------------- Posts ----------------------------- */
 
 export async function createPost(data: InsertPost) {

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "crypto";
-import { and, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
 import { previewDrafts, posts, users } from "../drizzle/schema";
 import { type PlanId } from "@shared/const";
 import { postCreationLimit } from "@shared/referrals";
@@ -466,6 +466,32 @@ export async function claimPreviewDraft(input: {
 
     return { postId, alreadyClaimed: false } as const;
   });
+}
+
+/** Latest claimed preview details, used to prefill the brand setup step. */
+export async function getLatestClaimedPreviewBrand(userId: number) {
+  try {
+    await ensurePreviewDraftSchema();
+    const db = await getDb();
+    if (!db) return null;
+    const [draft] = await db
+      .select({
+        businessName: previewDrafts.businessName,
+        suburb: previewDrafts.suburb,
+      })
+      .from(previewDrafts)
+      .where(eq(previewDrafts.userId, userId))
+      .orderBy(desc(previewDrafts.claimedAt))
+      .limit(1);
+    if (!draft) return null;
+    return {
+      businessName: draft.businessName ?? null,
+      suburb: draft.suburb ?? null,
+    };
+  } catch (error) {
+    console.warn("[Brand] Could not read a claimed preview", error);
+    return null;
+  }
 }
 
 /** Remove assets for expired, never-claimed previews. Claimed drafts stay in post history. */

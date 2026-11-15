@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { measureSnapPostText, snapPostGlyphPath } from "./glyphText";
+import { layoutSnapPostMark } from "./snapPostMark";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_CALL_TO_ACTION,
@@ -169,6 +170,16 @@ export async function renderTextBadgeOverlay(
 
   const left = margin;
   const top = height - margin - badgeHeight;
+  const mark = layoutSnapPostMark(width, height);
+  if (
+    mark &&
+    left < mark.left + mark.pillWidth &&
+    left + badgeWidth > mark.left &&
+    top < mark.top + mark.pillHeight + 8 &&
+    top + badgeHeight > mark.top
+  ) {
+    return null;
+  }
   const radius = Math.max(12, Math.round(badgeHeight * 0.16));
   const parts: string[] = [];
   let cursor = top + padY;

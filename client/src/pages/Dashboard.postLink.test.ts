@@ -7,5 +7,6 @@ describe("dashboard post link", () => {
   it("opens the draft named by the preview handoff", () => {
     expect(source).toContain('params.get("post")');
     expect(source).toContain("setSelectedPostId(requestedPost)");
+    expect(source).toContain("captionWhenPostOpens");
   });
 });

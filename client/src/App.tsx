@@ -23,7 +23,13 @@ const DeleteAccount = lazy(() => import("./pages/DeleteAccount"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const Login = lazy(() => import("./pages/Login"));
 const Contractors = lazy(() => import("./pages/Contractors"));
+const Landscapers = lazy(() => import("./pages/Landscapers"));
 const Hairdressers = lazy(() => import("./pages/Hairdressers"));
+const FoodTrucks = lazy(() => import("./pages/FoodTrucks"));
+const Realtors = lazy(() => import("./pages/Realtors"));
+const Cleaners = lazy(() => import("./pages/Cleaners"));
+const AutoDetailers = lazy(() => import("./pages/AutoDetailers"));
+const PetGroomers = lazy(() => import("./pages/PetGroomers"));
 const FreePreview = lazy(() => import("./pages/FreePreview"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -44,7 +50,13 @@ function Router() {
         <Route path={"/"} component={Home} />
         <Route path={"/features"} component={Features} />
         <Route path={"/contractors"} component={Contractors} />
+        <Route path={"/landscapers"} component={Landscapers} />
         <Route path={"/hairdressers"} component={Hairdressers} />
+        <Route path={"/food-trucks"} component={FoodTrucks} />
+        <Route path={"/realtors"} component={Realtors} />
+        <Route path={"/cleaners"} component={Cleaners} />
+        <Route path={"/auto-detailers"} component={AutoDetailers} />
+        <Route path={"/pet-groomers"} component={PetGroomers} />
         <Route path={"/preview"} component={FreePreview} />
         <Route path={"/pricing"} component={Pricing} />
         <Route path={"/dashboard"} component={Dashboard} />

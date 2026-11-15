@@ -197,6 +197,20 @@ describe("production static cache headers", () => {
     }
   });
 
+  it("injects trade landing metadata into the html shell", async () => {
+    const response = await cacheControl("/landscapers");
+    expect(response.status).toBe(200);
+    expect(response.cacheControl).toBe(HTML_CACHE_CONTROL);
+    expect(response.contentType).toContain("text/html");
+    expect(response.body).toContain(
+      "Facebook Post Ideas for Landscapers | SnapPost Pro"
+    );
+    expect(response.body).toContain(
+      'rel="canonical" href="https://snappostpro.com/landscapers"'
+    );
+    expect(response.body).toContain("data-trade-faq");
+  });
+
   it("keeps the preview document revalidated", async () => {
     const response = await cacheControl("/preview");
     expect(response.status).toBe(200);

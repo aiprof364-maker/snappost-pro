@@ -175,6 +175,9 @@ importers:
       openai:
         specifier: ^7.4.0
         version: 7.4.0(zod@4.1.12)
+      opentype.js:
+        specifier: ^2.0.0
+        version: 2.0.0
       react:
         specifier: ^19.2.1
         version: 19.2.1
@@ -3828,6 +3831,10 @@ packages:
         optional: true
       zod:
         optional: true
+
+  opentype.js@2.0.0:
+    resolution: {integrity: sha512-kCyjv6xdDY1W/jLWZ/L3QhhTlKUqDZMQ5+Jdlw12b3dXkKNpYBqqlMMj0YDQPShWFTMwgZI1hG14kN3XUDSg/A==}
+    hasBin: true
 
   package-manager-detector@1.5.0:
     resolution: {integrity: sha512-uBj69dVlYe/+wxj8JOpr97XfsxH/eumMt6HqjNTmJDf/6NO9s+0uxeOneIz3AsPt2m6y9PqzDzd3ATcU17MNfw==}
@@ -8578,6 +8585,8 @@ snapshots:
   openai@7.4.0(zod@4.1.12):
     optionalDependencies:
       zod: 4.1.12
+
+  opentype.js@2.0.0: {}
 
   package-manager-detector@1.5.0: {}
 

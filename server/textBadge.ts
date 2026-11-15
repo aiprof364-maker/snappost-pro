@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import sharp from "sharp";
+import { readSnapPostFont } from "./snapPostFont";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_CALL_TO_ACTION,
@@ -25,12 +25,8 @@ let fontCss: string | null = null;
 
 function badgeFontCss() {
   if (fontCss) return fontCss;
-  const regular = readFileSync(
-    new URL("./fonts/SnapPostBadge-Regular.ttf", import.meta.url)
-  ).toString("base64");
-  const bold = readFileSync(
-    new URL("./fonts/SnapPostBadge-Bold.ttf", import.meta.url)
-  ).toString("base64");
+  const regular = readSnapPostFont("SnapPostBadge-Regular.ttf").toString("base64");
+  const bold = readSnapPostFont("SnapPostBadge-Bold.ttf").toString("base64");
   fontCss = `@font-face{font-family:'SnapPostBadge';src:url("data:font/ttf;base64,${regular}") format("truetype");}@font-face{font-family:'SnapPostBadgeBold';src:url("data:font/ttf;base64,${bold}") format("truetype");}`;
   return fontCss;
 }

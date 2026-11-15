@@ -30,6 +30,8 @@ import {
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { brandingForClaim, storeMarkedImage } from "./freeMark";
+import { describePreviewFailure, previewFailureMessage } from "./previewFailure";
+import { readSnapPostFont } from "./snapPostFont";
 import { photoFitsSnapPostMark } from "./snapPostMark";
 import { generateCaption } from "./captions";
 import {
@@ -370,6 +372,19 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Anonymous visitors never publish. This procedure only stores a draft
         // preview. Publishing stays on the signed-in post action.
+        try {
+          readSnapPostFont("SnapPostBadge-Regular.ttf");
+          readSnapPostFont("SnapPostBadge-Bold.ttf");
+        } catch (error) {
+          const failure = describePreviewFailure(error);
+          console.error(
+            `[Preview] Creation failed at fonts (${failure.reason}): ${failure.detail}`
+          );
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: previewFailureMessage(failure.reason),
+          });
+        }
         const { buffer: photoBuffer, mime: photoMime } = decodePreviewImage(
           input.image,
           8 * 1024 * 1024
@@ -424,6 +439,7 @@ export const appRouter = router({
         let aiStarted = false;
         let reservedDay: string | null = null;
         let ipRefunded = false;
+        let stage = "daily_cap";
         const giveBackIp = () => {
           if (ipRefunded || aiStarted) return;
           ipRefunded = true;
@@ -448,6 +464,7 @@ export const appRouter = router({
           }
           reservedDay = reservation.day;
 
+          stage = "store_original";
           const original = await storagePut(
             `${keyPrefix}/original.${ext}`,
             photoBuffer,
@@ -461,6 +478,7 @@ export const appRouter = router({
               )
             : null;
           const signedUrl = await storageGetSignedUrl(original.key);
+          stage = "caption";
           aiStarted = true;
           const generatedCaption = await generateCaption({
             imageUrl: signedUrl,
@@ -477,6 +495,7 @@ export const appRouter = router({
           const caption = withSnapPostCaptionFooter(generatedCaption, {
             include: showMark,
           });
+          stage = "brand_image";
           const clean = await brandImage({
             photoBuffer,
             logoBuffer: logo?.buffer,
@@ -488,6 +507,7 @@ export const appRouter = router({
               callToAction: PREVIEW_CALL_TO_ACTION,
             },
           });
+          stage = "snap_post_mark";
           const marked = showMark
             ? await storeMarkedImage(clean.buffer, `${keyPrefix}/marked.jpg`)
             : null;
@@ -498,6 +518,7 @@ export const appRouter = router({
                 "Please use a larger photo so we can prepare your preview.",
             });
           }
+          stage = "save_draft";
           const draft = await createPreviewDraft({
             landing: previewLanding(input.landing),
             originalImageKey: original.key,
@@ -511,6 +532,7 @@ export const appRouter = router({
             businessName,
             suburb,
           });
+          stage = "log_event";
           await logConversionEvent(null, "tool_used", {
             source: "job_photo_preview",
             landing: input.landing ?? null,
@@ -532,11 +554,13 @@ export const appRouter = router({
             }
           }
           if (error instanceof TRPCError) throw error;
-          console.error("[Preview] Creation failed", error);
+          const failure = describePreviewFailure(error);
+          console.error(
+            `[Preview] Creation failed at ${stage} (${failure.reason}): ${failure.detail}`
+          );
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message:
-              "We could not create that preview. Please try another JPG or PNG shortly.",
+            message: previewFailureMessage(failure.reason),
           });
         }
       }),

@@ -110,6 +110,9 @@ describe("expired access link page", () => {
     const html = await renderLogin("");
 
     expect(html).toContain("Start your 3 free posts");
+    expect(html).toContain("we&#x27;ll send a free access link");
+    expect(html).not.toContain("we&#x27;re send");
+    expect(html).not.toContain("we're send");
     expect(html).toContain("stays active for 24 hours");
     expect(html).toContain("open it more than once");
     expect(buttonText(html)).toContain("Send my free access link");

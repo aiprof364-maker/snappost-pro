@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import sharp from "sharp";
+import { readSnapPostFont } from "./snapPostFont";
 
 const MARK_TEXT = "Made with SnapPost";
 const MIN_SHORT_SIDE = 160;
@@ -13,9 +13,7 @@ let fontCss: string | null = null;
 
 function markFontCss() {
   if (fontCss) return fontCss;
-  const bold = readFileSync(
-    new URL("./fonts/SnapPostBadge-Bold.ttf", import.meta.url)
-  ).toString("base64");
+  const bold = readSnapPostFont("SnapPostBadge-Bold.ttf").toString("base64");
   fontCss = `@font-face{font-family:'SnapPostMark';src:url("data:font/ttf;base64,${bold}") format("truetype");}`;
   return fontCss;
 }

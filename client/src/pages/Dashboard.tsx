@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { isDashboardDataLoading } from "@/lib/dashboardDataState";
+import { captionWhenPostOpens } from "@/lib/openedPostCaption";
 import { trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { getSubscriptionTrackingEvents } from "@/lib/subscriptionTracking";
@@ -61,6 +62,7 @@ export default function Dashboard() {
   const logoRef = useRef<HTMLInputElement>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [selectedCaption, setSelectedCaption] = useState("");
+  const captionLoadedFor = useRef<number | null>(null);
 
   const uploadLogo = trpc.account.uploadLogo.useMutation({
     onSuccess: () => {
@@ -186,6 +188,18 @@ export default function Dashboard() {
       utils.account.overview.invalidate();
     }
   }, [utils]);
+
+  useEffect(() => {
+    if (!selectedPostId) {
+      captionLoadedFor.current = null;
+      return;
+    }
+    const post = posts.data?.find(item => item.id === selectedPostId);
+    const next = captionWhenPostOpens(post, captionLoadedFor.current);
+    if (!next) return;
+    captionLoadedFor.current = next.loadedPostId;
+    setSelectedCaption(next.caption);
+  }, [posts.data, selectedPostId]);
 
   if (
     isDashboardDataLoading({

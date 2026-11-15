@@ -1,5 +1,6 @@
 import { accessLinkEmailParagraph } from "@shared/accessLink";
 import { Resend } from "resend";
+import { buildFreePostsUsedEmail, type FreePostsUsedKind } from "./freePostsEmail";
 import { getNewsletterMessage, type NewsletterKind } from "./newsletterContent";
 import { getNewsletterUnsubscribeUrl } from "./newsletter";
 
@@ -15,7 +16,8 @@ export type AccountEmailKind =
   | "trial-ending"
   | "renewal"
   | "purchase"
-  | "contact-owner-alert";
+  | "contact-owner-alert"
+  | FreePostsUsedKind;
 export type PurchaseConfirmationInput = {
   email: string;
   userName?: string | null;
@@ -132,9 +134,13 @@ export async function sendPurchaseConfirmation(
       : { name: "Starter", posts: 30 };
   const trialEnd = dateText(input.trialEndsAt);
   const periodEnd = dateText(input.periodEndsAt);
+  const connectPrompt =
+    input.subscriptionStatus === "trialing"
+      ? `<p>Connect your Facebook Page from the dashboard when you are ready to publish. You can start this trial before that Page is connected.</p>`
+      : "";
   const statusCopy =
     input.subscriptionStatus === "trialing"
-      ? `<p>Your 7-day trial is active${trialEnd ? ` through <strong>${trialEnd}</strong>` : ""}. You can manage or cancel your subscription from your dashboard.</p>`
+      ? `<p>Your 7-day trial is active${trialEnd ? ` through <strong>${trialEnd}</strong>` : ""}. You can manage or cancel your subscription from your dashboard.</p>${connectPrompt}`
       : `<p>Your <strong>${details.name}</strong> plan is active${periodEnd ? ` through <strong>${periodEnd}</strong>` : ""}.</p>`;
   return sendAccountMessage({
     to: input.email,
@@ -260,6 +266,7 @@ export async function sendAccountEmail(
     trialEndsAt?: Date | null;
     renewalAt?: Date | null;
     subscriptionStatus?: "trialing" | "active" | null;
+    trialEligible?: boolean;
     contact?: {
       name: string;
       email: string;
@@ -311,6 +318,18 @@ export async function sendAccountEmail(
         },
         idempotencyKey
       );
+    case "free-posts-used-1":
+    case "free-posts-used-2":
+    case "free-posts-used-3":
+      return sendFreePostsUsedEmail(
+        kind,
+        {
+          email: input.email,
+          userName: input.userName,
+          trialEligible: input.trialEligible === true,
+        },
+        idempotencyKey,
+      );
     case "contact-owner-alert": {
       if (!input.contact) throw new Error("Contact details are required");
       return sendContactFormNotification(
@@ -322,6 +341,21 @@ export async function sendAccountEmail(
       );
     }
   }
+}
+
+export async function sendFreePostsUsedEmail(
+  kind: FreePostsUsedKind,
+  input: { email: string; userName?: string | null; trialEligible: boolean },
+  idempotencyKey?: string,
+) {
+  const message = buildFreePostsUsedEmail(kind, input);
+  return sendAccountMessage({
+    to: input.email,
+    subject: message.subject,
+    html: message.html,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+  });
 }
 
 export async function sendCronErrorAlert(

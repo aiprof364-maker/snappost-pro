@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import FacebookConnect from "@/components/FacebookConnect";
+import FreePostsUpgradePanel from "@/components/FreePostsUpgradePanel";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import UploadCard from "@/components/UploadCard";
@@ -23,6 +24,7 @@ import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { getSubscriptionTrackingEvents } from "@/lib/subscriptionTracking";
 import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
+import { capturePromotionCode } from "@/lib/promotionCode";
 import {
   CheckCircle2,
   ExternalLink,
@@ -105,6 +107,7 @@ export default function Dashboard() {
 
   // Handle facebook callback query params
   useEffect(() => {
+    capturePromotionCode();
     const params = new URLSearchParams(window.location.search);
     const fb = params.get("facebook");
     const checkout = params.get("checkout");
@@ -152,7 +155,7 @@ export default function Dashboard() {
             window.sessionStorage.setItem(checkoutTrackingKey, "1");
             toast.success(
               outcome.conversion === "trial_started"
-                ? "Your 7-day trial is active. Welcome aboard!"
+                ? "Your 7-day trial is active. Connect your Facebook Page when you are ready to publish."
                 : "Your subscription is active. Welcome aboard!"
             );
             setTimeout(() => window.location.reload(), 1500);
@@ -213,6 +216,8 @@ export default function Dashboard() {
           : `${usage.used} / ${usage.limit} posts this month`;
   const atLimit =
     usage != null && usage.limit !== null && usage.used >= usage.limit;
+  const showFreeUpgrade = plan === "free" && atLimit;
+  const showTrialConnect = subStatus === "trialing" && !facebookConnected;
   const uploadLimitNotice = getUploadLimitNotice(plan, usage);
 
   const handleLogo = async (file?: File) => {
@@ -319,7 +324,7 @@ export default function Dashboard() {
                   </p>
                 )}
               </div>
-              {atLimit && (
+              {atLimit && !showFreeUpgrade && (
                 <a href="/pricing">
                   <Button size="sm" variant="outline">
                     Upgrade for more
@@ -329,21 +334,46 @@ export default function Dashboard() {
             </div>
           )}
 
+          {showTrialConnect && (
+            <section
+              id="facebook-section"
+              className="mt-5 rounded-2xl border border-primary/30 bg-card p-5 shadow-sm sm:p-6"
+            >
+              <h2 className="font-display text-xl font-bold">
+                Connect your Facebook Page
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your 7-day trial is active. Connect the Page you want to publish
+                to. You can create posts before you connect.
+              </p>
+              <div className="mt-4">
+                <FacebookConnect compact />
+              </div>
+            </section>
+          )}
+
           <div className="mt-5">
-            <UploadCard
-              hasLogo={hasLogo}
-              atLimit={atLimit}
-              limitNotice={uploadLimitNotice}
-              onCreated={post => {
-                setSelectedPostId(post.id);
-                setSelectedCaption(post.caption ?? "");
-                window.setTimeout(() => {
-                  document
-                    .getElementById("post-ready-section")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }, 100);
-              }}
-            />
+            {showFreeUpgrade ? (
+              <FreePostsUpgradePanel
+                trialEligible={overview.data?.trialEligible === true}
+                latestPost={posts.data?.[0]}
+              />
+            ) : (
+              <UploadCard
+                hasLogo={hasLogo}
+                atLimit={atLimit}
+                limitNotice={uploadLimitNotice}
+                onCreated={post => {
+                  setSelectedPostId(post.id);
+                  setSelectedCaption(post.caption ?? "");
+                  window.setTimeout(() => {
+                    document
+                      .getElementById("post-ready-section")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 100);
+                }}
+              />
+            )}
           </div>
 
           {firstDraft && (

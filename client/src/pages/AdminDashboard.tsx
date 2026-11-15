@@ -114,6 +114,13 @@ export default function AdminDashboard() {
                 ["Started checkout", funnel.data?.checkoutStarted],
                 ["Subscription trials", funnel.data?.subscriptionTrials],
                 ["Active paid subscribers", funnel.data?.paidSubscribers],
+                ["Exhausted free posts", funnel.data?.freePostsExhausted],
+                [
+                  "Exhausted but not upgraded",
+                  funnel.data?.exhaustedNotUpgraded,
+                ],
+                ["Upgrade panel shown", funnel.data?.paywallShown],
+                ["Promo code redemptions", funnel.data?.promoCodeRedemptions],
               ].map(([label, value]) => (
                 <Card key={label}>
                   <CardHeader className="pb-2">
@@ -129,6 +136,17 @@ export default function AdminDashboard() {
                 </Card>
               ))}
             </div>
+            {(funnel.data?.promoCodeRedemptionsByCode.length ?? 0) > 0 && (
+              <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
+                {funnel.data?.promoCodeRedemptionsByCode.map(row => (
+                  <li key={row.code}>
+                    <span className="font-medium text-foreground">{row.code}</span>
+                    {" · "}
+                    {row.count} {row.count === 1 ? "signup" : "signups"}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Email access funnel */}

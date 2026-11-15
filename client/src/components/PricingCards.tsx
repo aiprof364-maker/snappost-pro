@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { usePlanCheckout } from "@/hooks/usePlanCheckout";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { PLANS, type PlanId } from "@shared/const";
@@ -11,12 +12,7 @@ export default function PricingCards() {
   const account = trpc.account.overview.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-  const checkout = trpc.billing.createCheckout.useMutation({
-    onSuccess: data => {
-      if (data.url) window.location.href = data.url;
-    },
-    onError: err => toast.error(err.message),
-  });
+  const { startCheckout, isPending, pendingPlan } = usePlanCheckout();
   const portal = trpc.billing.portal.useMutation({
     onSuccess: data => data.url && (window.location.href = data.url),
     onError: err => toast.error(err.message),
@@ -34,7 +30,7 @@ export default function PricingCards() {
       portal.mutate({ origin: window.location.origin });
       return;
     }
-    checkout.mutate({ plan, origin: window.location.origin });
+    startCheckout(plan);
   };
 
   const order: PlanId[] = ["starter", "pro"];
@@ -127,9 +123,9 @@ export default function PricingCards() {
               className="mt-8 w-full"
               variant={featured ? "default" : "outline"}
               onClick={() => handleSelect(id)}
-              disabled={checkout.isPending || portal.isPending || currentPlan}
+              disabled={isPending || portal.isPending || currentPlan}
             >
-              {checkout.isPending && checkout.variables?.plan === id ? (
+              {isPending && pendingPlan === id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : portal.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

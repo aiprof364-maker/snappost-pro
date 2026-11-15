@@ -190,19 +190,20 @@ export async function getTrialEligibility(input: {
 export async function recordTrialClaim(input: {
   userId: number;
   email: string;
-  facebookPageId: string;
+  facebookPageId?: string | null;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const now = new Date();
+  const facebookPageId = input.facebookPageId?.trim() || null;
   await db
     .insert(trialClaims)
     .values({
       userId: input.userId,
       emailHash: getTrialEmailHash(input.email),
-      facebookPageId: input.facebookPageId,
+      facebookPageId,
       stripeCustomerId: input.stripeCustomerId ?? null,
       stripeSubscriptionId: input.stripeSubscriptionId ?? null,
       redeemedAt: now,
@@ -212,6 +213,7 @@ export async function recordTrialClaim(input: {
       set: {
         stripeCustomerId: input.stripeCustomerId ?? null,
         stripeSubscriptionId: input.stripeSubscriptionId ?? null,
+        ...(facebookPageId ? { facebookPageId } : {}),
         updatedAt: now,
       },
     });
@@ -653,6 +655,33 @@ export async function logConversionEvent(
 
   try {
     const { conversionEvents } = await import("../drizzle/schema");
+    await db.insert(conversionEvents).values({
+      userId,
+      eventType,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+    });
+  } catch (error) {
+    console.error("[Database] Error logging conversion event:", error);
+  }
+}
+
+/** Record a funnel event once per user. Later repeats of the same event are ignored. */
+export async function logConversionEventOnce(
+  userId: number,
+  eventType: string,
+  metadata?: Record<string, any>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const { conversionEvents } = await import("../drizzle/schema");
+    const existing = await db
+      .select({ id: conversionEvents.id })
+      .from(conversionEvents)
+      .where(and(eq(conversionEvents.userId, userId), eq(conversionEvents.eventType, eventType)))
+      .limit(1);
+    if (existing.length > 0) return;
     await db.insert(conversionEvents).values({
       userId,
       eventType,

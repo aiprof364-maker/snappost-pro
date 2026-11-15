@@ -6,6 +6,10 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
 import {
+  applyTradeLandingMetadata,
+  tradeLandingByPath,
+} from "@shared/tradeLandingPages";
+import {
   applyHtmlDocumentCacheHeaders,
   cachedStatic,
   sendSpaShell,
@@ -65,8 +69,11 @@ export async function setupVite(app: Express, server: Server) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      if (new URL(url, "http://localhost").pathname === "/preview") {
+      const pathname = new URL(url, "http://localhost").pathname;
+      if (pathname === "/preview") {
         template = withPreviewMetadata(template);
+      } else {
+        template = applyTradeLandingMetadata(template, pathname);
       }
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -111,7 +118,20 @@ export function serveStatic(app: Express, distPath = staticDistPath()) {
   });
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    sendSpaShell(res, distPath);
+  app.use("*", (req, res, next) => {
+    const pathname = new URL(req.originalUrl, "http://localhost").pathname;
+    if (!tradeLandingByPath(pathname)) {
+      sendSpaShell(res, distPath);
+      return;
+    }
+
+    fs.promises
+      .readFile(path.resolve(distPath, "index.html"), "utf-8")
+      .then(template => {
+        res.status(200).set({ "Content-Type": "text/html" });
+        applyHtmlDocumentCacheHeaders(res);
+        res.end(applyTradeLandingMetadata(template, pathname));
+      })
+      .catch(next);
   });
 }

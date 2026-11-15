@@ -27,7 +27,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -183,6 +183,7 @@ function FilePicker({
 
 export default function FreePreview() {
   const { isAuthenticated, loading } = useAuth();
+  const [, navigate] = useLocation();
   const initialSearch = new URLSearchParams(window.location.search);
   const [landing, setLanding] = useState<Landing>(() =>
     parseLanding(initialSearch.get("landing"))
@@ -209,7 +210,6 @@ export default function FreePreview() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [emailError, setEmailError] = useState("");
-  const [claimMessage, setClaimMessage] = useState("");
   const claimStarted = useRef(false);
   const registrationTracked = useRef(false);
   const [accountCreated] = useState(
@@ -304,22 +304,16 @@ export default function FreePreview() {
     onError: error => setEmailError(error.message),
   });
 
-  const claim = trpc.preview.claim.useMutation({
-    onSuccess: result => {
-      setClaimMessage(
-        result.alreadyClaimed
-          ? "Your preview is already saved in your dashboard."
-          : "Your preview is saved as a draft in your dashboard."
-      );
-    },
-    onError: error => setClaimMessage(error.message),
-  });
+  const claim = trpc.preview.claim.useMutation();
 
   useEffect(() => {
+    if (!token) {
+      claimStarted.current = false;
+      return;
+    }
     if (
       !loading &&
       isAuthenticated &&
-      token &&
       !claimStarted.current &&
       !claim.isPending
     ) {
@@ -327,6 +321,13 @@ export default function FreePreview() {
       claim.mutate({ token });
     }
   }, [claim, isAuthenticated, loading, token]);
+
+  useEffect(() => {
+    const postId = claim.data?.postId;
+    if (!preview && postId) {
+      navigate(`/dashboard?post=${postId}`);
+    }
+  }, [claim.data, navigate, preview]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -418,16 +419,34 @@ export default function FreePreview() {
     setFormError("");
     setSent(false);
     setEmailError("");
+    claimStarted.current = false;
     window.history.replaceState({}, "", previewPath(undefined, landing));
   };
 
-  if (!loading && isAuthenticated && token) {
+  if (!loading && isAuthenticated && token && !preview) {
     return (
       <div className="flex min-h-screen flex-col bg-muted/20">
         <SiteHeader />
         <main className="container flex flex-1 items-center justify-center py-12">
           <section className="w-full max-w-xl rounded-3xl border border-border bg-card p-7 text-center shadow-sm sm:p-10">
-            {claim.isPending || !claimMessage ? (
+            {claim.isError ? (
+              <>
+                <h1 className="font-display text-3xl font-bold">
+                  This preview is not available
+                </h1>
+                <p className="mt-3 text-muted-foreground">
+                  {claim.error.message}
+                </p>
+                <Link href="/dashboard" className="mt-7 inline-flex">
+                  <Button
+                    size="lg"
+                    className="gap-2 px-8 py-6 text-base font-bold"
+                  >
+                    Go to my dashboard <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </>
+            ) : (
               <>
                 <Loader2 className="mx-auto h-9 w-9 animate-spin text-primary" />
                 <h1 className="mt-5 font-display text-3xl font-bold">
@@ -437,22 +456,6 @@ export default function FreePreview() {
                   We are adding your branded image and caption to your
                   dashboard.
                 </p>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="mx-auto h-11 w-11 text-emerald-600" />
-                <h1 className="mt-5 font-display text-3xl font-bold">
-                  Your free post is ready
-                </h1>
-                <p className="mt-3 text-muted-foreground">{claimMessage}</p>
-                <Link href="/dashboard" className="mt-7 inline-flex">
-                  <Button
-                    size="lg"
-                    className="gap-2 px-8 py-6 text-base font-bold"
-                  >
-                    Go to my dashboard <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
               </>
             )}
           </section>
@@ -584,17 +587,40 @@ export default function FreePreview() {
                   </span>
                   <div>
                     <h2 className="font-display text-2xl font-bold">
-                      Sign up free and keep this post
+                      {isAuthenticated
+                        ? "Saved to your dashboard"
+                        : "Sign up free and keep this post"}
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                      Create your account with your business email. You get 3
-                      free posts, and no card is required. Starter is $19/mo and
-                      Pro is $29/mo after that. Nothing is posted to Facebook
-                      until you choose to publish.
+                      {isAuthenticated
+                        ? "This draft is in your account. Nothing is posted to Facebook until you publish it."
+                        : "Create your account with your business email. You get 3 free posts, and no card is required. Starter is $19/mo and Pro is $29/mo after that. Nothing is posted to Facebook until you choose to publish."}
                     </p>
                   </div>
                 </div>
-                {sent ? (
+                {isAuthenticated ? (
+                  <div className="mt-6">
+                    {claim.isError ? (
+                      <p className="text-sm text-destructive">
+                        {claim.error.message}
+                      </p>
+                    ) : claim.data?.postId ? (
+                      <Link href={`/dashboard?post=${claim.data.postId}`}>
+                        <Button
+                          size="lg"
+                          className="gap-2 py-6 text-base font-bold"
+                        >
+                          Open this post <ArrowRight className="h-5 w-5" />
+                        </Button>
+                      </Link>
+                    ) : (
+                      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Saving this
+                        post to your dashboard…
+                      </p>
+                    )}
+                  </div>
+                ) : sent ? (
                   <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
                     <p className="font-bold">
                       Your secure access link is on its way.

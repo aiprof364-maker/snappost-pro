@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { previewDailyUsage } from "../drizzle/schema";
 import { getDb } from "./db";
-import { ensurePreviewDraftSchema } from "./previewDrafts";
+import { ensurePreviewDraftSchema, mysqlAffectedRows } from "./previewDrafts";
 
 export type DailyUsageAction = "reserved" | "deny" | "insert" | "retry";
 
@@ -23,16 +23,7 @@ export function nextDailyUsageAction(input: {
 }
 
 function updatedRows(result: unknown) {
-  if (Array.isArray(result)) return updatedRows(result[0]);
-  if (
-    result &&
-    typeof result === "object" &&
-    "affectedRows" in result &&
-    typeof result.affectedRows === "number"
-  ) {
-    return result.affectedRows;
-  }
-  return 0;
+  return mysqlAffectedRows(result);
 }
 
 function isDuplicateKey(error: unknown) {

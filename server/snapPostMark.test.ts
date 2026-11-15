@@ -32,6 +32,10 @@ describe("Made with SnapPost mark", () => {
       }
     }
     expect(dark).toBeGreaterThan(80);
+    const letters = lightLetterStats(data, info, 20, 14, 230, 52);
+    expect(letters.light).toBeGreaterThan(80);
+    expect(letters.inkColumns).toBeGreaterThan(40);
+    expect(letters.uniqueColumnHeights).toBeGreaterThan(6);
     const center = pixel(400, 300);
     expect(center[0]).toBeGreaterThan(245);
     const lowerRight = pixel(770, 570);
@@ -49,3 +53,32 @@ describe("Made with SnapPost mark", () => {
     expect(await photoFitsSnapPostMark(tiny)).toBe(false);
   });
 });
+
+function lightLetterStats(
+  data: Buffer,
+  info: { width: number; channels: number },
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number
+) {
+  const heights: number[] = [];
+  let light = 0;
+  for (let x = x0; x < x1; x++) {
+    let column = 0;
+    for (let y = y0; y < y1; y++) {
+      const index = (y * info.width + x) * info.channels;
+      if (data[index] > 210 && data[index + 1] > 210 && data[index + 2] > 210) {
+        column += 1;
+      }
+    }
+    heights.push(column);
+    light += column;
+  }
+  const inkColumns = heights.filter(height => height > 0).length;
+  return {
+    light,
+    inkColumns,
+    uniqueColumnHeights: new Set(heights.filter(height => height > 0)).size,
+  };
+}

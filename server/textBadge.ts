@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { readSnapPostFont } from "./snapPostFont";
+import { measureSnapPostText, snapPostGlyphPath } from "./glyphText";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_CALL_TO_ACTION,
@@ -21,23 +21,11 @@ type BadgeCopy = {
 
 const MIN_SHORT_SIDE = 280;
 const widthCache = new Map<string, number>();
-let fontCss: string | null = null;
 
-function badgeFontCss() {
-  if (fontCss) return fontCss;
-  const regular = readSnapPostFont("SnapPostBadge-Regular.ttf").toString("base64");
-  const bold = readSnapPostFont("SnapPostBadge-Bold.ttf").toString("base64");
-  fontCss = `@font-face{font-family:'SnapPostBadge';src:url("data:font/ttf;base64,${regular}") format("truetype");}@font-face{font-family:'SnapPostBadgeBold';src:url("data:font/ttf;base64,${bold}") format("truetype");}`;
-  return fontCss;
-}
+type BadgeFace = "SnapPostBadge" | "SnapPostBadgeBold";
 
-function escapeXml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+function faceOf(family: BadgeFace) {
+  return family === "SnapPostBadgeBold" ? "bold" : "regular";
 }
 
 /** A badge is only drawn from details the visitor supplied. */
@@ -58,64 +46,35 @@ export function normalizeTextBadge(
   };
 }
 
-async function measureText(
-  text: string,
-  fontSize: number,
-  family: "SnapPostBadge" | "SnapPostBadgeBold"
-) {
+function measureText(text: string, fontSize: number, family: BadgeFace) {
   const key = `${family}|${fontSize}|${text}`;
   const cached = widthCache.get(key);
   if (cached !== undefined) return cached;
-  const height = Math.ceil(fontSize * 2);
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="${height}">
-  <style>${badgeFontCss()}</style>
-  <text x="0" y="${fontSize}" font-family="${family}" font-size="${fontSize}" fill="#000000">${escapeXml(text)}</text>
-</svg>`;
-  // Sharp's trim treats transparent black like solid black, so measure the
-  // ink by its alpha instead of trimming the canvas.
-  const { data, info } = await sharp(Buffer.from(svg))
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  let maxX = 0;
-  for (
-    let offset = info.channels - 1;
-    offset < data.length;
-    offset += info.channels
-  ) {
-    if (data[offset] > 16) {
-      const x = Math.floor(offset / info.channels) % info.width;
-      if (x > maxX) maxX = x;
-    }
-  }
-  const width = Math.max(1, maxX + 1);
+  const width = measureSnapPostText(text, fontSize, faceOf(family));
   widthCache.set(key, width);
   return width;
 }
 
-async function fitLine(
+function fitLine(
   text: string,
   fontSize: number,
-  family: "SnapPostBadge" | "SnapPostBadgeBold",
+  family: BadgeFace,
   maxWidth: number
 ) {
-  if ((await measureText(text, fontSize, family)) <= maxWidth) return text;
+  if (measureText(text, fontSize, family) <= maxWidth) return text;
   let clipped = text;
   while (clipped.length > 1) {
     clipped = clipped.slice(0, -1).trimEnd();
     const candidate = `${clipped}…`;
-    if ((await measureText(candidate, fontSize, family)) <= maxWidth) {
-      return candidate;
-    }
+    if (measureText(candidate, fontSize, family) <= maxWidth) return candidate;
   }
   return "…";
 }
 
-async function wrapText(
+function wrapText(
   text: string,
   fontSize: number,
-  family: "SnapPostBadge" | "SnapPostBadgeBold",
+  family: BadgeFace,
   maxWidth: number,
   maxLines: number
 ) {
@@ -125,20 +84,19 @@ async function wrapText(
   for (let index = 0; index < words.length; index++) {
     const word = words[index];
     const candidate = current ? `${current} ${word}` : word;
-    const candidateWidth = await measureText(candidate, fontSize, family);
-    if (candidateWidth <= maxWidth) {
+    if (measureText(candidate, fontSize, family) <= maxWidth) {
       current = candidate;
       continue;
     }
     if (!current) {
-      lines.push(await fitLine(word, fontSize, family, maxWidth));
+      lines.push(fitLine(word, fontSize, family, maxWidth));
       return lines;
     }
     lines.push(current);
     const rest = words.slice(index).join(" ");
     if (lines.length === maxLines) return lines;
     if (lines.length === maxLines - 1) {
-      lines.push(await fitLine(rest, fontSize, family, maxWidth));
+      lines.push(fitLine(rest, fontSize, family, maxWidth));
       return lines;
     }
     current = word;
@@ -172,41 +130,27 @@ export async function renderTextBadgeOverlay(
   if (maxInner < 80) return null;
 
   const nameLines = copy.businessName
-    ? await wrapText(
-        copy.businessName,
-        nameSize,
-        "SnapPostBadgeBold",
-        maxInner,
-        2
-      )
+    ? wrapText(copy.businessName, nameSize, "SnapPostBadgeBold", maxInner, 2)
     : [];
   const suburbLine = copy.suburb
-    ? await fitLine(copy.suburb, suburbSize, "SnapPostBadge", maxInner)
+    ? fitLine(copy.suburb, suburbSize, "SnapPostBadge", maxInner)
     : undefined;
 
   let ctaSize = Math.max(12, Math.round(shortSide * 0.019));
-  let ctaWidth = await measureText(
-    copy.callToAction,
-    ctaSize,
-    "SnapPostBadgeBold"
-  );
+  let ctaWidth = measureText(copy.callToAction, ctaSize, "SnapPostBadgeBold");
   while (ctaWidth + Math.round(ctaSize * 1.4) > maxInner && ctaSize > 11) {
     ctaSize -= 1;
-    ctaWidth = await measureText(
-      copy.callToAction,
-      ctaSize,
-      "SnapPostBadgeBold"
-    );
+    ctaWidth = measureText(copy.callToAction, ctaSize, "SnapPostBadgeBold");
   }
   const pillPadX = Math.round(ctaSize * 0.72);
   const pillHeight = Math.round(ctaSize * 1.75);
   const pillWidth = Math.min(maxInner, ctaWidth + pillPadX * 2);
 
-  const nameWidths = await Promise.all(
-    nameLines.map(line => measureText(line, nameSize, "SnapPostBadgeBold"))
+  const nameWidths = nameLines.map(line =>
+    measureText(line, nameSize, "SnapPostBadgeBold")
   );
   const suburbWidth = suburbLine
-    ? await measureText(suburbLine, suburbSize, "SnapPostBadge")
+    ? measureText(suburbLine, suburbSize, "SnapPostBadge")
     : 0;
   const contentWidth = Math.max(pillWidth, suburbWidth, ...nameWidths, 1);
   const badgeWidth = Math.min(maxOuter, contentWidth + padX * 2);
@@ -232,7 +176,14 @@ export async function renderTextBadgeOverlay(
   nameLines.forEach((line, index) => {
     const baseline = cursor + Math.round(nameSize * 0.8);
     parts.push(
-      `<text x="${left + padX}" y="${baseline}" font-family="SnapPostBadgeBold" font-size="${nameSize}" fill="#ffffff">${escapeXml(line)}</text>`
+      snapPostGlyphPath({
+        text: line,
+        x: left + padX,
+        y: baseline,
+        fontSize: nameSize,
+        face: "bold",
+        fill: "#ffffff",
+      })
     );
     cursor += nameSize;
     if (index < nameLines.length - 1) cursor += nameGap;
@@ -241,7 +192,14 @@ export async function renderTextBadgeOverlay(
     if (nameLines.length) cursor += blockGap;
     const baseline = cursor + Math.round(suburbSize * 0.8);
     parts.push(
-      `<text x="${left + padX}" y="${baseline}" font-family="SnapPostBadge" font-size="${suburbSize}" fill="#f4eeff">${escapeXml(suburbLine)}</text>`
+      snapPostGlyphPath({
+        text: suburbLine,
+        x: left + padX,
+        y: baseline,
+        fontSize: suburbSize,
+        face: "regular",
+        fill: "#f4eeff",
+      })
     );
     cursor += suburbSize;
   }
@@ -253,12 +211,18 @@ export async function renderTextBadgeOverlay(
     `<rect x="${pillX}" y="${pillY}" width="${pillWidth}" height="${pillHeight}" rx="${Math.round(pillHeight / 2)}" fill="#e39a2b"/>`
   );
   parts.push(
-    `<text x="${pillX + pillPadX}" y="${ctaBaseline}" font-family="SnapPostBadgeBold" font-size="${ctaSize}" fill="#1f1406">${escapeXml(copy.callToAction)}</text>`
+    snapPostGlyphPath({
+      text: copy.callToAction,
+      x: pillX + pillPadX,
+      y: ctaBaseline,
+      fontSize: ctaSize,
+      face: "bold",
+      fill: "#1f1406",
+    })
   );
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <style>${badgeFontCss()}</style>
   <rect x="${left}" y="${top}" width="${badgeWidth}" height="${badgeHeight}" rx="${radius}" fill="#3c2e86"/>
   ${parts.join("")}
 </svg>`;

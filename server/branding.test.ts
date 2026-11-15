@@ -156,6 +156,9 @@ describe("shared branding generator", () => {
     expect(colors.indigo).toBeGreaterThan(400);
     expect(colors.amber).toBeGreaterThan(40);
     expect(colors.white).toBeGreaterThan(20);
+    const nameInk = lightColumnStats(branded.data, branded.info, 16, 430, 420, 620);
+    expect(nameInk.inkColumns).toBeGreaterThan(30);
+    expect(nameInk.uniqueColumnHeights).toBeGreaterThan(6);
 
     const logo = await sharp({
       create: { width: 80, height: 40, channels: 4, background: "#111111" },
@@ -215,6 +218,29 @@ describe("shared branding generator", () => {
     );
   });
 });
+
+function lightColumnStats(
+  data: Buffer,
+  info: { width: number; channels: number },
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number
+) {
+  const heights: number[] = [];
+  for (let x = x0; x < x1; x++) {
+    let column = 0;
+    for (let y = y0; y < y1; y++) {
+      const index = (y * info.width + x) * info.channels;
+      if (data[index] > 220 && data[index + 1] > 220 && data[index + 2] > 220) {
+        column += 1;
+      }
+    }
+    heights.push(column);
+  }
+  const ink = heights.filter(height => height > 0);
+  return { inkColumns: ink.length, uniqueColumnHeights: new Set(ink).size };
+}
 
 function countColors(
   data: Buffer,

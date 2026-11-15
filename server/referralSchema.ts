@@ -62,6 +62,10 @@ export async function ensureReferralSchema() {
     const statements = [
       "ALTER TABLE `users` ADD `referralCode` varchar(16)",
       "ALTER TABLE `users` ADD `bonusFreePosts` int NOT NULL DEFAULT 0",
+      "ALTER TABLE `users` ADD `businessName` varchar(80)",
+      "ALTER TABLE `users` ADD `suburb` varchar(60)",
+      "ALTER TABLE `users` ADD `trade` varchar(60)",
+      "ALTER TABLE `users` ADD `brandSetupSkipped` boolean NOT NULL DEFAULT false",
       "ALTER TABLE `users` ADD CONSTRAINT `users_referral_code_uq` UNIQUE (`referralCode`)",
       "ALTER TABLE `auth_tokens` ADD `referralCode` varchar(16)",
       "ALTER TABLE `posts` ADD `markedImageKey` varchar(256)",

@@ -89,6 +89,7 @@ export async function consumeMagicLinkToken(
   rawToken: string,
   attribution: MagicLinkAttribution = {}
 ): Promise<MagicLinkConsumption> {
+  await ensureReferralSchema();
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const [token] = await db
@@ -197,6 +198,7 @@ export async function getSessionUser(req: Request): Promise<User | null> {
     const verified = await jwtVerify(token, secretKey());
     const userId = Number(verified.payload.userId);
     if (!Number.isInteger(userId)) return null;
+    await ensureReferralSchema();
     const db = await getDb();
     if (!db) return null;
     const [user] = await db

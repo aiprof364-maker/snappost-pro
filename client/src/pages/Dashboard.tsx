@@ -27,6 +27,12 @@ import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import { capturePromotionCode } from "@/lib/promotionCode";
 import ReferralPanel from "@/components/ReferralPanel";
+import { BrandNameNudge, BrandSetupDialog } from "@/components/BrandSetupStep";
+import {
+  brandSetupPrefill,
+  shouldShowBrandNudge,
+  shouldShowBrandSetup,
+} from "@shared/brandProfile";
 import {
   CheckCircle2,
   ExternalLink,
@@ -63,6 +69,29 @@ export default function Dashboard() {
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [selectedCaption, setSelectedCaption] = useState("");
   const captionLoadedFor = useRef<number | null>(null);
+  const [accountCreatedFlag, setAccountCreatedFlag] = useState(false);
+  const [brandSetupDismissed, setBrandSetupDismissed] = useState(false);
+  const [brandSetupReopened, setBrandSetupReopened] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
+
+  const saveBrandSetup = trpc.account.saveBrandSetup.useMutation({
+    onSuccess: () => {
+      toast.success("Business name saved. New posts can show it.");
+      setBrandSaved(true);
+      setBrandSetupReopened(false);
+      setBrandSetupDismissed(true);
+      utils.account.overview.invalidate();
+    },
+    onError: e => toast.error(e.message),
+  });
+  const skipBrandSetup = trpc.account.skipBrandSetup.useMutation({
+    onSuccess: () => {
+      setBrandSetupReopened(false);
+      setBrandSetupDismissed(true);
+      utils.account.overview.invalidate();
+    },
+    onError: e => toast.error(e.message),
+  });
 
   const uploadLogo = trpc.account.uploadLogo.useMutation({
     onSuccess: () => {
@@ -173,6 +202,7 @@ export default function Dashboard() {
       }
     }
     if (accountCreated === "1") {
+      setAccountCreatedFlag(true);
       trackMetaEvent(
         "CompleteRegistration",
         landing ? { landing_page: landing } : undefined
@@ -220,6 +250,26 @@ export default function Dashboard() {
     plan === "free" ? "Free" : (PLANS[plan as "starter" | "pro"]?.name ?? plan);
   const facebookConnected = overview.data?.facebook?.connected === true;
   const hasLogo = Boolean(overview.data?.hasLogo);
+  const businessName = brandSaved ? "saved" : overview.data?.businessName;
+  const brandPrefill = brandSetupPrefill({
+    businessName: overview.data?.businessName,
+    suburb: overview.data?.suburb,
+    trade: overview.data?.trade,
+    suggestion: overview.data?.brandSuggestion,
+  });
+  const brandSetupVisible = shouldShowBrandSetup({
+    accountCreated: accountCreatedFlag,
+    businessName,
+    brandSetupSkipped: Boolean(overview.data?.brandSetupSkipped),
+    dismissed: brandSetupDismissed,
+    reopened: brandSetupReopened,
+  });
+  const brandNudgeVisible = shouldShowBrandNudge({
+    businessName,
+    brandSetupSkipped:
+      Boolean(overview.data?.brandSetupSkipped) || brandSetupDismissed,
+    setupVisible: brandSetupVisible,
+  });
   const selectedPost = posts.data?.find(post => post.id === selectedPostId);
   const firstDraft = posts.data?.find(post => post.status === "draft");
   const usage = overview.data?.usage;
@@ -335,15 +385,34 @@ export default function Dashboard() {
 
           <ReferralPanel />
 
+          <BrandSetupDialog
+            open={brandSetupVisible}
+            prefill={brandPrefill}
+            saving={saveBrandSetup.isPending}
+            skipping={skipBrandSetup.isPending}
+            onSave={values => saveBrandSetup.mutate(values)}
+            onSkip={() => skipBrandSetup.mutate()}
+          />
+
+          {brandNudgeVisible && (
+            <BrandNameNudge
+              onAdd={() => {
+                setBrandSaved(false);
+                setBrandSetupDismissed(false);
+                setBrandSetupReopened(true);
+              }}
+            />
+          )}
+
           {usageLabel && (
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
               <div>
                 <span className="font-medium">{usageLabel}</span>
                 {plan === "free" ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Free posts include a small &quot;Made with SnapPost&quot; mark
-                    and your referral link in the caption. Paid plans and the
-                    7-day trial do not.
+                    Free posts include a small &quot;Made with SnapPost&quot;
+                    mark and your referral link in the caption. Paid plans and
+                    the 7-day trial do not.
                   </p>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -389,6 +458,7 @@ export default function Dashboard() {
             ) : (
               <UploadCard
                 hasLogo={hasLogo}
+                businessName={overview.data?.businessName}
                 atLimit={atLimit}
                 limitNotice={uploadLimitNotice}
                 onCreated={post => {
@@ -477,7 +547,9 @@ export default function Dashboard() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       {hasLogo
                         ? "New drafts include your saved logo as a watermark."
-                        : "This draft can publish without a logo. Add one later if you want it on future post images."}
+                        : overview.data?.businessName
+                          ? `New drafts include ${overview.data.businessName} on the photo. A logo replaces that name badge.`
+                          : "This draft can publish without a logo. Add your business name or a logo so customers know who did the work."}
                     </p>
                   </div>
                   {hasLogo && (

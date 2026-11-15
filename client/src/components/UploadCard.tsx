@@ -26,6 +26,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 type Props = {
   hasLogo: boolean;
+  businessName?: string | null;
   atLimit?: boolean;
   limitNotice?: UploadLimitNotice | null;
   onCreated?: (post: { id: number; caption: string | null }) => void;
@@ -91,6 +92,7 @@ function StepCard({
 
 export default function UploadCard({
   hasLogo,
+  businessName = null,
   atLimit = false,
   limitNotice = null,
   onCreated,
@@ -159,7 +161,9 @@ export default function UploadCard({
         description={
           hasLogo
             ? "Choose a real finished-job or business photo. We add your saved logo and create a draft."
-            : "Choose a real finished-job or business photo. We create a saved draft; a logo is optional."
+            : businessName
+              ? `Choose a real finished-job or business photo. We add ${businessName} and create a draft.`
+              : "Choose a real finished-job or business photo. We create a saved draft; a logo is optional."
         }
         complete={photoReady}
         icon={<ImagePlus className="h-6 w-6" aria-hidden="true" />}

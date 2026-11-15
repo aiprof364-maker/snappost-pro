@@ -29,8 +29,12 @@ import {
 } from "@shared/previewCaption";
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
+import { brandSignedInPhoto, signedInTextBadge } from "./signedInBranding";
 import { brandingForClaim, storeMarkedImage } from "./freeMark";
-import { describePreviewFailure, previewFailureMessage } from "./previewFailure";
+import {
+  describePreviewFailure,
+  previewFailureMessage,
+} from "./previewFailure";
 import { readSnapPostFont } from "./snapPostFont";
 import { photoFitsSnapPostMark } from "./snapPostMark";
 import { generateCaption } from "./captions";
@@ -45,6 +49,7 @@ import {
   getUserPosts,
   updatePost,
   updateUserLogo,
+  updateUserBrand,
   logConversionEvent,
   logConversionEventOnce,
   logAnonymousConversionOnce,
@@ -89,6 +94,7 @@ import {
   cleanupExpiredPreviewDrafts,
   createPreviewDraft,
   getPublicPreviewDraft,
+  getLatestClaimedPreviewBrand,
   getUnclaimedPreviewDraft,
   markPreviewEmailRequested,
   PreviewDraftError,
@@ -113,6 +119,7 @@ import {
   ensureReferrerCustomer,
   getReferralDashboard,
 } from "./referrals";
+import { ensureReferralSchema } from "./referralSchema";
 
 async function noteFreePostsExhausted(
   userId: number,
@@ -600,9 +607,7 @@ export const appRouter = router({
             ? await reconcileUserSubscription(await getUserById(ctx.user.id))
             : null;
           const prepared =
-            draft && claimer
-              ? await brandingForClaim(claimer, draft)
-              : null;
+            draft && claimer ? await brandingForClaim(claimer, draft) : null;
           const result = await claimPreviewDraft({
             token: input.token,
             userId: ctx.user.id,
@@ -622,7 +627,10 @@ export const appRouter = router({
           }
           return result;
         } catch (error) {
-          if (error instanceof PreviewDraftError && error.code === "free_limit") {
+          if (
+            error instanceof PreviewDraftError &&
+            error.code === "free_limit"
+          ) {
             const claimer = await getUserById(ctx.user.id);
             const limit = postCreationLimit("free", claimer?.bonusFreePosts);
             await noteFreePostsExhausted(ctx.user.id, {
@@ -639,6 +647,7 @@ export const appRouter = router({
   account: router({
     /** Full account snapshot: plan, subscription, logo, facebook connection. */
     overview: protectedProcedure.query(async ({ ctx }) => {
+      await ensureReferralSchema();
       const user = await reconcileUserSubscription(
         await getUserById(ctx.user.id)
       );
@@ -664,6 +673,13 @@ export const appRouter = router({
           console.warn("[Account] Could not create logo preview URL", error);
         }
       }
+      const businessName = cleanPreviewText(
+        user?.businessName ?? undefined,
+        PREVIEW_BUSINESS_NAME_MAX
+      );
+      const brandSuggestion = businessName
+        ? null
+        : await getLatestClaimedPreviewBrand(ctx.user.id);
       return {
         plan,
         subscriptionStatus: user?.subscriptionStatus ?? "none",
@@ -671,6 +687,13 @@ export const appRouter = router({
         usage: { used, limit },
         hasLogo: Boolean(user?.logoKey),
         logoUrl,
+        businessName: businessName ?? null,
+        suburb:
+          cleanPreviewText(user?.suburb ?? undefined, PREVIEW_SUBURB_MAX) ??
+          null,
+        trade: previewTradeLabel(user?.trade ?? undefined) ?? null,
+        brandSetupSkipped: Boolean(user?.brandSetupSkipped),
+        brandSuggestion,
         facebook: integration
           ? {
               status: integration.status,
@@ -704,6 +727,73 @@ export const appRouter = router({
         await updateUserLogo(ctx.user.id, key);
         return { success: true } as const;
       }),
+
+    /**
+     * First-login brand step. Business name is required. Town, trade, and logo
+     * are optional. A saved name is what no-logo posts draw on the photo.
+     */
+    saveBrandSetup: protectedProcedure
+      .input(
+        z.object({
+          businessName: z.string().min(1).max(PREVIEW_BUSINESS_NAME_MAX),
+          suburb: z.string().max(PREVIEW_SUBURB_MAX).optional(),
+          trade: z.string().max(60).optional(),
+          logo: z.string().min(10).max(2_800_000).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await ensureReferralSchema();
+        const businessName = cleanPreviewText(
+          input.businessName,
+          PREVIEW_BUSINESS_NAME_MAX
+        );
+        if (!businessName) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Add your business name to continue.",
+          });
+        }
+        const suburb =
+          cleanPreviewText(input.suburb, PREVIEW_SUBURB_MAX) ?? null;
+        const trade = previewTradeLabel(input.trade) ?? null;
+        await updateUserBrand(ctx.user.id, {
+          businessName,
+          suburb,
+          trade,
+          brandSetupSkipped: false,
+        });
+        if (input.logo) {
+          const { buffer, mime } = decodeBase64Image(input.logo);
+          if (!new Set(["image/jpeg", "image/png"]).has(mime)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Please use a JPG or PNG logo.",
+            });
+          }
+          if (!buffer.length || buffer.length > 2 * 1024 * 1024) {
+            throw new TRPCError({
+              code: "PAYLOAD_TOO_LARGE",
+              message: "Use a logo under 2 MB.",
+            });
+          }
+          const ext = mime.includes("png") ? "png" : "jpg";
+          const { key } = await storagePut(
+            `${ctx.user.id}-logo/logo.${ext}`,
+            buffer,
+            mime
+          );
+          await updateUserLogo(ctx.user.id, key);
+        }
+        await updateOnboardingStep(ctx.user.id, "profileCompleted", true);
+        return { success: true } as const;
+      }),
+
+    /** Leave the brand step for later. The dashboard keeps a nudge. */
+    skipBrandSetup: protectedProcedure.mutation(async ({ ctx }) => {
+      await ensureReferralSchema();
+      await updateUserBrand(ctx.user.id, { brandSetupSkipped: true });
+      return { success: true } as const;
+    }),
   }),
 
   /* ---------------------------- Posts ---------------------------- */
@@ -770,14 +860,33 @@ export const appRouter = router({
         );
 
         // 2. Caption (uses a signed URL the model can fetch)
+        const user = user0 ?? (await getUserById(ctx.user.id));
+        let logoBuffer: Buffer | null = null;
+        if (user?.logoKey) {
+          try {
+            logoBuffer = await fetchStorageBytes(user.logoKey);
+          } catch {
+            logoBuffer = null;
+          }
+        }
+        const textBadge = signedInTextBadge({
+          hasLogo: Boolean(logoBuffer),
+          businessName: user?.businessName,
+          suburb: user?.suburb,
+          trade: input.trade ?? user?.trade,
+        });
         let caption = "";
         try {
           const signed = await storageGetSignedUrl(original.key);
           caption = await generateCaption({
             imageUrl: signed,
-            trade: input.trade,
+            trade: textBadge
+              ? (input.trade ?? user?.trade ?? undefined)
+              : input.trade,
             tone: input.tone,
-            businessName: input.businessName,
+            businessName: textBadge?.businessName ?? input.businessName,
+            suburb: textBadge?.suburb,
+            callToAction: textBadge?.callToAction,
           });
         } catch (e) {
           caption =
@@ -786,7 +895,7 @@ export const appRouter = router({
         }
 
         // 3. Brand with logo (if present). The clean file is what paid plans publish.
-        const user = user0 ?? (await getUserById(ctx.user.id));
+        // A name badge is only drawn when that logo is missing.
         const account = {
           plan: user?.plan ?? plan,
           subscriptionStatus: user?.subscriptionStatus,
@@ -799,18 +908,13 @@ export const appRouter = router({
             referralUrl: referralPublicUrl(code),
           });
         }
-        let logoBuffer: Buffer | null = null;
-        if (user?.logoKey) {
-          try {
-            logoBuffer = await fetchStorageBytes(user.logoKey);
-          } catch {
-            logoBuffer = null;
-          }
-        }
         const postKey = `${ctx.user.id}-posts/${Date.now()}`;
-        const branded = await brandImage({
+        const branded = await brandSignedInPhoto({
           photoBuffer: buffer,
           logoBuffer,
+          businessName: user?.businessName,
+          suburb: user?.suburb,
+          trade: input.trade ?? user?.trade,
           destKeyPrefix: postKey,
         });
         const marked = showMark
@@ -829,9 +933,7 @@ export const appRouter = router({
           caption,
           status: "draft",
         });
-        const post = saved
-          ? presentPostForAccount(saved, account)
-          : saved;
+        const post = saved ? presentPostForAccount(saved, account) : saved;
         await logConversionEvent(ctx.user.id, "post_draft_created", { plan });
         if (plan === "free" && limit !== null && used + 1 >= limit) {
           await noteFreePostsExhausted(ctx.user.id, { used: used + 1, limit });

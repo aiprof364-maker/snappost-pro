@@ -41,6 +41,14 @@ export const users = mysqlTable("users", {
   ),
   /** Logo image storage key used to brand uploaded photos. */
   logoKey: varchar("logoKey", { length: 256 }),
+  /** Business name drawn on posts when the account has no logo. */
+  businessName: varchar("businessName", { length: 80 }),
+  /** Town or city, for example "Austin, TX". */
+  suburb: varchar("suburb", { length: 60 }),
+  /** Known trade label used for the no-logo badge call to action. */
+  trade: varchar("trade", { length: 60 }),
+  /** Set when the owner skips the first-login brand step. */
+  brandSetupSkipped: boolean("brandSetupSkipped").default(false).notNull(),
   /** Email verification status: pending, verified. */
   emailVerified: boolean("emailVerified").default(false).notNull(),
   /** Email verification token (hashed). */

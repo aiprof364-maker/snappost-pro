@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CookieConsent from "@/components/CookieConsent";
 import { trackGooglePageView } from "@/lib/googleAnalytics";
+import { captureReferralCode } from "@/lib/referralCode";
 import { lazy, Suspense, useEffect } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -36,6 +37,7 @@ function Router() {
 
   useEffect(() => {
     trackGooglePageView();
+    captureReferralCode();
   }, [location]);
 
   return (

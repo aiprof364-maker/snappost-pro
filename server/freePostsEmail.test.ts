@@ -35,7 +35,7 @@ describe("free-posts email sequence", () => {
       "2026-11-06T00:00:00.000Z",
     ]);
     expect(schedule.map(step => step.subject)).toEqual([
-      "Your 3 free SnapPost Pro posts are ready — keep posting",
+      "Your free SnapPost Pro posts are ready — keep posting",
       "Your branded posts are waiting",
       "Last step to keep posting with SnapPost Pro",
     ]);
@@ -84,7 +84,7 @@ describe("free-posts email sequence", () => {
       trialEligible: true,
     });
     expect(eligible.subject).toBe(
-      "Your 3 free SnapPost Pro posts are ready — keep posting",
+      "Your free SnapPost Pro posts are ready — keep posting",
     );
     expect(eligible.html).toContain("Starter is $19/mo and Pro is $29/mo.");
     expect(eligible.html).toContain("7-day trial");

@@ -121,6 +121,11 @@ export default function AdminDashboard() {
                 ],
                 ["Upgrade panel shown", funnel.data?.paywallShown],
                 ["Promo code redemptions", funnel.data?.promoCodeRedemptions],
+                ["Referral signups", funnel.data?.referralSignups],
+                ["Referral bonuses granted", funnel.data?.referralBonusesGranted],
+                ["Referral paying customers", funnel.data?.referralPayingCustomers],
+                ["Referral credits applied", funnel.data?.referralCreditsApplied],
+                ["Referral credits waiting", funnel.data?.referralCreditsWaiting],
               ].map(([label, value]) => (
                 <Card key={label}>
                   <CardHeader className="pb-2">

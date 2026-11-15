@@ -39,7 +39,7 @@ export async function brandImage(params: {
   destKeyPrefix: string;
   frame?: "original" | "square";
   textBadge?: TextBadgeInput | null;
-}): Promise<{ key: string; url: string }> {
+}): Promise<{ key: string; url: string; buffer: Buffer }> {
   const { photoBuffer, logoBuffer, destKeyPrefix, textBadge } = params;
   const frame = params.frame ?? "original";
 
@@ -110,7 +110,7 @@ export async function brandImage(params: {
     outBuffer,
     "image/jpeg"
   );
-  return { key, url };
+  return { key, url, buffer: outBuffer };
 }
 
 /** Download bytes for a stored object via its signed URL. */

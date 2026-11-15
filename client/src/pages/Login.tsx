@@ -10,6 +10,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
+import { captureReferralCode } from "@/lib/referralCode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -60,7 +61,12 @@ export default function Login() {
 
   const requestSignInLink = () => {
     setMessage("");
-    requestLink.mutate({ email, origin: window.location.origin, next });
+    requestLink.mutate({
+      email,
+      origin: window.location.origin,
+      next,
+      referralCode: captureReferralCode(),
+    });
   };
 
   const requestAdminLink = () => {

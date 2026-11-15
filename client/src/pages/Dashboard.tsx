@@ -25,6 +25,7 @@ import { getSubscriptionTrackingEvents } from "@/lib/subscriptionTracking";
 import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import { capturePromotionCode } from "@/lib/promotionCode";
+import ReferralPanel from "@/components/ReferralPanel";
 import {
   CheckCircle2,
   ExternalLink,
@@ -314,11 +315,19 @@ export default function Dashboard() {
             </div>
           </div>
 
+          <ReferralPanel />
+
           {usageLabel && (
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
               <div>
                 <span className="font-medium">{usageLabel}</span>
-                {plan !== "free" && (
+                {plan === "free" ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Free posts include a small &quot;Made with SnapPost&quot; mark
+                    and your referral link in the caption. Paid plans and the
+                    7-day trial do not.
+                  </p>
+                ) : (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Resets on the 1st of each month
                   </p>
@@ -356,6 +365,7 @@ export default function Dashboard() {
             {showFreeUpgrade ? (
               <FreePostsUpgradePanel
                 trialEligible={overview.data?.trialEligible === true}
+                freePostLimit={usage?.limit}
                 latestPost={posts.data?.[0]}
               />
             ) : (

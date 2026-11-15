@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "crypto";
 import { and, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
 import { previewDrafts, posts, users } from "../drizzle/schema";
-import { PLAN_POST_LIMITS, type PlanId } from "@shared/const";
+import { type PlanId } from "@shared/const";
+import { postCreationLimit } from "@shared/referrals";
 import { getDb } from "./db";
 import { storageDelete } from "./storage";
 
@@ -117,6 +118,14 @@ export async function ensurePreviewDraftSchema() {
       db,
       "ALTER TABLE preview_drafts ADD COLUMN suburb VARCHAR(60) NULL"
     );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN cleanImageKey VARCHAR(256) NULL"
+    );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN cleanImageUrl VARCHAR(512) NULL"
+    );
   })().catch(error => {
     previewSchemaPromise = null;
     throw error;
@@ -170,6 +179,8 @@ export async function createPreviewDraft(input: {
   logoImageKey?: string | null;
   brandedImageKey: string;
   brandedImageUrl: string;
+  cleanImageKey?: string | null;
+  cleanImageUrl?: string | null;
   caption: string;
   businessName?: string;
   suburb?: string;
@@ -189,6 +200,8 @@ export async function createPreviewDraft(input: {
     logoImageKey: input.logoImageKey,
     brandedImageKey: input.brandedImageKey,
     brandedImageUrl: input.brandedImageUrl,
+    cleanImageKey: input.cleanImageKey ?? null,
+    cleanImageUrl: input.cleanImageUrl ?? null,
     caption: input.caption,
     businessName: input.businessName ?? null,
     suburb: input.suburb ?? null,
@@ -290,9 +303,33 @@ export async function markPreviewEmailRequested(token: string) {
  * email access link. The row claim and draft creation are one transaction,
  * so the same preview cannot be claimed twice.
  */
+export async function getUnclaimedPreviewDraft(token: string) {
+  if (token.length < 32) return null;
+  await ensurePreviewDraftSchema();
+  const db = await getDb();
+  if (!db) return null;
+  const [draft] = await db
+    .select()
+    .from(previewDrafts)
+    .where(
+      and(
+        eq(previewDrafts.tokenHash, tokenHash(token)),
+        isNull(previewDrafts.userId),
+        gt(previewDrafts.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+  return draft ?? null;
+}
+
 export async function claimPreviewDraft(input: {
   token: string;
   userId: number;
+  caption?: string;
+  brandedImageKey?: string;
+  brandedImageUrl?: string;
+  markedImageKey?: string | null;
+  markedImageUrl?: string | null;
 }) {
   await ensurePreviewDraftSchema();
   const db = await getDb();
@@ -343,7 +380,7 @@ export async function claimPreviewDraft(input: {
     }
 
     const plan = (user.plan ?? "free") as "free" | PlanId;
-    const limit = PLAN_POST_LIMITS[plan];
+    const limit = postCreationLimit(plan, user.bonusFreePosts);
     if (limit !== null) {
       const [usage] = await tx
         .select({ count: sql<number>`count(*)` })
@@ -370,9 +407,11 @@ export async function claimPreviewDraft(input: {
         userId: input.userId,
         originalImageKey: draft.originalImageKey,
         originalImageUrl: draft.originalImageUrl,
-        brandedImageKey: draft.brandedImageKey,
-        brandedImageUrl: draft.brandedImageUrl,
-        caption: draft.caption,
+        brandedImageKey: input.brandedImageKey ?? draft.brandedImageKey,
+        brandedImageUrl: input.brandedImageUrl ?? draft.brandedImageUrl,
+        markedImageKey: input.markedImageKey ?? null,
+        markedImageUrl: input.markedImageUrl ?? null,
+        caption: input.caption ?? draft.caption,
         status: "draft",
       })
       .$returningId();

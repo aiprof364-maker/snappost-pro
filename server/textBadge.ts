@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import sharp from "sharp";
-import { ANONYMOUS_PREVIEW_WATERMARK } from "@shared/const";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_CALL_TO_ACTION,
@@ -21,7 +20,6 @@ type BadgeCopy = {
 };
 
 const MIN_SHORT_SIDE = 280;
-export const WATERMARK_MIN_SIDE = 280;
 const widthCache = new Map<string, number>();
 let fontCss: string | null = null;
 
@@ -269,41 +267,5 @@ export async function renderTextBadgeOverlay(
   ${parts.join("")}
 </svg>`;
 
-  return sharp(Buffer.from(svg)).png().toBuffer();
-}
-
-/**
- * Top-right mark for an anonymous preview. Saved account drafts do not use it.
- * Returns null when the photo is too small for readable type.
- */
-export async function renderMadeWithSnapPostWatermark(
-  width: number,
-  height: number
-): Promise<Buffer | null> {
-  if (width < WATERMARK_MIN_SIDE || height < WATERMARK_MIN_SIDE) return null;
-  const text = ANONYMOUS_PREVIEW_WATERMARK;
-  const margin = Math.max(6, Math.round(Math.min(width, height) * 0.03));
-  let fontSize = Math.max(11, Math.round(Math.min(width, height) * 0.028));
-  let textWidth = await measureText(text, fontSize, "SnapPostBadgeBold");
-  while (textWidth + margin * 2 > width && fontSize > 9) {
-    fontSize -= 1;
-    textWidth = await measureText(text, fontSize, "SnapPostBadgeBold");
-  }
-  const padX = Math.round(fontSize * 0.7);
-  const padY = Math.round(fontSize * 0.42);
-  const boxW = textWidth + padX * 2;
-  const boxH = fontSize + padY * 2;
-  if (boxW + margin > width || boxH + margin > height) return null;
-
-  const left = width - margin - boxW;
-  const top = margin;
-  const baseline = top + padY + Math.round(fontSize * 0.78);
-  const radius = Math.round(boxH / 2);
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <style>${badgeFontCss()}</style>
-  <rect x="${left}" y="${top}" width="${boxW}" height="${boxH}" rx="${radius}" fill="#0b1220" fill-opacity="0.9"/>
-  <text x="${left + padX}" y="${baseline}" font-family="SnapPostBadgeBold" font-size="${fontSize}" fill="#ffffff">${escapeXml(text)}</text>
-</svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 }

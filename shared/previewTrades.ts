@@ -82,14 +82,3 @@ export function previewTradeLabel(
     trade => trade.label.toLowerCase() === cleaned.toLowerCase()
   )?.label;
 }
-
-/** Anonymous visitors see the watermarked image. Saved drafts keep the clean one. */
-export function previewImageUrls(input: {
-  brandedImageUrl: string;
-  watermarkedImageUrl?: string | null;
-}) {
-  return {
-    publicImageUrl: input.watermarkedImageUrl || input.brandedImageUrl,
-    savedImageUrl: input.brandedImageUrl,
-  };
-}

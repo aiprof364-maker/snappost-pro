@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from "crypto";
 import { and, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
 import { previewDrafts, posts, users } from "../drizzle/schema";
-import { PLAN_POST_LIMITS, type PlanId } from "@shared/const";
-import { previewImageUrls } from "@shared/previewTrades";
+import { type PlanId } from "@shared/const";
+import { postCreationLimit } from "@shared/referrals";
 import { getDb } from "./db";
 import { storageDelete } from "./storage";
 
@@ -44,11 +44,13 @@ function usageStartForPlan(plan: "free" | PlanId): Date {
 }
 
 function publicPreviewFields(draft: typeof previewDrafts.$inferSelect) {
-  const images = previewImageUrls(draft);
   return {
     landing: draft.landing,
-    brandedImageUrl: images.publicImageUrl,
-    hasWatermark: Boolean(draft.watermarkedImageUrl),
+    originalImageUrl: draft.originalImageUrl,
+    brandedImageUrl: draft.brandedImageUrl,
+    hasWatermark: Boolean(
+      draft.cleanImageKey && draft.cleanImageKey !== draft.brandedImageKey
+    ),
     hasLogo: Boolean(draft.logoImageKey),
     businessName: draft.businessName ?? null,
     suburb: draft.suburb ?? null,
@@ -126,12 +128,14 @@ export async function ensurePreviewDraftSchema() {
     );
     await ensurePreviewColumn(
       db,
-      "ALTER TABLE preview_drafts ADD COLUMN watermarkedImageKey VARCHAR(256) NULL"
+      "ALTER TABLE preview_drafts ADD COLUMN cleanImageKey VARCHAR(256) NULL"
     );
     await ensurePreviewColumn(
       db,
-      "ALTER TABLE preview_drafts ADD COLUMN watermarkedImageUrl VARCHAR(512) NULL"
+      "ALTER TABLE preview_drafts ADD COLUMN cleanImageUrl VARCHAR(512) NULL"
     );
+    // Same boot-time pattern as the referral columns: the daily cap table and
+    // anonymous conversion events must exist even if migration 0013 has not run.
     await db.execute(
       sql.raw(`
       CREATE TABLE IF NOT EXISTS preview_daily_usage (
@@ -141,6 +145,9 @@ export async function ensurePreviewDraftSchema() {
         PRIMARY KEY (day)
       ) ENGINE=InnoDB
     `)
+    );
+    await db.execute(
+      sql.raw("ALTER TABLE conversion_events MODIFY COLUMN userId INT NULL")
     );
   })().catch(error => {
     previewSchemaPromise = null;
@@ -195,11 +202,11 @@ export async function createPreviewDraft(input: {
   logoImageKey?: string | null;
   brandedImageKey: string;
   brandedImageUrl: string;
+  cleanImageKey?: string | null;
+  cleanImageUrl?: string | null;
   caption: string;
   businessName?: string;
   suburb?: string;
-  watermarkedImageKey: string;
-  watermarkedImageUrl: string;
 }) {
   await ensurePreviewDraftSchema();
   const db = await getDb();
@@ -216,11 +223,11 @@ export async function createPreviewDraft(input: {
     logoImageKey: input.logoImageKey,
     brandedImageKey: input.brandedImageKey,
     brandedImageUrl: input.brandedImageUrl,
+    cleanImageKey: input.cleanImageKey ?? null,
+    cleanImageUrl: input.cleanImageUrl ?? null,
     caption: input.caption,
     businessName: input.businessName ?? null,
     suburb: input.suburb ?? null,
-    watermarkedImageKey: input.watermarkedImageKey,
-    watermarkedImageUrl: input.watermarkedImageUrl,
     expiresAt,
   });
 
@@ -230,8 +237,9 @@ export async function createPreviewDraft(input: {
       landing: input.landing ?? null,
       originalImageUrl: input.originalImageUrl,
       logoImageKey: input.logoImageKey ?? null,
+      brandedImageKey: input.brandedImageKey,
       brandedImageUrl: input.brandedImageUrl,
-      watermarkedImageUrl: input.watermarkedImageUrl,
+      cleanImageKey: input.cleanImageKey ?? null,
       businessName: input.businessName ?? null,
       suburb: input.suburb ?? null,
       caption: input.caption,
@@ -320,9 +328,33 @@ export async function markPreviewEmailRequested(token: string) {
  * email access link. The row claim and draft creation are one transaction,
  * so the same preview cannot be claimed twice.
  */
+export async function getUnclaimedPreviewDraft(token: string) {
+  if (token.length < 32) return null;
+  await ensurePreviewDraftSchema();
+  const db = await getDb();
+  if (!db) return null;
+  const [draft] = await db
+    .select()
+    .from(previewDrafts)
+    .where(
+      and(
+        eq(previewDrafts.tokenHash, tokenHash(token)),
+        isNull(previewDrafts.userId),
+        gt(previewDrafts.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+  return draft ?? null;
+}
+
 export async function claimPreviewDraft(input: {
   token: string;
   userId: number;
+  caption?: string;
+  brandedImageKey?: string;
+  brandedImageUrl?: string;
+  markedImageKey?: string | null;
+  markedImageUrl?: string | null;
 }) {
   await ensurePreviewDraftSchema();
   const db = await getDb();
@@ -373,7 +405,7 @@ export async function claimPreviewDraft(input: {
     }
 
     const plan = (user.plan ?? "free") as "free" | PlanId;
-    const limit = PLAN_POST_LIMITS[plan];
+    const limit = postCreationLimit(plan, user.bonusFreePosts);
     if (limit !== null) {
       const [usage] = await tx
         .select({ count: sql<number>`count(*)` })
@@ -389,7 +421,7 @@ export async function claimPreviewDraft(input: {
           plan === "free"
             ? `You've reached the free limit of ${limit} posts. Your preview is still available until it expires.`
             : "You've reached this month's post limit. Your preview is still available until it expires.",
-          plan === "free" ? "free_limit" : "plan_limit"
+          plan === "free" ? "free_limit" : "plan_limit",
         );
       }
     }
@@ -400,10 +432,11 @@ export async function claimPreviewDraft(input: {
         userId: input.userId,
         originalImageKey: draft.originalImageKey,
         originalImageUrl: draft.originalImageUrl,
-        // Account drafts keep the clean image. The watermark stays on the public preview only.
-        brandedImageKey: draft.brandedImageKey,
-        brandedImageUrl: draft.brandedImageUrl,
-        caption: draft.caption,
+        brandedImageKey: input.brandedImageKey ?? draft.brandedImageKey,
+        brandedImageUrl: input.brandedImageUrl ?? draft.brandedImageUrl,
+        markedImageKey: input.markedImageKey ?? null,
+        markedImageUrl: input.markedImageUrl ?? null,
+        caption: input.caption ?? draft.caption,
         status: "draft",
       })
       .$returningId();
@@ -448,8 +481,8 @@ export async function cleanupExpiredPreviewDrafts() {
       storageDelete(draft.originalImageKey),
       storageDelete(draft.brandedImageKey),
       ...(draft.logoImageKey ? [storageDelete(draft.logoImageKey)] : []),
-      ...(draft.watermarkedImageKey
-        ? [storageDelete(draft.watermarkedImageKey)]
+      ...(draft.cleanImageKey && draft.cleanImageKey !== draft.brandedImageKey
+        ? [storageDelete(draft.cleanImageKey)]
         : []),
     ]);
     await db.delete(previewDrafts).where(eq(previewDrafts.id, draft.id));

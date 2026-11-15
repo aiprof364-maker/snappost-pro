@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "d0d612a6-d5ab-47b9-bec8-18cf7d4ab2ab",
+  "id": "59307e6f-b63c-4130-9188-83aa1bbef714",
   "prevId": "3337bea5-f768-4a6a-9115-4de65b20c6b0",
   "tables": {
     "account_email_delivery": {
@@ -244,6 +244,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "referralCode": {
+          "name": "referralCode",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -357,7 +364,7 @@
           "name": "userId",
           "type": "int",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "eventType": {
@@ -988,6 +995,20 @@
           "notNull": false,
           "autoincrement": false
         },
+        "markedImageKey": {
+          "name": "markedImageKey",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "markedImageUrl": {
+          "name": "markedImageUrl",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -1013,46 +1034,6 @@
           "name": "posts_id",
           "columns": [
             "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "preview_daily_usage": {
-      "name": "preview_daily_usage",
-      "columns": {
-        "day": {
-          "name": "day",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "count": {
-          "name": "count",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "onUpdate": true,
-          "default": "(now())"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "preview_daily_usage_day": {
-          "name": "preview_daily_usage_day",
-          "columns": [
-            "day"
           ]
         }
       },
@@ -1118,6 +1099,20 @@
           "notNull": true,
           "autoincrement": false
         },
+        "cleanImageKey": {
+          "name": "cleanImageKey",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cleanImageUrl": {
+          "name": "cleanImageUrl",
+          "type": "varchar(512)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "caption": {
           "name": "caption",
           "type": "text",
@@ -1135,20 +1130,6 @@
         "suburb": {
           "name": "suburb",
           "type": "varchar(60)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "watermarkedImageKey": {
-          "name": "watermarkedImageKey",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "watermarkedImageUrl": {
-          "name": "watermarkedImageUrl",
-          "type": "varchar(512)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1217,6 +1198,114 @@
       "compositePrimaryKeys": {
         "preview_drafts_id": {
           "name": "preview_drafts_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "referrals": {
+      "name": "referrals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "referrerUserId": {
+          "name": "referrerUserId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "referredUserId": {
+          "name": "referredUserId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "signupBonusPosts": {
+          "name": "signupBonusPosts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "paidCreditCents": {
+          "name": "paidCreditCents",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "paidCreditStatus": {
+          "name": "paidCreditStatus",
+          "type": "enum('pending','qualified','applied','skipped')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "stripeBalanceTransactionId": {
+          "name": "stripeBalanceTransactionId",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "referrals_referrer_idx": {
+          "name": "referrals_referrer_idx",
+          "columns": [
+            "referrerUserId"
+          ],
+          "isUnique": false
+        },
+        "referrals_referred_uq": {
+          "name": "referrals_referred_uq",
+          "columns": [
+            "referredUserId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "referrals_id": {
+          "name": "referrals_id",
           "columns": [
             "id"
           ]
@@ -1437,6 +1526,21 @@
           "notNull": false,
           "autoincrement": false
         },
+        "referralCode": {
+          "name": "referralCode",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bonusFreePosts": {
+          "name": "bonusFreePosts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -1463,7 +1567,15 @@
           "default": "(now())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_referral_code_uq": {
+          "name": "users_referral_code_uq",
+          "columns": [
+            "referralCode"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "users_id": {

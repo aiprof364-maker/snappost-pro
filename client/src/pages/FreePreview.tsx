@@ -7,15 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { ANONYMOUS_PREVIEW_WATERMARK } from "@shared/const";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_SUBURB_MAX,
 } from "@shared/previewCaption";
 import { PREVIEW_TRADE_GROUPS, PREVIEW_TRADES } from "@shared/previewTrades";
+import { snapPostCaptionFooter } from "@shared/referrals";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
+import { captureReferralCode } from "@/lib/referralCode";
 import {
   ArrowRight,
   CheckCircle2,
@@ -30,6 +31,7 @@ import { Link } from "wouter";
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const PREVIEW_MARK = snapPostCaptionFooter();
 
 type Landing = "contractors" | "hairdressers" | undefined;
 
@@ -397,6 +399,7 @@ export default function FreePreview() {
         origin: window.location.origin,
         next: previewPath(token, landing),
         previewToken: token,
+        referralCode: captureReferralCode(),
       });
     } catch {
       // Each mutation supplies the visitor-safe error message above.
@@ -540,14 +543,14 @@ export default function FreePreview() {
                       src={preview.brandedImageUrl}
                       alt={
                         preview.hasWatermark
-                          ? `${previewImageAlt(preview)}. Marked ${ANONYMOUS_PREVIEW_WATERMARK}`
+                          ? `${previewImageAlt(preview)}. Marked ${PREVIEW_MARK}`
                           : previewImageAlt(preview)
                       }
                       className="aspect-square w-full rounded-xl object-cover bg-white"
                     />
                     <figcaption className="mt-3 text-sm font-semibold text-muted-foreground">
                       {preview.hasWatermark
-                        ? `Marked “${ANONYMOUS_PREVIEW_WATERMARK}”. Sign up to save the clean post.`
+                        ? `Marked “${PREVIEW_MARK}”. Free posts keep this mark until you upgrade.`
                         : previewImageCaption(preview)}
                     </figcaption>
                   </figure>
@@ -826,8 +829,8 @@ export default function FreePreview() {
                   </div>
                 </div>
                 <p className="text-center text-xs leading-5 text-muted-foreground sm:text-left">
-                  See the result before email. The preview is marked{" "}
-                  {ANONYMOUS_PREVIEW_WATERMARK}. Nothing is posted to Facebook.
+                  See the result before email. The preview uses the free-plan{" "}
+                  {PREVIEW_MARK} mark. Nothing is posted to Facebook.
                 </p>
               </form>
             </section>

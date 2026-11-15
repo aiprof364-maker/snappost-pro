@@ -32,6 +32,22 @@ describe("free-to-paid funnel", () => {
         },
         { userId: 4, eventType: "free_posts_exhausted", metadata: null },
       ],
+      [
+        {
+          referrerUserId: 1,
+          referredUserId: 3,
+          signupBonusPosts: 2,
+          paidCreditStatus: "applied",
+          paidCreditCents: 1900,
+        },
+        {
+          referrerUserId: 4,
+          referredUserId: 1,
+          signupBonusPosts: 2,
+          paidCreditStatus: "applied",
+          paidCreditCents: 1900,
+        },
+      ],
     );
 
     expect(summary.freePostsExhausted).toBe(2);
@@ -39,6 +55,11 @@ describe("free-to-paid funnel", () => {
     expect(summary.paywallShown).toBe(2);
     expect(summary.promoCodeRedemptions).toBe(2);
     expect(summary.promoCodeRedemptionsByCode).toEqual([{ code: "CREATOR-1", count: 2 }]);
+    expect(summary.referralSignups).toBe(1);
+    expect(summary.referralBonusesGranted).toBe(1);
+    expect(summary.referralPayingCustomers).toBe(1);
+    expect(summary.referralCreditsApplied).toBe(1);
+    expect(summary.referralCreditsWaiting).toBe(0);
   });
 
   it("ignores anonymous tool events that have no account yet", () => {

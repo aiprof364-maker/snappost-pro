@@ -1,9 +1,18 @@
 import {
   COOKIE_NAME,
   PLANS,
-  PLAN_POST_LIMITS,
   type PlanId,
 } from "@shared/const";
+import {
+  normalizeReferralCode,
+  postCreationLimit,
+  presentPostForAccount,
+  publishableCaption,
+  publishableImageKey,
+  referralPublicUrl,
+  showsSnapPostMark,
+  withSnapPostCaptionFooter,
+} from "@shared/referrals";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -19,11 +28,9 @@ import {
   cleanPreviewText,
 } from "@shared/previewCaption";
 import { previewTradeLabel } from "@shared/previewTrades";
-import {
-  brandImage,
-  fetchStorageBytes,
-  photoCanTakeWatermark,
-} from "./branding";
+import { brandImage, fetchStorageBytes } from "./branding";
+import { brandingForClaim, storeMarkedImage } from "./freeMark";
+import { photoFitsSnapPostMark } from "./snapPostMark";
 import { generateCaption } from "./captions";
 import {
   countUserPostsSince,
@@ -80,6 +87,7 @@ import {
   cleanupExpiredPreviewDrafts,
   createPreviewDraft,
   getPublicPreviewDraft,
+  getUnclaimedPreviewDraft,
   markPreviewEmailRequested,
   PreviewDraftError,
   updatePublicPreviewCaption,
@@ -98,6 +106,11 @@ import {
   reservePreviewDailySlot,
 } from "./previewUsage";
 import { adminRouter } from "./adminRouters";
+import {
+  ensureReferralCode,
+  ensureReferrerCustomer,
+  getReferralDashboard,
+} from "./referrals";
 
 async function noteFreePostsExhausted(
   userId: number,
@@ -115,7 +128,7 @@ async function noteFreePostsExhausted(
 async function maybeNoteFreePostsExhausted(userId: number) {
   const user = await getUserById(userId);
   if ((user?.plan ?? "free") !== "free") return;
-  const limit = PLAN_POST_LIMITS.free;
+  const limit = postCreationLimit("free", user?.bonusFreePosts);
   if (limit === null) return;
   const used = await countUserPostsSince(userId, new Date(0));
   if (used >= limit) await noteFreePostsExhausted(userId, { used, limit });
@@ -180,6 +193,7 @@ export const appRouter = router({
           origin: z.string().url(),
           next: z.string().optional(),
           previewToken: z.string().min(32).max(128).optional(),
+          referralCode: z.string().trim().max(32).optional(),
         })
       )
       .mutation(async ({ input }) => {
@@ -209,7 +223,10 @@ export const appRouter = router({
           });
         }
 
-        const token = await createMagicLinkToken(email);
+        const token = await createMagicLinkToken(
+          email,
+          normalizeReferralCode(input.referralCode)
+        );
         const next = input.next?.startsWith("/") ? input.next : "/dashboard";
         const link = new URL("/api/auth/verify", input.origin);
         link.searchParams.set("token", token);
@@ -379,7 +396,7 @@ export const appRouter = router({
         }
         let canMark = false;
         try {
-          canMark = await photoCanTakeWatermark(photoBuffer);
+          canMark = await photoFitsSnapPostMark(photoBuffer);
         } catch {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -445,7 +462,7 @@ export const appRouter = router({
             : null;
           const signedUrl = await storageGetSignedUrl(original.key);
           aiStarted = true;
-          const caption = await generateCaption({
+          const generatedCaption = await generateCaption({
             imageUrl: signedUrl,
             trade,
             tone,
@@ -453,19 +470,28 @@ export const appRouter = router({
             suburb,
             callToAction: PREVIEW_CALL_TO_ACTION,
           });
-          const branded = await brandImage({
+          const showMark = showsSnapPostMark({
+            plan: ctx.user?.plan,
+            subscriptionStatus: ctx.user?.subscriptionStatus,
+          });
+          const caption = withSnapPostCaptionFooter(generatedCaption, {
+            include: showMark,
+          });
+          const clean = await brandImage({
             photoBuffer,
             logoBuffer: logo?.buffer,
             destKeyPrefix: keyPrefix,
             frame: "square",
-            watermark: true,
             textBadge: {
               businessName,
               suburb,
               callToAction: PREVIEW_CALL_TO_ACTION,
             },
           });
-          if (!branded.watermarkedKey || !branded.watermarkedUrl) {
+          const marked = showMark
+            ? await storeMarkedImage(clean.buffer, `${keyPrefix}/marked.jpg`)
+            : null;
+          if (showMark && !marked) {
             throw new TRPCError({
               code: "BAD_REQUEST",
               message:
@@ -477,10 +503,10 @@ export const appRouter = router({
             originalImageKey: original.key,
             originalImageUrl: original.url,
             logoImageKey: uploadedLogo?.key,
-            brandedImageKey: branded.key,
-            brandedImageUrl: branded.url,
-            watermarkedImageKey: branded.watermarkedKey,
-            watermarkedImageUrl: branded.watermarkedUrl,
+            brandedImageKey: marked?.key ?? clean.key,
+            brandedImageUrl: marked?.url ?? clean.url,
+            cleanImageKey: clean.key,
+            cleanImageUrl: clean.url,
             caption,
             businessName,
             suburb,
@@ -545,9 +571,26 @@ export const appRouter = router({
       .input(z.object({ token: z.string().min(32).max(128) }))
       .mutation(async ({ ctx, input }) => {
         try {
+          const draft = await getUnclaimedPreviewDraft(input.token);
+          const claimer = draft
+            ? await reconcileUserSubscription(await getUserById(ctx.user.id))
+            : null;
+          const prepared =
+            draft && claimer
+              ? await brandingForClaim(claimer, draft)
+              : null;
           const result = await claimPreviewDraft({
             token: input.token,
             userId: ctx.user.id,
+            ...(prepared
+              ? {
+                  caption: prepared.caption,
+                  brandedImageKey: prepared.brandedImageKey,
+                  brandedImageUrl: prepared.brandedImageUrl,
+                  markedImageKey: prepared.markedImageKey,
+                  markedImageUrl: prepared.markedImageUrl,
+                }
+              : {}),
           });
           if (!result.alreadyClaimed) {
             await logConversionEvent(ctx.user.id, "preview_draft_claimed");
@@ -556,8 +599,12 @@ export const appRouter = router({
           return result;
         } catch (error) {
           if (error instanceof PreviewDraftError && error.code === "free_limit") {
-            const limit = PLAN_POST_LIMITS.free ?? 3;
-            await noteFreePostsExhausted(ctx.user.id, { used: limit, limit });
+            const claimer = await getUserById(ctx.user.id);
+            const limit = postCreationLimit("free", claimer?.bonusFreePosts);
+            await noteFreePostsExhausted(ctx.user.id, {
+              used: limit ?? 0,
+              limit: limit ?? 0,
+            });
           }
           throw error;
         }
@@ -584,7 +631,7 @@ export const appRouter = router({
         ctx.user.id,
         usageStartForPlan(plan)
       );
-      const limit = PLAN_POST_LIMITS[plan];
+      const limit = postCreationLimit(plan, user?.bonusFreePosts);
       let logoUrl: string | null = null;
       if (user?.logoKey) {
         try {
@@ -613,6 +660,12 @@ export const appRouter = router({
       };
     }),
 
+    /** Personal referral link and the credits it has earned. */
+    referral: protectedProcedure.query(async ({ ctx }) => {
+      const { getStripe } = await import("./stripe");
+      return getReferralDashboard(ctx.user.id, getStripe());
+    }),
+
     /** Upload/replace the branding logo. Accepts a base64/data-URL image. */
     uploadLogo: protectedProcedure
       .input(z.object({ image: z.string().min(10) }))
@@ -631,7 +684,15 @@ export const appRouter = router({
 
   /* ---------------------------- Posts ---------------------------- */
   posts: router({
-    list: protectedProcedure.query(({ ctx }) => getUserPosts(ctx.user.id)),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const user = await getUserById(ctx.user.id);
+      const account = {
+        plan: user?.plan,
+        subscriptionStatus: user?.subscriptionStatus,
+      };
+      const rows = await getUserPosts(ctx.user.id);
+      return rows.map(post => presentPostForAccount(post, account));
+    }),
 
     /**
      * Create a post from an uploaded photo: store original, generate caption,
@@ -652,7 +713,7 @@ export const appRouter = router({
           await getUserById(ctx.user.id)
         );
         const plan = (user0?.plan ?? "free") as "free" | PlanId;
-        const limit = PLAN_POST_LIMITS[plan];
+        const limit = postCreationLimit(plan, user0?.bonusFreePosts);
         const used =
           limit === null
             ? 0
@@ -700,8 +761,20 @@ export const appRouter = router({
             "#TradeLife #QualityWork #LocalBusiness";
         }
 
-        // 3. Brand with logo (if present)
-        const user = await getUserById(ctx.user.id);
+        // 3. Brand with logo (if present). The clean file is what paid plans publish.
+        const user = user0 ?? (await getUserById(ctx.user.id));
+        const account = {
+          plan: user?.plan ?? plan,
+          subscriptionStatus: user?.subscriptionStatus,
+        };
+        const showMark = showsSnapPostMark(account);
+        if (showMark) {
+          const code = await ensureReferralCode(ctx.user.id);
+          caption = withSnapPostCaptionFooter(caption, {
+            include: true,
+            referralUrl: referralPublicUrl(code),
+          });
+        }
         let logoBuffer: Buffer | null = null;
         if (user?.logoKey) {
           try {
@@ -710,22 +783,31 @@ export const appRouter = router({
             logoBuffer = null;
           }
         }
+        const postKey = `${ctx.user.id}-posts/${Date.now()}`;
         const branded = await brandImage({
           photoBuffer: buffer,
           logoBuffer,
-          destKeyPrefix: `${ctx.user.id}-posts/${Date.now()}`,
+          destKeyPrefix: postKey,
         });
+        const marked = showMark
+          ? await storeMarkedImage(branded.buffer, `${postKey}/marked.jpg`)
+          : null;
 
         // 4. Persist
-        const post = await createPost({
+        const saved = await createPost({
           userId: ctx.user.id,
           originalImageKey: original.key,
           originalImageUrl: original.url,
           brandedImageKey: branded.key,
           brandedImageUrl: branded.url,
+          markedImageKey: marked?.key ?? null,
+          markedImageUrl: marked?.url ?? null,
           caption,
           status: "draft",
         });
+        const post = saved
+          ? presentPostForAccount(saved, account)
+          : saved;
         await logConversionEvent(ctx.user.id, "post_draft_created", { plan });
         if (plan === "free" && limit !== null && used + 1 >= limit) {
           await noteFreePostsExhausted(ctx.user.id, { used: used + 1, limit });
@@ -773,14 +855,23 @@ export const appRouter = router({
           });
         }
         try {
-          const imageUrl = await storageGetSignedUrl(
-            post.brandedImageKey ?? post.originalImageKey!
+          const publisher = await reconcileUserSubscription(
+            await getUserById(ctx.user.id)
           );
+          const account = {
+            plan: publisher?.plan,
+            subscriptionStatus: publisher?.subscriptionStatus,
+          };
+          const imageKey = publishableImageKey(post, account);
+          if (!imageKey) {
+            throw new Error("This post has no image to publish.");
+          }
+          const imageUrl = await storageGetSignedUrl(imageKey);
           const fbId = await postPhotoToPage({
             pageId: integration.pageId,
             pageAccessToken: integration.pageAccessToken,
             imageUrl,
-            caption: post.caption ?? "",
+            caption: publishableCaption(post.caption, account),
           });
           const facebookPostUrl = await getPublishedPostPermalink({
             postId: fbId,
@@ -1040,11 +1131,19 @@ export const appRouter = router({
         console.log(
           `[Stripe] Creating checkout session for user ${ctx.user.id}, plan ${input.plan}, priceId ${priceId}`
         );
+        let checkoutCustomerId = user?.stripeCustomerId ?? null;
+        if (user) {
+          try {
+            checkoutCustomerId = await ensureReferrerCustomer(user, stripe);
+          } catch (error) {
+            console.error("[Referral] credit could not be prepared for checkout", error);
+          }
+        }
         const sessionParams = {
           mode: "subscription" as const,
           line_items: [{ price: priceId, quantity: 1 }],
-          ...(user?.stripeCustomerId
-            ? { customer: user.stripeCustomerId }
+          ...(checkoutCustomerId
+            ? { customer: checkoutCustomerId }
             : { customer_email: user?.email ?? undefined }),
           client_reference_id: String(ctx.user.id),
           metadata: {

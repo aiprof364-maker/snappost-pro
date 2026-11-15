@@ -5,6 +5,4 @@ CREATE TABLE `preview_daily_usage` (
 	CONSTRAINT `preview_daily_usage_day` PRIMARY KEY(`day`)
 );
 --> statement-breakpoint
-ALTER TABLE `conversion_events` MODIFY COLUMN `userId` int;--> statement-breakpoint
-ALTER TABLE `preview_drafts` ADD `watermarkedImageKey` varchar(256);--> statement-breakpoint
-ALTER TABLE `preview_drafts` ADD `watermarkedImageUrl` varchar(512);
+ALTER TABLE `conversion_events` MODIFY COLUMN `userId` int;

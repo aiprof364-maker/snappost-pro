@@ -18,7 +18,13 @@ const routedPages = [
   "VerifyEmail",
   "Login",
   "Contractors",
+  "Landscapers",
   "Hairdressers",
+  "FoodTrucks",
+  "Realtors",
+  "Cleaners",
+  "AutoDetailers",
+  "PetGroomers",
   "FreePreview",
   "NotFound",
 ] as const;

@@ -54,6 +54,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { startAccountEmailAutomationAfterListen } from "../accountEmailAutomation";
 import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
 import { startPreviewDraftCleanupAfterListen } from "../previewDrafts";
+import { ensureReferralSchema } from "../referralSchema";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -120,6 +121,9 @@ async function startServer() {
       console.error("[Newsletter] automation startup failed");
     });
     startPreviewDraftCleanupAfterListen();
+    void ensureReferralSchema().catch(error => {
+      console.error("[Referral] schema ensure failed", error);
+    });
   });
 }
 

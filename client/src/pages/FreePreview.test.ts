@@ -16,7 +16,7 @@ describe("free job-photo preview page", () => {
     expect(source).toContain("$19/mo");
     expect(source).toContain("$29/mo");
     expect(source).toContain("Nothing is posted to Facebook");
-    expect(source).toContain("ANONYMOUS_PREVIEW_WATERMARK");
+    expect(source).toContain("snapPostCaptionFooter");
   });
 
   it("does not publish from the anonymous page", () => {

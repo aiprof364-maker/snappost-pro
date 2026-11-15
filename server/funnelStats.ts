@@ -1,4 +1,5 @@
 import { promotionCodeFromEventMetadata } from "./promotionCodes";
+import { summarizeReferralFunnel, type ReferralFunnelRow } from "@shared/referrals";
 
 const UPGRADED_STATUSES = new Set(["trialing", "active", "past_due"]);
 
@@ -20,7 +21,11 @@ export type PromoCodeRedemption = {
   count: number;
 };
 
-export function summarizeFreeToPaidFunnel(users: FunnelUser[], events: FunnelEvent[]) {
+export function summarizeFreeToPaidFunnel(
+  users: FunnelUser[],
+  events: FunnelEvent[],
+  referrals: ReferralFunnelRow[] = []
+) {
   const customers = users.filter(user => user.role !== "admin");
   const customerIds = new Set(customers.map(user => user.id));
   const customerById = new Map(customers.map(user => [user.id, user]));
@@ -58,5 +63,6 @@ export function summarizeFreeToPaidFunnel(users: FunnelUser[], events: FunnelEve
     paywallShown: paywallShown.size,
     promoCodeRedemptions: promoCodeRedemptionsByCode.reduce((sum, row) => sum + row.count, 0),
     promoCodeRedemptionsByCode,
+    ...summarizeReferralFunnel(referrals, customerIds),
   };
 }

@@ -7,9 +7,6 @@ export const NOT_ADMIN_ERR_MSG = 'You do not have required permission (10002)';
 export const PRODUCT_NAME = "SnapPost Pro";
 export const PRODUCT_DOMAIN = "snappostpro.com";
 
-/** Burned into anonymous previews. Saved account drafts stay clean. */
-export const ANONYMOUS_PREVIEW_WATERMARK = "Made with SnapPost";
-
 export type PlanId = "starter" | "pro";
 
 export const PLANS: Record<

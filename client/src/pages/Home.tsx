@@ -15,6 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { TRADE_LANDING_NAV } from "@shared/tradeLandingNav";
 import { Sparkles, ArrowRight, Check } from "lucide-react";
 import { Link } from "wouter";
 
@@ -211,6 +212,21 @@ export default function Home() {
               </div>
             ))}
           </div>
+          <nav aria-label="For your trade" className="mx-auto mt-8 max-w-3xl">
+            <p className="text-center text-sm font-semibold">For your trade</p>
+            <ul className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold">
+              {TRADE_LANDING_NAV.map(trade => (
+                <li key={trade.path}>
+                  <Link
+                    href={trade.path}
+                    className="text-primary hover:underline"
+                  >
+                    {trade.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-muted-foreground">
             Only upload photos you own or have permission to publish. Do not
             upload customer, patient or client-identifying information without

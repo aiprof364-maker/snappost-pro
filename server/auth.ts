@@ -7,6 +7,7 @@ import { authTokens, users, type User } from "../drizzle/schema";
 import { accessLinkExpiresAt } from "@shared/accessLink";
 import { isConfiguredAdminEmail } from "./adminIdentity";
 import { getDb, logConversionEvent } from "./db";
+import { ensureReferralSchema } from "./referralSchema";
 
 export const SESSION_COOKIE = "snappost_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -38,15 +39,20 @@ function independentOpenId(email: string) {
   return `email_${hash(normalizedEmail(email)).slice(0, 48)}`;
 }
 
-export async function createMagicLinkToken(email: string) {
+export async function createMagicLinkToken(
+  email: string,
+  referralCode?: string | null
+) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
+  await ensureReferralSchema();
   const rawToken = randomBytes(32).toString("base64url");
   const normalized = normalizedEmail(email);
   await db.insert(authTokens).values({
     email: normalized,
     tokenHash: hash(rawToken),
     expiresAt: accessLinkExpiresAt(),
+    referralCode: referralCode ?? null,
   });
   return rawToken;
 }
@@ -149,6 +155,18 @@ export async function consumeMagicLinkToken(
       plan: "free",
       ...attribution,
     });
+    if (token.referralCode) {
+      try {
+        const { attributeReferralSignup } = await import("./referrals");
+        await attributeReferralSignup({
+          referredUserId: user.id,
+          referredEmail: user.email,
+          code: token.referralCode,
+        });
+      } catch (error) {
+        console.error("[Referral] signup attribution failed", error);
+      }
+    }
   }
   return {
     status: "ok",

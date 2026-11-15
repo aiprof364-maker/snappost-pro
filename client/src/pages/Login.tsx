@@ -91,8 +91,8 @@ export default function Login() {
     : isAdminAccess
       ? `Send a secure access link to the SnapPost Pro admin inbox. It stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once.`
       : isFreeStart
-        ? `No password or card required. Enter your business email and we’ll send a free access link so you can create your first branded post. The link stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once.`
-        : `Enter your email and we’ll send a sign-in link. It stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once. No Manus account is needed.`;
+        ? `No password or card required. Enter your business email and we'll send a free access link so you can create your first branded post. The link stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once.`
+        : `Enter your email and we'll send a sign-in link. It stays active for ${ACCESS_LINK_LIFETIME_LABEL}, and you can open it more than once. No Manus account is needed.`;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_20%_10%,#e9e7ff_0,transparent_32%),linear-gradient(135deg,#fafbff,#f7f6ee)] px-5 py-12 text-slate-950">

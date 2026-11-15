@@ -23,4 +23,11 @@ describe("free job-photo preview page", () => {
     expect(source).not.toContain("posts.publish");
     expect(source).not.toContain("postPhotoToPage");
   });
+
+  it("keeps a signed-in preview on screen and links to the saved post", () => {
+    expect(source).toContain("isAuthenticated && token && !preview");
+    expect(source).toContain("Saved to your dashboard");
+    expect(source).toContain("/dashboard?post=");
+    expect(source).not.toContain("Your free post is ready");
+  });
 });

@@ -115,6 +115,10 @@ export default function Dashboard() {
     const checkoutSessionId = params.get("session_id");
     const accountCreated = params.get("account_created");
     const landing = params.get("landing");
+    const requestedPost = Number(params.get("post"));
+    if (Number.isSafeInteger(requestedPost) && requestedPost > 0) {
+      setSelectedPostId(requestedPost);
+    }
     if (fb === "connected") {
       toast.success(
         "Facebook access granted. Now choose your business and Page."

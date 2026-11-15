@@ -59,7 +59,13 @@ function publicPreviewFields(draft: typeof previewDrafts.$inferSelect) {
   };
 }
 
-function affectedRows(result: unknown): number {
+/**
+ * mysql2 hands Drizzle the driver tuple `[ResultSetHeader, fields]`.
+ * Reading affectedRows only on the outer object treats every update as 0,
+ * so a claim rolls back after it has already stamped the preview.
+ */
+export function mysqlAffectedRows(result: unknown): number {
+  if (Array.isArray(result)) return mysqlAffectedRows(result[0]);
   if (
     result &&
     typeof result === "object" &&
@@ -291,7 +297,7 @@ export async function updatePublicPreviewCaption(input: {
         gt(previewDrafts.expiresAt, new Date())
       )
     );
-  if (affectedRows(result) !== 1) {
+  if (mysqlAffectedRows(result) !== 1) {
     throw new PreviewDraftError(
       "This preview has expired. Please create a new one."
     );
@@ -316,7 +322,7 @@ export async function markPreviewEmailRequested(token: string) {
         gt(previewDrafts.expiresAt, new Date())
       )
     );
-  if (affectedRows(result) !== 1) {
+  if (mysqlAffectedRows(result) !== 1) {
     throw new PreviewDraftError(
       "This preview has expired. Please create a new one."
     );
@@ -374,7 +380,7 @@ export async function claimPreviewDraft(input: {
         )
       );
 
-    if (affectedRows(claim) !== 1) {
+    if (mysqlAffectedRows(claim) !== 1) {
       const [existing] = await tx
         .select()
         .from(previewDrafts)

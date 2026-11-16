@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { SNAPPOST_CAPTION_FOOTER } from "@shared/referrals";
 import { measureSnapPostText, snapPostGlyphPath } from "./glyphText";
 
-export const WATERMARK_TEXT = "Made with SnapPost Pro · snappostpro.com";
+export const WATERMARK_TEXT = SNAPPOST_CAPTION_FOOTER;
 
 /** Pill height as a fraction of the image height. */
 const HEIGHT_RATIO = 0.03;

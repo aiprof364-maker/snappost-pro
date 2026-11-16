@@ -59,6 +59,49 @@ export default function SiteFooter() {
             ))}
           </ul>
         </nav>
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="https://dang.ai"
+            target="_blank"
+            rel="dofollow noopener"
+            style={{ display: "inline-block", textDecoration: "none" }}
+          >
+            <img
+              src="https://assets.dang.ai/badges/dang-verified-dark.png"
+              alt="Verified on DANG!"
+              width={130}
+              height={47}
+              style={{
+                display: "block",
+                width: "130px",
+                maxWidth: "100%",
+                height: "auto",
+                border: 0,
+                outline: "none",
+                textDecoration: "none",
+              }}
+            />
+          </a>
+          <a
+            href="https://fazier.com"
+            target="_blank"
+            rel="noopener"
+            style={{ display: "inline-block", textDecoration: "none" }}
+          >
+            <img
+              src="https://fazier.com/api/v1/public/badges/launch_badges.svg?badge_type=launched&theme=neutral"
+              alt="Launched on Fazier"
+              width={130}
+              style={{
+                display: "block",
+                width: "130px",
+                maxWidth: "100%",
+                height: "auto",
+                border: 0,
+              }}
+            />
+          </a>
+        </div>
       </div>
     </footer>
   );

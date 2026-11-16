@@ -30,4 +30,15 @@ describe("free job-photo preview page", () => {
     expect(source).toContain("/dashboard?post=");
     expect(source).not.toContain("Your free post is ready");
   });
+
+  it("asks a new signed-in account for a business name on the preview itself", () => {
+    expect(source).toContain("<BrandSetupGate");
+    expect(source).toContain("preview.businessName");
+    expect(source).toContain("preview.suburb");
+    expect(source).toContain("Your 3 free posts are ready.");
+    const gateAt = source.indexOf("<BrandSetupGate");
+    const savedAt = source.indexOf("Saved to your dashboard");
+    expect(gateAt).toBeGreaterThan(-1);
+    expect(savedAt).toBeGreaterThan(gateAt);
+  });
 });

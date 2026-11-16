@@ -7,6 +7,7 @@ import {
 import { PREVIEW_TRADES, previewTradeLabel } from "./previewTrades";
 
 const SALON_TRADES = new Set([
+  "Salon",
   "Hair salon",
   "Barber",
   "Nail salon",
@@ -46,11 +47,13 @@ export function hasBusinessName(value: string | null | undefined) {
 }
 
 /**
- * The first-login step appears for a brand-new account and for any profile
- * that still has no business name, until the owner saves a name or skips.
+ * The brand step is driven by the account, not by an account_created URL flag.
+ * It shows on the first signed-in visit to /preview or /dashboard while the
+ * profile has no business name and the owner has not skipped it. Saving a name
+ * or skipping hides it on later visits. A local dismiss closes it immediately;
+ * the dashboard nudge can reopen it.
  */
 export function shouldShowBrandSetup(input: {
-  accountCreated: boolean;
   businessName?: string | null;
   brandSetupSkipped: boolean;
   dismissed: boolean;
@@ -58,8 +61,34 @@ export function shouldShowBrandSetup(input: {
 }) {
   if (hasBusinessName(input.businessName)) return false;
   if (input.reopened) return true;
-  if (input.dismissed) return false;
-  return input.accountCreated || !input.brandSetupSkipped;
+  if (input.dismissed || input.brandSetupSkipped) return false;
+  return true;
+}
+
+/**
+ * Shared by /preview and /dashboard. Unknown account state stays closed so the
+ * step does not flash before the overview loads.
+ */
+export function brandStepForSignedInVisit(
+  account:
+    | {
+        businessName?: string | null;
+        brandSetupSkipped?: boolean | null;
+      }
+    | null
+    | undefined,
+  session: { dismissed: boolean; reopened: boolean } = {
+    dismissed: false,
+    reopened: false,
+  }
+) {
+  if (!account) return false;
+  return shouldShowBrandSetup({
+    businessName: account.businessName,
+    brandSetupSkipped: Boolean(account.brandSetupSkipped),
+    dismissed: session.dismissed,
+    reopened: session.reopened,
+  });
 }
 
 /** Persistent reminder after Skip for now, hidden while the setup step is open. */

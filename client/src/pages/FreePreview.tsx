@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { BrandSetupGate } from "@/components/BrandSetupStep";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -307,7 +308,12 @@ export default function FreePreview() {
     onError: error => setEmailError(error.message),
   });
 
-  const claim = trpc.preview.claim.useMutation();
+  const utils = trpc.useUtils();
+  const claim = trpc.preview.claim.useMutation({
+    onSuccess: () => {
+      void utils.account.overview.invalidate();
+    },
+  });
 
   useEffect(() => {
     const search = window.location.search;
@@ -360,7 +366,6 @@ export default function FreePreview() {
   }, [claim.data, navigate, preview]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
     if (accountCreated && !registrationTracked.current) {
       registrationTracked.current = true;
       trackMetaEvent(
@@ -371,13 +376,16 @@ export default function FreePreview() {
         method: "magic_link",
         ...(landing ? { landing_page: landing } : {}),
       });
+      const params = new URLSearchParams(window.location.search);
+      params.delete("account_created");
+      const query = params.toString();
       window.history.replaceState(
         {},
         "",
-        previewPath(token ?? undefined, landing)
+        query ? `/preview?${query}` : "/preview"
       );
     }
-  }, [accountCreated, landing, token]);
+  }, [accountCreated, landing]);
 
   const makePreview = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -457,6 +465,7 @@ export default function FreePreview() {
     return (
       <div className="flex min-h-screen flex-col bg-muted/20">
         <SiteHeader />
+        {claim.isError && <BrandSetupGate />}
         <main className="container flex flex-1 items-center justify-center py-12">
           <section className="w-full max-w-xl rounded-3xl border border-border bg-card p-7 text-center shadow-sm sm:p-10">
             {claim.isError ? (
@@ -500,6 +509,16 @@ export default function FreePreview() {
   return (
     <div className="flex min-h-screen flex-col bg-muted/20 text-foreground">
       <SiteHeader />
+      <BrandSetupGate
+        suggestion={
+          preview
+            ? {
+                businessName: preview.businessName,
+                suburb: preview.suburb,
+              }
+            : null
+        }
+      />
       <main className="flex-1">
         {accountCreated && (
           <section className="border-b border-emerald-200 bg-emerald-50">

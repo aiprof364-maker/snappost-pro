@@ -1,3 +1,4 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,13 +9,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { trpc } from "@/lib/trpc";
 import { PREVIEW_TRADE_GROUPS, PREVIEW_TRADES } from "@shared/previewTrades";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_SUBURB_MAX,
 } from "@shared/previewCaption";
+import {
+  brandSetupPrefill,
+  brandStepForSignedInVisit,
+  shouldShowBrandNudge,
+} from "@shared/brandProfile";
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
@@ -217,10 +225,16 @@ export function BrandSetupDialog({
               <p className="mt-1 text-sm text-destructive">{logoError}</p>
             )}
           </div>
+          {!nameReady && (
+            <p id="brand-name-help" className="text-sm text-muted-foreground">
+              Add your business name to continue, or skip for now.
+            </p>
+          )}
           <Button
             type="submit"
             className="w-full"
             disabled={!nameReady || busy}
+            aria-describedby={!nameReady ? "brand-name-help" : undefined}
           >
             {saving ? (
               <>
@@ -243,6 +257,99 @@ export function BrandSetupDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type BrandSuggestion = {
+  businessName?: string | null;
+  suburb?: string | null;
+};
+
+/**
+ * Same brand step on /preview and /dashboard. Visibility comes from the
+ * account overview: no business name, and the owner has not skipped.
+ */
+export function BrandSetupGate({
+  showNudge = false,
+  suggestion = null,
+}: {
+  showNudge?: boolean;
+  suggestion?: BrandSuggestion | null;
+}) {
+  const { isAuthenticated } = useAuth();
+  const utils = trpc.useUtils();
+  const overview = trpc.account.overview.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const [dismissed, setDismissed] = useState(false);
+  const [reopened, setReopened] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const saveBrandSetup = trpc.account.saveBrandSetup.useMutation({
+    onSuccess: () => {
+      toast.success("Business name saved. New posts can show it.");
+      setSaved(true);
+      setReopened(false);
+      setDismissed(true);
+      utils.account.overview.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+  const skipBrandSetup = trpc.account.skipBrandSetup.useMutation({
+    onSuccess: () => {
+      setReopened(false);
+      setDismissed(true);
+      utils.account.overview.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const profile = overview.data;
+  if (!isAuthenticated || !profile) return null;
+
+  const account = {
+    businessName: saved ? "saved" : profile.businessName,
+    brandSetupSkipped: profile.brandSetupSkipped,
+  };
+  const businessName = account.businessName;
+  const brandSetupSkipped = Boolean(account.brandSetupSkipped);
+  const visible = brandStepForSignedInVisit(account, { dismissed, reopened });
+  const nudgeVisible = shouldShowBrandNudge({
+    businessName,
+    brandSetupSkipped: brandSetupSkipped || dismissed,
+    setupVisible: visible,
+  });
+  const prefill = brandSetupPrefill({
+    businessName: profile.businessName,
+    suburb: profile.suburb,
+    trade: profile.trade,
+    suggestion: {
+      businessName:
+        suggestion?.businessName || profile.brandSuggestion?.businessName,
+      suburb: suggestion?.suburb || profile.brandSuggestion?.suburb,
+    },
+  });
+
+  return (
+    <>
+      <BrandSetupDialog
+        open={visible}
+        prefill={prefill}
+        saving={saveBrandSetup.isPending}
+        skipping={skipBrandSetup.isPending}
+        onSave={values => saveBrandSetup.mutate(values)}
+        onSkip={() => skipBrandSetup.mutate()}
+      />
+      {showNudge && nudgeVisible && (
+        <BrandNameNudge
+          onAdd={() => {
+            setSaved(false);
+            setDismissed(false);
+            setReopened(true);
+          }}
+        />
+      )}
+    </>
   );
 }
 

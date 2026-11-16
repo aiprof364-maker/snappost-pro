@@ -1,4 +1,5 @@
 import { shouldLeaveShareToServer } from "@shared/shareTarget";
+import { isTrackingRedirectPath } from "@shared/trackingRedirects";
 import { saveSharedPhoto } from "./shareDb";
 import { handleShareTargetRequest } from "./shareTargetHandler";
 
@@ -35,6 +36,10 @@ worker.addEventListener("fetch", event => {
   if (request.headers.get(SHARE_BYPASS_HEADER) === "1") return;
 
   const url = new URL(request.url);
+  // These are server 301s. Leave the navigation unclaimed so a cached shell
+  // cannot replace the tracking redirect.
+  if (isTrackingRedirectPath(url.pathname)) return;
+
   if (request.method !== "POST" || url.pathname !== "/share-target") return;
 
   // Samsung Internet puts the file on the network POST and throws if the

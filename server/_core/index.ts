@@ -56,6 +56,7 @@ import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
 import { startPreviewDraftCleanupAfterListen } from "../previewDrafts";
 import { ensureReferralSchema } from "../referralSchema";
 import { registerShareTargetRoutes } from "../shareTargetRoutes";
+import { registerTrackingRedirects } from "../trackingRedirects";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -96,6 +97,9 @@ async function startServer() {
       createContext,
     })
   );
+
+  // Short caption links must 301 before Vite or the production SPA shell.
+  registerTrackingRedirects(app);
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {

@@ -60,6 +60,13 @@ export function cacheControlForStaticFile(
     return HTML_CACHE_CONTROL;
   }
 
+  // The worker and manifest must revalidate. A cached worker would keep an
+  // old share handler, and a cached manifest would keep an old asset list.
+  const base = path.posix.basename(normalized);
+  if (base === "sw.js" || base === "manifest.webmanifest") {
+    return "no-cache";
+  }
+
   if (isFingerprintedAsset(normalized)) {
     return FINGERPRINTED_ASSET_CACHE_CONTROL;
   }
@@ -71,6 +78,15 @@ export function cacheControlForStaticFile(
   return undefined;
 }
 
+export function contentTypeOverrideForStaticFile(
+  filePath: string
+): string | undefined {
+  const base = path.posix.basename(filePath.replace(/\\/g, "/"));
+  if (base === "manifest.webmanifest") return "application/manifest+json";
+  if (base === "sw.js") return "application/javascript; charset=utf-8";
+  return undefined;
+}
+
 export function applyStaticFileCacheHeaders(
   res: HeaderWriter,
   filePath: string
@@ -78,6 +94,10 @@ export function applyStaticFileCacheHeaders(
   const cacheControl = cacheControlForStaticFile(filePath);
   if (cacheControl) {
     res.setHeader("Cache-Control", cacheControl);
+  }
+  const contentType = contentTypeOverrideForStaticFile(filePath);
+  if (contentType) {
+    res.setHeader("Content-Type", contentType);
   }
 }
 

@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { buildServiceWorkerSource } from "./client/src/pwa/buildServiceWorker";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -55,7 +56,7 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
   const logPath = path.join(LOG_DIR, `${source}.log`);
 
   // Format entries with timestamps
-  const lines = entries.map((entry) => {
+  const lines = entries.map(entry => {
     const ts = new Date().toISOString();
     return `[${ts}] ${JSON.stringify(entry)}`;
   });
@@ -131,7 +132,7 @@ function vitePluginManusDebugCollector(): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk) => {
+        req.on("data", chunk => {
           body += chunk.toString();
         });
 
@@ -149,7 +150,47 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusDebugCollector()];
+function snapPostServiceWorkerPlugin(): Plugin {
+  return {
+    name: "snappost-service-worker",
+    configureServer(server) {
+      return () => {
+        server.middlewares.use(async (req, res, next) => {
+          const pathname = req.url?.split("?")[0];
+          if (pathname !== "/sw.js") return next();
+          try {
+            const source = await buildServiceWorkerSource();
+            res.setHeader(
+              "Content-Type",
+              "application/javascript; charset=utf-8"
+            );
+            res.setHeader("Cache-Control", "no-cache");
+            res.end(source);
+          } catch (error) {
+            next(error);
+          }
+        });
+      };
+    },
+    async closeBundle() {
+      const outFile = path.resolve(PROJECT_ROOT, "dist/public/sw.js");
+      await fs.promises.mkdir(path.dirname(outFile), { recursive: true });
+      await fs.promises.writeFile(
+        outFile,
+        await buildServiceWorkerSource(),
+        "utf8"
+      );
+    },
+  };
+}
+
+const plugins = [
+  react(),
+  tailwindcss(),
+  jsxLocPlugin(),
+  vitePluginManusDebugCollector(),
+  snapPostServiceWorkerPlugin(),
+];
 
 export default defineConfig({
   plugins,

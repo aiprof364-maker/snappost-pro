@@ -20,23 +20,23 @@ const PREVIEW_PAGE_TITLE =
 const PREVIEW_PAGE_DESCRIPTION =
   "Upload a completed-job, product, salon or result photo. Add your logo if you have one, then review a branded Facebook post and SnapPost Pro-written caption free.";
 
-function withPreviewMetadata(template: string) {
+export function withPreviewMetadata(template: string) {
   return template
     .replace(/<title>[^<]*<\/title>/, `<title>${PREVIEW_PAGE_TITLE}</title>`)
     .replace(
-      /<meta name="description" content="[^"]*"\s*\/>/,
+      /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i,
       `<meta name="description" content="${PREVIEW_PAGE_DESCRIPTION}" />`
     )
     .replace(
-      /<meta property="og:url" content="[^"]*"\s*\/>/,
+      /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i,
       '<meta property="og:url" content="https://snappostpro.com/preview" />'
     )
     .replace(
-      /<meta property="og:title" content="[^"]*"\s*\/>/,
+      /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i,
       `<meta property="og:title" content="${PREVIEW_PAGE_TITLE}" />`
     )
     .replace(
-      /<meta property="og:description" content="[^"]*"\s*\/>/,
+      /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i,
       `<meta property="og:description" content="${PREVIEW_PAGE_DESCRIPTION}" />`
     );
 }

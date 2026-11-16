@@ -4,6 +4,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { refreshPostCreationQueries } from "@/lib/postQueryInvalidation";
+import {
+  consumeSharedPhoto,
+  stripShareParamsFromLocation,
+} from "@/pwa/sharedPhoto";
 import type { UploadLimitNotice } from "@shared/uploadLimit";
 import {
   CheckCircle2,
@@ -12,7 +16,7 @@ import {
   MessageSquareText,
   Sparkles,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -151,6 +155,26 @@ export default function UploadCard({
       tone: tone || undefined,
     });
   };
+
+  const handleFileRef = useRef(handleFile);
+  handleFileRef.current = handleFile;
+  const appliedShare = useRef<File | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    consumeSharedPhoto(window.location.search).then(file => {
+      if (cancelled || !file || appliedShare.current === file) return;
+      appliedShare.current = file;
+      stripShareParamsFromLocation();
+      void handleFileRef.current(file);
+      document
+        .getElementById("upload-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="space-y-5">

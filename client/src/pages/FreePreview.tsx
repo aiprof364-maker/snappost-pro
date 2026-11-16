@@ -18,6 +18,12 @@ import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
 import { captureReferralCode } from "@/lib/referralCode";
 import {
+  acceptPickedPhoto,
+  consumeSharedPhoto,
+  stripShareParamsFromLocation,
+} from "@/pwa/sharedPhoto";
+import { isShareLanding, signedInShareDestination } from "@shared/shareTarget";
+import {
   ArrowRight,
   CheckCircle2,
   ImagePlus,
@@ -159,12 +165,9 @@ function FilePicker({
         type="file"
         accept="image/jpeg,image/png"
         onChange={event => {
-          const file = event.target.files?.[0] ?? null;
-          if (file && file.size > maxBytes) {
-            onChange(null);
-            event.currentTarget.value = "";
-            return;
-          }
+          const picked = event.target.files?.[0] ?? null;
+          const file = acceptPickedPhoto(picked, maxBytes);
+          if (picked && !file) event.currentTarget.value = "";
           onChange(file);
         }}
       />
@@ -305,6 +308,33 @@ export default function FreePreview() {
   });
 
   const claim = trpc.preview.claim.useMutation();
+
+  useEffect(() => {
+    const search = window.location.search;
+    if (!isShareLanding(search)) return;
+    if (loading) return;
+    if (isAuthenticated) {
+      const destination = signedInShareDestination(search);
+      if (destination) window.location.replace(destination);
+      return;
+    }
+    let cancelled = false;
+    consumeSharedPhoto(search).then(file => {
+      if (cancelled) return;
+      stripShareParamsFromLocation();
+      if (!file) return;
+      const accepted = acceptPickedPhoto(file, MAX_PHOTO_BYTES);
+      if (!accepted) {
+        setFormError("Use a photo under 8 MB and a logo under 2 MB.");
+        setPhoto(null);
+        return;
+      }
+      setPhoto(accepted);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, loading]);
 
   useEffect(() => {
     if (!token) {

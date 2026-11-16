@@ -11,6 +11,7 @@ import {
   HTML_CACHE_CONTROL,
   STABLE_MEDIA_CACHE_CONTROL,
   cacheControlForStaticFile,
+  contentTypeOverrideForStaticFile,
 } from "./staticCache";
 
 const LIVE_FINGERPRINTED_ASSETS = [
@@ -103,6 +104,26 @@ describe("cacheControlForStaticFile", () => {
     expect(STABLE_MEDIA_CACHE_CONTROL).not.toContain("immutable");
   });
 
+  it("revalidates the service worker and manifest", () => {
+    expect(cacheControlForStaticFile("/var/app/dist/public/sw.js")).toBe(
+      "no-cache"
+    );
+    expect(
+      cacheControlForStaticFile("/var/app/dist/public/manifest.webmanifest")
+    ).toBe("no-cache");
+    expect(
+      contentTypeOverrideForStaticFile(
+        "/var/app/dist/public/manifest.webmanifest"
+      )
+    ).toBe("application/manifest+json");
+    expect(contentTypeOverrideForStaticFile("/var/app/dist/public/sw.js")).toBe(
+      "application/javascript; charset=utf-8"
+    );
+    expect(
+      cacheControlForStaticFile("/var/app/dist/public/assets/index-B-HJbIML.js")
+    ).toBe(FINGERPRINTED_ASSET_CACHE_CONTROL);
+  });
+
   it("does not treat unhashed scripts or text files as fingerprinted", () => {
     expect(
       cacheControlForStaticFile(
@@ -161,6 +182,14 @@ describe("production static cache headers", () => {
       "/* debug */"
     );
     await writeFile(path.join(distPath, "robots.txt"), "User-agent: *\n");
+    await writeFile(
+      path.join(distPath, "manifest.webmanifest"),
+      '{"name":"SnapPost Pro"}'
+    );
+    await writeFile(
+      path.join(distPath, "sw.js"),
+      "self.addEventListener('fetch',()=>{});"
+    );
 
     const app = express();
     serveStatic(app, distPath);
@@ -248,6 +277,19 @@ describe("production static cache headers", () => {
     expect(captions.status).toBe(200);
     expect(captions.cacheControl).toBe(STABLE_MEDIA_CACHE_CONTROL);
     expect(video.cacheControl).not.toContain("immutable");
+  });
+
+  it("serves the manifest and service worker for revalidation", async () => {
+    const manifest = await cacheControl("/manifest.webmanifest");
+    const worker = await cacheControl("/sw.js");
+    expect(manifest.status).toBe(200);
+    expect(manifest.cacheControl).toBe("no-cache");
+    expect(manifest.contentType).toContain("application/manifest+json");
+    expect(manifest.body).toContain("SnapPost Pro");
+    expect(worker.status).toBe(200);
+    expect(worker.cacheControl).toBe("no-cache");
+    expect(worker.contentType).toContain("application/javascript");
+    expect(worker.body).toContain("fetch");
   });
 
   it("leaves unhashed non-media files on the short default", async () => {

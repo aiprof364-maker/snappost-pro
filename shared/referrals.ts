@@ -208,28 +208,46 @@ export function showsSnapPostMark(account: {
 }
 
 const CAPTION_MAX = 2200;
-/** Current footer, plus the older "Made with SnapPost" line and its referral suffix. */
-const FOOTER_PATTERN = /\n*Made with SnapPost(?: Pro)?(?:\s·\s\S+)?\s*$/i;
+/**
+ * Current footer, plus the older "Made with SnapPost" line and its referral
+ * suffix. The capture is the link after the dot, when one was stored.
+ */
+const FOOTER_PATTERN = /\n*Made with SnapPost(?: Pro)?(?:\s·\s(\S+))?\s*$/i;
 
-/** Free-plan caption line. Same words as the image watermark. */
+/** Free-plan caption line when the account has no referral code. Same words as the image watermark. */
 export const SNAPPOST_CAPTION_FOOTER = `Made with ${PRODUCT_NAME} · ${PRODUCT_DOMAIN}`;
 
-export function snapPostCaptionFooter(_referralUrl?: string | null) {
-  return SNAPPOST_CAPTION_FOOTER;
+function compactReferralTarget(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/^https?:\/\//i, "");
+}
+
+export function snapPostCaptionFooter(referralUrl?: string | null) {
+  const compact = compactReferralTarget(referralUrl);
+  if (!compact) return SNAPPOST_CAPTION_FOOTER;
+  return `Made with ${PRODUCT_NAME} · ${compact}`;
 }
 
 export function stripSnapPostCaptionFooter(caption: string) {
   return caption.replace(FOOTER_PATTERN, "").trimEnd();
 }
 
-/** Adds the free-plan footer once. Paid and trial captions have it removed. */
+/**
+ * Adds the free-plan footer once. An existing SnapPost footer is replaced, and
+ * a referral link already on that line is kept when no new link is supplied.
+ * Paid and trial captions have the footer removed.
+ */
 export function withSnapPostCaptionFooter(
   caption: string,
   options: { include: boolean; referralUrl?: string | null }
 ) {
+  const existingTarget = caption.match(FOOTER_PATTERN)?.[1] ?? null;
   const base = stripSnapPostCaptionFooter(caption).trim();
   if (!options.include) return base;
-  const footer = snapPostCaptionFooter(options.referralUrl);
+  const footer = snapPostCaptionFooter(
+    compactReferralTarget(options.referralUrl) ?? existingTarget
+  );
   const next = base ? `${base}\n\n${footer}` : footer;
   return next.length <= CAPTION_MAX ? next : base;
 }
@@ -239,7 +257,8 @@ export function publishableCaption(
   account: { plan?: string | null; subscriptionStatus?: string | null }
 ) {
   const text = caption ?? "";
-  return showsSnapPostMark(account) ? text : stripSnapPostCaptionFooter(text);
+  if (!showsSnapPostMark(account)) return stripSnapPostCaptionFooter(text);
+  return withSnapPostCaptionFooter(text, { include: true });
 }
 
 export function publishableImageKey(
@@ -268,9 +287,16 @@ export function presentPostForAccount<T extends PresentablePost>(
   account: { plan?: string | null; subscriptionStatus?: string | null }
 ): T {
   if (showsSnapPostMark(account)) {
-    if (!post.markedImageUrl) return post;
+    const caption =
+      post.caption == null
+        ? post.caption
+        : withSnapPostCaptionFooter(post.caption, { include: true });
+    if (!post.markedImageUrl) {
+      return caption === post.caption ? post : { ...post, caption };
+    }
     return {
       ...post,
+      caption,
       brandedImageKey: post.markedImageKey ?? post.brandedImageKey,
       brandedImageUrl: post.markedImageUrl,
     };

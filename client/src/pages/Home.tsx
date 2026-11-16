@@ -24,6 +24,7 @@ const FREE_START_FEATURES = [
   "No card required",
   "SnapPost Pro-written captions to review",
   "Logo optional",
+  "Small SnapPost watermark on free images",
   "Connect or create one Facebook Page when you are ready to publish",
 ] as const;
 
@@ -79,7 +80,7 @@ const FAQS = [
   },
   {
     q: "Which plan should I choose?",
-    a: "Starter ($19/mo) suits solo operators posting a few times a week. Pro ($29/mo) provides 300 posts/month (about 10 a day) for higher-volume posting.",
+    a: "Starter ($19/mo) suits solo operators posting a few times a week. Pro ($29/mo) provides 300 posts/month (about 10 a day) for higher-volume posting. Paid plans have no SnapPost watermark.",
   },
 ];
 

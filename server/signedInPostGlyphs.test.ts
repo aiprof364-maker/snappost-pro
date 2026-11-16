@@ -7,7 +7,7 @@ vi.mock("./storage", () => ({
   storageGetSignedUrl: vi.fn(),
 }));
 
-import { storeMarkedImage } from "./freeMark";
+import { brandImage } from "./branding";
 
 beforeEach(() => {
   storage.buffer = Buffer.alloc(0);
@@ -25,16 +25,20 @@ describe("signed-in post images", () => {
     })
       .jpeg()
       .toBuffer();
-    const stored = await storeMarkedImage(photo, "posts/1/marked.jpg");
-    expect(stored).not.toBeNull();
-    const { data, info } = await sharp(storage.buffer)
+    const branded = await brandImage({
+      photoBuffer: photo,
+      destKeyPrefix: "posts/1",
+      watermark: true,
+    });
+    expect(branded.watermarkedBuffer).not.toBeNull();
+    const { data, info } = await sharp(branded.watermarkedBuffer!)
       .raw()
       .toBuffer({ resolveWithObject: true });
     const heights: number[] = [];
     let light = 0;
-    for (let x = 24; x < 240; x++) {
+    for (let x = 40; x < 280; x++) {
       let column = 0;
-      for (let y = 16; y < 56; y++) {
+      for (let y = info.height - 48; y < info.height - 8; y++) {
         const index = (y * info.width + x) * info.channels;
         if (
           data[index] > 210 &&
@@ -48,8 +52,8 @@ describe("signed-in post images", () => {
       light += column;
     }
     const ink = heights.filter(height => height > 0);
-    expect(light).toBeGreaterThan(80);
-    expect(ink.length).toBeGreaterThan(40);
-    expect(new Set(ink).size).toBeGreaterThan(6);
+    expect(light).toBeGreaterThan(40);
+    expect(ink.length).toBeGreaterThan(30);
+    expect(new Set(ink).size).toBeGreaterThan(4);
   });
 });

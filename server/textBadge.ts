@@ -1,6 +1,5 @@
 import sharp from "sharp";
 import { measureSnapPostText, snapPostGlyphPath } from "./glyphText";
-import { layoutSnapPostMark } from "./snapPostMark";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_CALL_TO_ACTION,
@@ -45,6 +44,32 @@ export function normalizeTextBadge(
     callToAction:
       cleanPreviewText(details?.callToAction, 80) ?? PREVIEW_CALL_TO_ACTION,
   };
+}
+
+/**
+ * The clearance the business badge used before the watermark moved to the
+ * bottom corner. Paid images still skip a badge that would have hit that
+ * top-left box, so their output stays the same.
+ */
+function legacyTopLeftMark(width: number, height: number) {
+  const text = "Made with SnapPost";
+  const shortSide = Math.min(width, height);
+  if (shortSide < 160 || width < 2 || height < 2) return null;
+  const margin = Math.max(10, Math.round(shortSide * 0.028));
+  let fontSize = Math.min(20, Math.max(12, Math.round(shortSide * 0.026)));
+  let textWidth = measureText(text, fontSize, "SnapPostBadgeBold");
+  const maxInner = width - margin * 2 - fontSize;
+  while (textWidth > maxInner && fontSize > 11) {
+    fontSize -= 1;
+    textWidth = measureText(text, fontSize, "SnapPostBadgeBold");
+  }
+  if (textWidth > maxInner) return null;
+  const padX = Math.round(fontSize * 0.55);
+  const padY = Math.round(fontSize * 0.38);
+  const pillWidth = textWidth + padX * 2;
+  const pillHeight = fontSize + padY * 2;
+  if (pillWidth + margin > width || pillHeight + margin > height) return null;
+  return { left: margin, top: margin, pillWidth, pillHeight };
 }
 
 function measureText(text: string, fontSize: number, family: BadgeFace) {
@@ -114,7 +139,8 @@ function wrapText(
 export async function renderTextBadgeOverlay(
   width: number,
   height: number,
-  details: TextBadgeInput | null | undefined
+  details: TextBadgeInput | null | undefined,
+  options?: { avoidLeft?: number }
 ): Promise<Buffer | null> {
   const copy = normalizeTextBadge(details);
   const shortSide = Math.min(width, height);
@@ -122,7 +148,11 @@ export async function renderTextBadgeOverlay(
     return null;
 
   const margin = Math.max(12, Math.round(shortSide * 0.037));
-  const maxOuter = Math.min(Math.round(width * 0.74), width - margin * 2);
+  let maxOuter = Math.min(Math.round(width * 0.74), width - margin * 2);
+  if (options?.avoidLeft !== undefined) {
+    const gap = Math.max(8, Math.round(shortSide * 0.02));
+    maxOuter = Math.min(maxOuter, options.avoidLeft - gap - margin);
+  }
   const nameSize = Math.max(16, Math.round(shortSide * 0.039));
   const suburbSize = Math.max(13, Math.round(shortSide * 0.024));
   const padX = Math.round(nameSize * 0.72);
@@ -170,15 +200,19 @@ export async function renderTextBadgeOverlay(
 
   const left = margin;
   const top = height - margin - badgeHeight;
-  const mark = layoutSnapPostMark(width, height);
-  if (
-    mark &&
-    left < mark.left + mark.pillWidth &&
-    left + badgeWidth > mark.left &&
-    top < mark.top + mark.pillHeight + 8 &&
-    top + badgeHeight > mark.top
-  ) {
-    return null;
+  if (options?.avoidLeft !== undefined) {
+    if (left + badgeWidth > options.avoidLeft - 4) return null;
+  } else {
+    const mark = legacyTopLeftMark(width, height);
+    if (
+      mark &&
+      left < mark.left + mark.pillWidth &&
+      left + badgeWidth > mark.left &&
+      top < mark.top + mark.pillHeight + 8 &&
+      top + badgeHeight > mark.top
+    ) {
+      return null;
+    }
   }
   const radius = Math.max(12, Math.round(badgeHeight * 0.16));
   const parts: string[] = [];

@@ -46,7 +46,7 @@ export type TradeLandingPage = TradeLandingNavItem & {
   closingBody: string;
 };
 
-const PRICING_ANSWER = `You can create ${PLAN_POST_LIMITS.free} Facebook posts free, and no card is required. After that, Starter is ${PLANS.starter.priceLabel} for ${PLANS.starter.postsPerMonth.replace(" / ", " per ")} and Pro is ${PLANS.pro.priceLabel} for ${PLANS.pro.postsPerMonth.replace(" / ", " per ")}.`;
+const PRICING_ANSWER = `You can create ${PLAN_POST_LIMITS.free} Facebook posts free, and no card is required. After that, Starter is ${PLANS.starter.priceLabel} for ${PLANS.starter.postsPerMonth.replace(" / ", " per ")} and Pro is ${PLANS.pro.priceLabel} for ${PLANS.pro.postsPerMonth.replace(" / ", " per ")}. Paid plans have no SnapPost watermark.`;
 
 const PAGE_LATER =
   "No. Make the preview from a photo first. Add a logo only if you have one. Connect a Facebook Page, or follow the steps to create one, when you decide to publish.";

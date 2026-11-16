@@ -25,6 +25,7 @@ describe("pricing plans", () => {
       "Logo branding overlay",
       "1 connected Facebook Page",
       "Post history",
+      "No SnapPost watermark",
     ]);
   });
 });

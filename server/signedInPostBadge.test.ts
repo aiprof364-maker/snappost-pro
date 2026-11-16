@@ -12,7 +12,6 @@ vi.mock("./storage", () => ({
 }));
 
 import { brandImage } from "./branding";
-import { storeMarkedImage } from "./freeMark";
 import { brandSignedInPhoto } from "./signedInBranding";
 
 beforeEach(() => {
@@ -41,16 +40,11 @@ describe("signed-in post badge", () => {
       suburb: "Austin, TX",
       trade: "deck-builder",
       destKeyPrefix: "contractor",
+      watermark: true,
     });
-    const marked = await storeMarkedImage(
-      branded.buffer,
-      "contractor/marked.jpg"
-    );
-    expect(marked).not.toBeNull();
-    const markedBuffer = storage.files.get("contractor/marked.jpg");
-    expect(markedBuffer).toBeInstanceOf(Buffer);
+    expect(branded.watermarkedBuffer).toBeInstanceOf(Buffer);
 
-    const { data, info } = await sharp(markedBuffer!)
+    const { data, info } = await sharp(branded.watermarkedBuffer!)
       .raw()
       .toBuffer({ resolveWithObject: true });
     const badge = bounds(data, info, (red, green, blue) => {
@@ -59,13 +53,18 @@ describe("signed-in post badge", () => {
     const mark = bounds(
       data,
       info,
-      (red, green, blue, _x, y) =>
-        y < 120 && red < 80 && green < 100 && blue > red && blue < 140
+      (red, green, blue, x, y) =>
+        y > info.height * 0.8 &&
+        x > info.width * 0.55 &&
+        red > 220 &&
+        green > 220 &&
+        blue > 220
     );
     expect(badge).not.toBeNull();
     expect(mark).not.toBeNull();
     expect(overlaps(badge!, mark!)).toBe(false);
-    expect(badge!.minY).toBeGreaterThan(mark!.maxY);
+    expect(mark!.minX).toBeGreaterThan(badge!.maxX);
+    expect(mark!.minY).toBeGreaterThan(info.height * 0.8);
 
     const nameBandBottom =
       badge!.minY + Math.round((badge!.maxY - badge!.minY) * 0.42);
@@ -81,10 +80,17 @@ describe("signed-in post badge", () => {
     expect(nameInk.inkColumns).toBeGreaterThan(30);
     expect(nameInk.uniqueColumnHeights).toBeGreaterThan(6);
 
-    const markLetters = lightColumnStats(data, info, 20, 14, 280, 70);
-    expect(markLetters.light).toBeGreaterThan(80);
-    expect(markLetters.inkColumns).toBeGreaterThan(40);
-    expect(markLetters.uniqueColumnHeights).toBeGreaterThan(6);
+    const markLetters = lightColumnStats(
+      data,
+      info,
+      mark!.minX,
+      mark!.minY,
+      mark!.maxX + 1,
+      mark!.maxY + 1
+    );
+    expect(markLetters.light).toBeGreaterThan(40);
+    expect(markLetters.inkColumns).toBeGreaterThan(30);
+    expect(markLetters.uniqueColumnHeights).toBeGreaterThan(4);
 
     const salon = await brandSignedInPhoto({
       photoBuffer,

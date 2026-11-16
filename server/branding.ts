@@ -1,5 +1,10 @@
 import sharp from "sharp";
 import { prepareLogoForBranding } from "./logoPreparation";
+import {
+  layoutSnapPostMark,
+  renderSnapPostMarkOverlay,
+  type MarkCorner,
+} from "./snapPostMark";
 import { renderTextBadgeOverlay, type TextBadgeInput } from "./textBadge";
 import { storagePut, storageGetSignedUrl } from "./storage";
 
@@ -32,6 +37,11 @@ async function squareFacebookFrame(photoBuffer: Buffer) {
  * never enlarged. Saved customer drafts keep the original crop. Public
  * previews pass frame "square". When a preview has no logo, a text badge can
  * be drawn in the lower-left from the visitor's own business name and suburb.
+ *
+ * `watermark` composites the free-plan SnapPost pill in this same pass, in the
+ * bottom corner opposite the customer logo. The returned `buffer` stays clean
+ * so a paid account can publish it unchanged. `watermarkedBuffer` is the file
+ * free accounts download and share.
  */
 export async function brandImage(params: {
   photoBuffer: Buffer;
@@ -39,7 +49,13 @@ export async function brandImage(params: {
   destKeyPrefix: string;
   frame?: "original" | "square";
   textBadge?: TextBadgeInput | null;
-}): Promise<{ key: string; url: string; buffer: Buffer }> {
+  watermark?: boolean;
+}): Promise<{
+  key: string;
+  url: string;
+  buffer: Buffer;
+  watermarkedBuffer: Buffer | null;
+}> {
   const { photoBuffer, logoBuffer, destKeyPrefix, textBadge } = params;
   const frame = params.frame ?? "original";
 
@@ -58,6 +74,8 @@ export async function brandImage(params: {
   const finalHeight = resizedMeta.height!;
   let composited = sharp(resizedBase);
   let logoApplied = false;
+  const cleanLayers: sharp.OverlayOptions[] = [];
+  let logoLeft = finalWidth;
 
   if (logoBuffer) {
     const logoPng = await prepareLogoForBranding(
@@ -77,15 +95,16 @@ export async function brandImage(params: {
           Math.floor((finalHeight - logoHeight) / 2)
         )
       );
-      composited = composited.composite([
-        {
-          input: logoPng,
-          left: finalWidth - logoWidth - margin,
-          top: finalHeight - logoHeight - margin,
-          blend: "over",
-        },
-      ]);
+      const logoLayer: sharp.OverlayOptions = {
+        input: logoPng,
+        left: finalWidth - logoWidth - margin,
+        top: finalHeight - logoHeight - margin,
+        blend: "over",
+      };
+      cleanLayers.push(logoLayer);
+      composited = composited.composite([logoLayer]);
       logoApplied = true;
+      logoLeft = logoLayer.left ?? logoLeft;
     }
   }
 
@@ -98,11 +117,28 @@ export async function brandImage(params: {
       textBadge
     );
     if (overlay) {
-      composited = composited.composite([
-        { input: overlay, left: 0, top: 0, blend: "over" },
-      ]);
+      const badgeLayer: sharp.OverlayOptions = {
+        input: overlay,
+        left: 0,
+        top: 0,
+        blend: "over",
+      };
+      cleanLayers.push(badgeLayer);
+      composited = composited.composite([badgeLayer]);
     }
   }
+
+  const watermarkedBuffer = params.watermark
+    ? await renderWatermarkedJpeg({
+        base: resizedBase,
+        width: finalWidth,
+        height: finalHeight,
+        cleanLayers,
+        logoApplied,
+        logoLeft,
+        textBadge: textBadge ?? null,
+      })
+    : null;
 
   const outBuffer = await composited.jpeg({ quality: 90 }).toBuffer();
   const { key, url } = await storagePut(
@@ -110,7 +146,72 @@ export async function brandImage(params: {
     outBuffer,
     "image/jpeg"
   );
-  return { key, url, buffer: outBuffer };
+  return { key, url, buffer: outBuffer, watermarkedBuffer };
+}
+
+/**
+ * Same logo and badge layers as the clean image, plus the free-plan pill.
+ * A business-name badge is redrawn so it stops before the pill. The clean
+ * JPEG above is left untouched.
+ */
+async function renderWatermarkedJpeg(input: {
+  base: Buffer;
+  width: number;
+  height: number;
+  cleanLayers: sharp.OverlayOptions[];
+  logoApplied: boolean;
+  logoLeft: number;
+  textBadge: TextBadgeInput | null;
+}) {
+  const margin = Math.max(8, Math.round(Math.min(input.width, input.height) * 0.03));
+  const gap = Math.max(8, Math.round(Math.min(input.width, input.height) * 0.02));
+  const hasBadge = input.cleanLayers.length > (input.logoApplied ? 1 : 0);
+  const corner: MarkCorner =
+    input.logoApplied || !hasBadge ? "bottom-left" : "bottom-right";
+  const maxWidth = input.logoApplied
+    ? input.logoLeft - gap - margin
+    : hasBadge
+      ? Math.round(input.width * 0.5)
+      : undefined;
+  const layout = layoutSnapPostMark(input.width, input.height, {
+    corner,
+    maxWidth,
+  });
+  if (!layout) return null;
+
+  const markedLayers = [...input.cleanLayers];
+  if (hasBadge && !input.logoApplied && input.textBadge) {
+    const fitted = await renderTextBadgeOverlay(
+      input.width,
+      input.height,
+      input.textBadge,
+      { avoidLeft: layout.left }
+    );
+    const badgeIndex = markedLayers.length - 1;
+    if (fitted) {
+      markedLayers[badgeIndex] = {
+        input: fitted,
+        left: 0,
+        top: 0,
+        blend: "over",
+      };
+    } else {
+      markedLayers.splice(badgeIndex, 1);
+    }
+  }
+
+  const mark = await renderSnapPostMarkOverlay(input.width, input.height, {
+    corner,
+    maxWidth,
+  });
+  if (!mark) return null;
+  return sharp(input.base)
+    .composite([
+      ...markedLayers,
+      { input: mark, left: 0, top: 0, blend: "over" },
+    ])
+    .jpeg({ quality: 90 })
+    .toBuffer();
 }
 
 /** Download bytes for a stored object via its signed URL. */

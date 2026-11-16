@@ -10,7 +10,6 @@ import {
   publishableCaption,
   publishableImageKey,
   referralPublicUrl,
-  showsSnapPostMark,
   withSnapPostCaptionFooter,
 } from "@shared/referrals";
 import { TRPCError } from "@trpc/server";
@@ -30,7 +29,7 @@ import {
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { brandSignedInPhoto, signedInTextBadge } from "./signedInBranding";
-import { brandingForClaim, storeMarkedImage } from "./freeMark";
+import { accountShowsWatermark, brandingForClaim } from "./freeMark";
 import {
   describePreviewFailure,
   previewFailureMessage,
@@ -495,10 +494,7 @@ export const appRouter = router({
             suburb,
             callToAction: PREVIEW_CALL_TO_ACTION,
           });
-          const showMark = showsSnapPostMark({
-            plan: ctx.user?.plan,
-            subscriptionStatus: ctx.user?.subscriptionStatus,
-          });
+          const showMark = accountShowsWatermark(ctx.user);
           const caption = withSnapPostCaptionFooter(generatedCaption, {
             include: showMark,
           });
@@ -508,6 +504,7 @@ export const appRouter = router({
             logoBuffer: logo?.buffer,
             destKeyPrefix: keyPrefix,
             frame: "square",
+            watermark: showMark,
             textBadge: {
               businessName,
               suburb,
@@ -515,9 +512,14 @@ export const appRouter = router({
             },
           });
           stage = "snap_post_mark";
-          const marked = showMark
-            ? await storeMarkedImage(clean.buffer, `${keyPrefix}/marked.jpg`)
-            : null;
+          const marked =
+            showMark && clean.watermarkedBuffer
+              ? await storagePut(
+                  `${keyPrefix}/marked.jpg`,
+                  clean.watermarkedBuffer,
+                  "image/jpeg"
+                )
+              : null;
           if (showMark && !marked) {
             throw new TRPCError({
               code: "BAD_REQUEST",
@@ -900,7 +902,7 @@ export const appRouter = router({
           plan: user?.plan ?? plan,
           subscriptionStatus: user?.subscriptionStatus,
         };
-        const showMark = showsSnapPostMark(account);
+        const showMark = accountShowsWatermark(account);
         if (showMark) {
           const code = await ensureReferralCode(ctx.user.id);
           caption = withSnapPostCaptionFooter(caption, {
@@ -916,10 +918,16 @@ export const appRouter = router({
           suburb: user?.suburb,
           trade: input.trade ?? user?.trade,
           destKeyPrefix: postKey,
+          watermark: showMark,
         });
-        const marked = showMark
-          ? await storeMarkedImage(branded.buffer, `${postKey}/marked.jpg`)
-          : null;
+        const marked =
+          showMark && branded.watermarkedBuffer
+            ? await storagePut(
+                `${postKey}/marked.jpg`,
+                branded.watermarkedBuffer,
+                "image/jpeg"
+              )
+            : null;
 
         // 4. Persist
         const saved = await createPost({

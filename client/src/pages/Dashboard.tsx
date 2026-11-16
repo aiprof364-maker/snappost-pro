@@ -343,9 +343,9 @@ export default function Dashboard() {
                 <span className="font-medium">{usageLabel}</span>
                 {plan === "free" ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Free posts include a small &quot;Made with SnapPost&quot;
-                    mark and your referral link in the caption. Paid plans and
-                    the 7-day trial do not.
+                    Free posts include a small &quot;Made with SnapPost Pro ·
+                    snappostpro.com&quot; watermark and your referral link in
+                    the caption. Paid plans and the 7-day trial do not.
                   </p>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground">

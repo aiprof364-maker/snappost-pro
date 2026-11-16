@@ -43,12 +43,14 @@ export async function brandSignedInPhoto(params: {
   suburb?: string | null;
   trade?: string | null;
   destKeyPrefix: string;
+  watermark?: boolean;
 }) {
   const hasLogo = Boolean(params.logoBuffer);
   return brandImage({
     photoBuffer: params.photoBuffer,
     logoBuffer: params.logoBuffer,
     destKeyPrefix: params.destKeyPrefix,
+    watermark: params.watermark,
     textBadge: signedInTextBadge({
       hasLogo,
       businessName: params.businessName,

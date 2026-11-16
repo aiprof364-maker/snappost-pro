@@ -10,13 +10,22 @@ import {
 import type { PreviewDraft, User } from "../drizzle/schema";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { ensureReferralCode } from "./referrals";
-import { compositeSnapPostMark } from "./snapPostMark";
-import { storagePut } from "./storage";
 
-export async function storeMarkedImage(jpeg: Buffer, key: string) {
-  const marked = await compositeSnapPostMark(jpeg);
-  if (!marked) return null;
-  return storagePut(key, marked, "image/jpeg");
+/**
+ * Free plan, including the no-card posts and an anonymous preview.
+ * Starter and Pro, including a 7-day trial, stay clean. This is the existing
+ * SnapPost mark entitlement — no separate billing flag.
+ */
+export function accountShowsWatermark(
+  account:
+    | { plan?: string | null; subscriptionStatus?: string | null }
+    | null
+    | undefined
+) {
+  return showsSnapPostMark({
+    plan: account?.plan,
+    subscriptionStatus: account?.subscriptionStatus,
+  });
 }
 
 export async function brandingForClaim(

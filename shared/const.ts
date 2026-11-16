@@ -25,6 +25,7 @@ export const PLANS: Record<
       "Logo branding overlay",
       "1 connected Facebook page",
       "Post history",
+      "No SnapPost watermark",
     ],
   },
   pro: {
@@ -39,6 +40,7 @@ export const PLANS: Record<
       "Logo branding overlay",
       "1 connected Facebook Page",
       "Post history",
+      "No SnapPost watermark",
     ],
   },
 };

@@ -147,7 +147,7 @@ export async function sendPurchaseConfirmation(
     subject: `Welcome to SnapPost Pro ${details.name}`,
     idempotencyKey,
     replyTo: getSupportReplyTo(),
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Welcome to SnapPost Pro, ${greetingName(input.userName)}!</h2>${statusCopy}<div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your plan includes</h3><ul><li><strong>${details.posts} branded posts per month</strong></li><li>AI-generated captions you can review and edit</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Saved post history</li></ul></div><p>Start creating a branded post when you are ready:</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Welcome to SnapPost Pro, ${greetingName(input.userName)}!</h2>${statusCopy}<div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your plan includes</h3><ul><li><strong>${details.posts} branded posts per month</strong></li><li>AI-generated captions you can review and edit</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Saved post history</li><li>No SnapPost watermark</li></ul></div><p>Start creating a branded post when you are ready:</p><p><a href="https://snappostpro.com/dashboard" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Go to Dashboard</a></p>${accountFooter()}</div>`,
   });
 }
 
@@ -248,12 +248,16 @@ export async function sendOnboardingDay5(
   const upgrade = details.upgrade
     ? `<div style="background:#fff3cd;padding:15px;border-radius:6px;margin:20px 0"><h3 style="margin-top:0">Ready to post more?</h3><p>You are on the Free plan with <strong>3 posts total</strong>. Starter includes 30 posts per month and Pro includes 300 posts per month.</p><a href="https://snappostpro.com/pricing" style="background:#ffc107;color:#333;padding:10px 20px;border-radius:6px;text-decoration:none">View Plans</a></div>`
     : "";
+  const watermarkItem =
+    plan === "free"
+      ? "<li>Small SnapPost watermark on free images</li>"
+      : "<li>No SnapPost watermark</li>";
   return sendAccountMessage({
     to: email,
     subject: "Connect your Page and use your SnapPost Pro posts",
     idempotencyKey,
     replyTo: getSupportReplyTo(),
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Keep your Facebook Page up to date, ${greetingName(userName)}</h2><p>Choose the one Facebook Page you want to use, then prepare a post whenever you have a completed photo to share. Add your logo, review the SnapPost Pro-written caption, and manually publish when ready.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your current plan</h3><p><strong>${details.name} Plan:</strong> ${details.allowance}</p><ul><li>SnapPost Pro-written captions to review</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Post history</li></ul></div>${upgrade}<p><a href="https://snappostpro.com/dashboard#facebook-section" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Connect your Page and open SnapPost Pro</a></p>${accountFooter()}</div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Keep your Facebook Page up to date, ${greetingName(userName)}</h2><p>Choose the one Facebook Page you want to use, then prepare a post whenever you have a completed photo to share. Add your logo, review the SnapPost Pro-written caption, and manually publish when ready.</p><div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:20px 0"><h3>Your current plan</h3><p><strong>${details.name} Plan:</strong> ${details.allowance}</p><ul><li>SnapPost Pro-written captions to review</li><li>Logo branding overlay</li><li>One connected Facebook Page</li><li>Post history</li>${watermarkItem}</ul></div>${upgrade}<p><a href="https://snappostpro.com/dashboard#facebook-section" style="background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block">Connect your Page and open SnapPost Pro</a></p>${accountFooter()}</div>`,
   });
 }
 

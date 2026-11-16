@@ -344,8 +344,8 @@ export default function Dashboard() {
                 {plan === "free" ? (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Free posts include a small &quot;Made with SnapPost Pro ·
-                    snappostpro.com&quot; watermark and your referral link in
-                    the caption. Paid plans and the 7-day trial do not.
+                    snappostpro.com&quot; watermark and the same line at the
+                    end of the caption. Paid plans and the 7-day trial do not.
                   </p>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground">

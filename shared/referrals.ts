@@ -1,4 +1,4 @@
-import { PLAN_POST_LIMITS, PRODUCT_DOMAIN, type PlanId } from "./const";
+import { PLAN_POST_LIMITS, PRODUCT_DOMAIN, PRODUCT_NAME, type PlanId } from "./const";
 
 /**
  * Defaults for the referral program. Override them with env vars
@@ -208,12 +208,14 @@ export function showsSnapPostMark(account: {
 }
 
 const CAPTION_MAX = 2200;
-const FOOTER_PATTERN = /\n*Made with SnapPost(?:\s·\s\S+)?\s*$/i;
+/** Current footer, plus the older "Made with SnapPost" line and its referral suffix. */
+const FOOTER_PATTERN = /\n*Made with SnapPost(?: Pro)?(?:\s·\s\S+)?\s*$/i;
 
-export function snapPostCaptionFooter(referralUrl?: string | null) {
-  if (!referralUrl) return "Made with SnapPost";
-  const compact = referralUrl.replace(/^https?:\/\//, "");
-  return `Made with SnapPost · ${compact}`;
+/** Free-plan caption line. Same words as the image watermark. */
+export const SNAPPOST_CAPTION_FOOTER = `Made with ${PRODUCT_NAME} · ${PRODUCT_DOMAIN}`;
+
+export function snapPostCaptionFooter(_referralUrl?: string | null) {
+  return SNAPPOST_CAPTION_FOOTER;
 }
 
 export function stripSnapPostCaptionFooter(caption: string) {

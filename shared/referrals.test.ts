@@ -14,6 +14,7 @@ import {
   referralBalanceTransaction,
   showsSnapPostMark,
   summarizeReferralFunnel,
+  snapPostCaptionFooter,
   withSnapPostCaptionFooter,
 } from "./referrals";
 
@@ -191,7 +192,7 @@ describe("referral paid credit", () => {
 });
 
 describe("SnapPost mark visibility", () => {
-  it("shows the mark and referral footer only for free accounts", () => {
+  it("shows the watermark footer only for free accounts", () => {
     expect(showsSnapPostMark({ plan: "free", subscriptionStatus: "none" })).toBe(
       true
     );
@@ -211,13 +212,16 @@ describe("SnapPost mark visibility", () => {
       false
     );
 
+    const footer = "Made with SnapPost Pro · snappostpro.com";
     const freeCaption = withSnapPostCaptionFooter("Deck finished.", {
       include: true,
       referralUrl: "https://snappostpro.com/?ref=AB12CD34",
     });
-    expect(freeCaption).toBe(
-      "Deck finished.\n\nMade with SnapPost · snappostpro.com/?ref=AB12CD34"
-    );
+    expect(freeCaption).toBe(`Deck finished.\n\n${footer}`);
+    expect(snapPostCaptionFooter()).toBe(footer);
+    expect(
+      withSnapPostCaptionFooter("Deck finished.", { include: true })
+    ).toBe(freeCaption);
     expect(
       withSnapPostCaptionFooter(freeCaption, {
         include: true,
@@ -226,6 +230,15 @@ describe("SnapPost mark visibility", () => {
     ).toBe(freeCaption);
     expect(
       withSnapPostCaptionFooter(freeCaption, { include: false })
+    ).toBe("Deck finished.");
+    expect(
+      withSnapPostCaptionFooter(
+        "Deck finished.\n\nMade with SnapPost · snappostpro.com/?ref=AB12CD34",
+        { include: true }
+      )
+    ).toBe(freeCaption);
+    expect(
+      withSnapPostCaptionFooter("Deck finished.", { include: false })
     ).toBe("Deck finished.");
   });
 
@@ -246,7 +259,20 @@ describe("SnapPost mark visibility", () => {
     expect(publishableImageKey(post, paid)).toBe("clean.jpg");
     expect(publishableImageKey(post, free)).toBe("marked.jpg");
     expect(publishableCaption(post.caption, trial)).toBe("Job done.");
+    expect(publishableCaption(post.caption, paid)).toBe("Job done.");
     expect(publishableCaption(post.caption, free)).toContain("?ref=AB12CD34");
+
+    const watermarked =
+      "Job done.\n\nMade with SnapPost Pro · snappostpro.com";
+    expect(publishableCaption(watermarked, trial)).toBe("Job done.");
+    expect(publishableCaption(watermarked, paid)).toBe("Job done.");
+    expect(publishableCaption(watermarked, free)).toBe(watermarked);
+    expect(presentPostForAccount({ ...post, caption: watermarked }, trial).caption).toBe(
+      "Job done."
+    );
+    expect(presentPostForAccount({ ...post, caption: watermarked }, paid).caption).toBe(
+      "Job done."
+    );
 
     expect(presentPostForAccount(post, paid).brandedImageUrl).toBe(
       "https://cdn.example/clean.jpg"

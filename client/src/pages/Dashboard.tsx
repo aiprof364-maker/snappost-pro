@@ -27,12 +27,7 @@ import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import { capturePromotionCode } from "@/lib/promotionCode";
 import ReferralPanel from "@/components/ReferralPanel";
-import { BrandNameNudge, BrandSetupDialog } from "@/components/BrandSetupStep";
-import {
-  brandSetupPrefill,
-  shouldShowBrandNudge,
-  shouldShowBrandSetup,
-} from "@shared/brandProfile";
+import { BrandSetupGate } from "@/components/BrandSetupStep";
 import {
   CheckCircle2,
   ExternalLink,
@@ -69,30 +64,6 @@ export default function Dashboard() {
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [selectedCaption, setSelectedCaption] = useState("");
   const captionLoadedFor = useRef<number | null>(null);
-  const [accountCreatedFlag, setAccountCreatedFlag] = useState(false);
-  const [brandSetupDismissed, setBrandSetupDismissed] = useState(false);
-  const [brandSetupReopened, setBrandSetupReopened] = useState(false);
-  const [brandSaved, setBrandSaved] = useState(false);
-
-  const saveBrandSetup = trpc.account.saveBrandSetup.useMutation({
-    onSuccess: () => {
-      toast.success("Business name saved. New posts can show it.");
-      setBrandSaved(true);
-      setBrandSetupReopened(false);
-      setBrandSetupDismissed(true);
-      utils.account.overview.invalidate();
-    },
-    onError: e => toast.error(e.message),
-  });
-  const skipBrandSetup = trpc.account.skipBrandSetup.useMutation({
-    onSuccess: () => {
-      setBrandSetupReopened(false);
-      setBrandSetupDismissed(true);
-      utils.account.overview.invalidate();
-    },
-    onError: e => toast.error(e.message),
-  });
-
   const uploadLogo = trpc.account.uploadLogo.useMutation({
     onSuccess: () => {
       toast.success("Logo saved. New posts will be branded with it.");
@@ -202,7 +173,6 @@ export default function Dashboard() {
       }
     }
     if (accountCreated === "1") {
-      setAccountCreatedFlag(true);
       trackMetaEvent(
         "CompleteRegistration",
         landing ? { landing_page: landing } : undefined
@@ -250,26 +220,6 @@ export default function Dashboard() {
     plan === "free" ? "Free" : (PLANS[plan as "starter" | "pro"]?.name ?? plan);
   const facebookConnected = overview.data?.facebook?.connected === true;
   const hasLogo = Boolean(overview.data?.hasLogo);
-  const businessName = brandSaved ? "saved" : overview.data?.businessName;
-  const brandPrefill = brandSetupPrefill({
-    businessName: overview.data?.businessName,
-    suburb: overview.data?.suburb,
-    trade: overview.data?.trade,
-    suggestion: overview.data?.brandSuggestion,
-  });
-  const brandSetupVisible = shouldShowBrandSetup({
-    accountCreated: accountCreatedFlag,
-    businessName,
-    brandSetupSkipped: Boolean(overview.data?.brandSetupSkipped),
-    dismissed: brandSetupDismissed,
-    reopened: brandSetupReopened,
-  });
-  const brandNudgeVisible = shouldShowBrandNudge({
-    businessName,
-    brandSetupSkipped:
-      Boolean(overview.data?.brandSetupSkipped) || brandSetupDismissed,
-    setupVisible: brandSetupVisible,
-  });
   const selectedPost = posts.data?.find(post => post.id === selectedPostId);
   const firstDraft = posts.data?.find(post => post.status === "draft");
   const usage = overview.data?.usage;
@@ -385,24 +335,7 @@ export default function Dashboard() {
 
           <ReferralPanel />
 
-          <BrandSetupDialog
-            open={brandSetupVisible}
-            prefill={brandPrefill}
-            saving={saveBrandSetup.isPending}
-            skipping={skipBrandSetup.isPending}
-            onSave={values => saveBrandSetup.mutate(values)}
-            onSkip={() => skipBrandSetup.mutate()}
-          />
-
-          {brandNudgeVisible && (
-            <BrandNameNudge
-              onAdd={() => {
-                setBrandSaved(false);
-                setBrandSetupDismissed(false);
-                setBrandSetupReopened(true);
-              }}
-            />
-          )}
+          <BrandSetupGate showNudge />
 
           {usageLabel && (
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">

@@ -13,6 +13,11 @@ describe("brand setup step", () => {
     expect(source).toContain("brand-trade");
     expect(source).toContain("brand-logo");
     expect(source).toContain("Skip for now");
+    expect(source).toContain(
+      "Add your business name to continue, or skip for now."
+    );
+    expect(source).toContain("brandStepForSignedInVisit");
+    expect(source).not.toContain("accountCreated");
     expect(source).toContain("required");
     expect(source).toContain('id="brand-name-nudge"');
     expect(source).toContain("Add your business name");

@@ -25,6 +25,7 @@ export const PREVIEW_TRADES = [
   { id: "painter", label: "Painter", group: "Contractors" },
   { id: "plumber", label: "Plumber", group: "Contractors" },
   { id: "roofer", label: "Roofer", group: "Contractors" },
+  { id: "salon", label: "Salon", group: "Salons" },
   { id: "hair-salon", label: "Hair salon", group: "Salons" },
   { id: "barber", label: "Barber", group: "Salons" },
   { id: "nail-salon", label: "Nail salon", group: "Salons" },

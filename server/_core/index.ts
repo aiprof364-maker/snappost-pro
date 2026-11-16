@@ -55,6 +55,7 @@ import { startAccountEmailAutomationAfterListen } from "../accountEmailAutomatio
 import { startNewsletterAutomationAfterListen } from "../newsletterAutomation";
 import { startPreviewDraftCleanupAfterListen } from "../previewDrafts";
 import { ensureReferralSchema } from "../referralSchema";
+import { registerShareTargetRoutes } from "../shareTargetRoutes";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -78,6 +79,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Before the body parsers so a multipart share keeps its raw body.
+  registerShareTargetRoutes(app);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

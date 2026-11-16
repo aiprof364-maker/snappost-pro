@@ -3,8 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
+import { registerShareTargetServiceWorker } from "./pwa/registerServiceWorker";
 import App from "./App";
 import "./index.css";
+
+registerShareTargetServiceWorker();
 
 const queryClient = new QueryClient();
 
@@ -33,13 +36,15 @@ const trpcClient = trpc.createClient({
       transformer: superjson,
       fetch(input, init) {
         console.log("[tRPC] Making request to:", input);
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-        }).then(res => {
-          console.log("[tRPC] Response status:", res.status);
-          return res;
-        });
+        return globalThis
+          .fetch(input, {
+            ...(init ?? {}),
+            credentials: "include",
+          })
+          .then(res => {
+            console.log("[tRPC] Response status:", res.status);
+            return res;
+          });
       },
     }),
   ],

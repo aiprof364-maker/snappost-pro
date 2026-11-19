@@ -739,7 +739,7 @@ export default function FreePreview() {
                         </>
                       ) : (
                         <>
-                          Start your free trial to post{" "}
+                          Post it free: 3 posts, no card{" "}
                           <ArrowRight className="h-5 w-5" />
                         </>
                       )}

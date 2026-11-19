@@ -9,6 +9,7 @@ import {
   borderCaption,
   borderInk,
   layoutPostBorder,
+  nameBarCopy,
   parseBorderColor,
   parseBorderStyle,
   presentBorderSettings,
@@ -67,16 +68,60 @@ describe("post border settings", () => {
     expect(borderInk("#111111")).toBe("#FFFFFF");
   });
 
-  it("prints only the business name and city the account actually has", () => {
+  it("prints only the business details the account actually has", () => {
     expect(
       borderCaption({
         businessName: "  Northside Decks ",
         suburb: " Austin, TX ",
+        phone: "5125550142",
+        website: "https://northsidedecks.com",
       })
-    ).toEqual({ businessName: "Northside Decks", suburb: "Austin, TX" });
+    ).toEqual({
+      businessName: "Northside Decks",
+      suburb: "Austin, TX",
+      phone: "(512) 555-0142",
+      website: "northsidedecks.com",
+    });
     expect(borderCaption({ businessName: "   ", suburb: "" })).toEqual({
       businessName: undefined,
       suburb: undefined,
+      phone: undefined,
+      website: undefined,
+    });
+    expect(borderCaption({ phone: "nope", website: "not a site" })).toEqual({
+      businessName: undefined,
+      suburb: undefined,
+      phone: undefined,
+      website: undefined,
+    });
+  });
+
+  it("puts the name on the first line and phone and website on the next", () => {
+    expect(
+      nameBarCopy({
+        businessName: "Northside Decks",
+        phone: "(512) 555-0142",
+        website: "northsidedecks.com",
+      })
+    ).toEqual({
+      name: "Northside Decks",
+      detail: "(512) 555-0142 · northsidedecks.com",
+    });
+    expect(
+      nameBarCopy({
+        businessName: "Northside Decks",
+        suburb: "Austin, TX",
+        phone: "512-555-0142",
+        website: "https://www.northsidedecks.com/book",
+      }).detail
+    ).toBe("Austin, TX · (512) 555-0142 · www.northsidedecks.com/book");
+    expect(nameBarCopy({ businessName: "Northside Decks" })).toEqual({
+      name: "Northside Decks",
+      detail: undefined,
+    });
+    expect(nameBarCopy({ suburb: "Austin, TX" })).toEqual({
+      name: "Austin, TX",
+      detail: undefined,
     });
   });
 });

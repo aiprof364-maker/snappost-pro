@@ -8,6 +8,7 @@ import {
   borderInk,
   borderUsesCustomColor,
   layoutPostBorder,
+  nameBarCopy,
   parseBorderColor,
   parseBorderStyle,
   resolvedBorderColor,
@@ -22,6 +23,8 @@ type PostBorderSettingsProps = {
   borderColor?: string | null;
   businessName?: string | null;
   suburb?: string | null;
+  phone?: string | null;
+  website?: string | null;
 };
 
 export function PostBorderSettings({
@@ -29,6 +32,8 @@ export function PostBorderSettings({
   borderColor,
   businessName,
   suburb,
+  phone,
+  website,
 }: PostBorderSettingsProps) {
   const utils = trpc.useUtils();
   const [selected, setSelected] = useState<BorderStyle>(
@@ -182,6 +187,8 @@ export function PostBorderSettings({
             color={validColor}
             businessName={savedName}
             suburb={savedCity}
+            phone={phone}
+            website={website}
           />
           <BorderPreview
             testId="post-border-preview-portrait"
@@ -192,13 +199,15 @@ export function PostBorderSettings({
             color={validColor}
             businessName={savedName}
             suburb={savedCity}
+            phone={phone}
+            website={website}
           />
         </div>
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
         {savedName
-          ? "The name bar uses the business name and city saved on your account."
+          ? "The name bar prints your business name. Phone and website go on the next line when you save them."
           : "Add your business name and the name bar will print it. This preview shows a sample until then."}
       </p>
       <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
@@ -223,6 +232,8 @@ function BorderPreview({
   color,
   businessName,
   suburb,
+  phone,
+  website,
 }: {
   testId: string;
   label: string;
@@ -232,13 +243,17 @@ function BorderPreview({
   color: string;
   businessName: string;
   suburb: string;
+  phone?: string | null;
+  website?: string | null;
 }) {
   const layout = layoutPostBorder({ width, height, style, color });
   const top = layout ? (layout.top / height) * 100 : 0;
   const bottom = layout ? (layout.bottom / height) * 100 : 0;
   const side = layout ? (layout.left / width) * 100 : 0;
   const ink = borderInk(layout?.background ?? color);
-  const previewName = businessName || "Your business";
+  const copy = nameBarCopy({ businessName, suburb, phone, website });
+  const previewName = copy.name || "Your business";
+  const previewDetail = copy.detail;
   const showBar = style === "bar";
 
   return (
@@ -287,16 +302,16 @@ function BorderPreview({
           >
             <span
               className="max-w-full truncate font-semibold"
-              style={{ fontSize: suburb ? "34cqh" : "48cqh" }}
+              style={{ fontSize: previewDetail ? "34cqh" : "48cqh" }}
             >
               {previewName}
             </span>
-            {suburb && (
+            {previewDetail && (
               <span
                 className="max-w-full truncate opacity-90"
                 style={{ fontSize: "22cqh", marginTop: "6cqh" }}
               >
-                {suburb}
+                {previewDetail}
               </span>
             )}
           </div>

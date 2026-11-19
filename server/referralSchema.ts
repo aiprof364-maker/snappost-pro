@@ -64,6 +64,8 @@ export async function ensureReferralSchema() {
       "ALTER TABLE `users` ADD `bonusFreePosts` int NOT NULL DEFAULT 0",
       "ALTER TABLE `users` ADD `businessName` varchar(80)",
       "ALTER TABLE `users` ADD `suburb` varchar(60)",
+      "ALTER TABLE `users` ADD `businessPhone` varchar(32)",
+      "ALTER TABLE `users` ADD `businessWebsite` varchar(160)",
       "ALTER TABLE `users` ADD `trade` varchar(60)",
       "ALTER TABLE `users` ADD `brandSetupSkipped` boolean NOT NULL DEFAULT false",
       "ALTER TABLE `users` ADD `borderStyle` varchar(16) NOT NULL DEFAULT 'none'",

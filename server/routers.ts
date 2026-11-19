@@ -26,6 +26,10 @@ import {
   PREVIEW_SUBURB_MAX,
   cleanPreviewText,
 } from "@shared/previewCaption";
+import {
+  parseBusinessPhone,
+  parseBusinessWebsite,
+} from "@shared/brandContact";
 import { parseBorderColor, presentBorderSettings } from "@shared/postBorder";
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
@@ -121,6 +125,34 @@ import {
   getReferralDashboard,
 } from "./referrals";
 import { ensureReferralSchema } from "./referralSchema";
+
+function optionalBrandPhone(value: string | undefined) {
+  if (value === undefined) return undefined;
+  const parsed = parseBusinessPhone(value);
+  if (!parsed.ok) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: parsed.message });
+  }
+  return parsed.value;
+}
+
+function optionalBrandWebsite(value: string | undefined) {
+  if (value === undefined) return undefined;
+  const parsed = parseBusinessWebsite(value);
+  if (!parsed.ok) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: parsed.message });
+  }
+  return parsed.value;
+}
+
+function storedBrandPhone(value: string | null | undefined) {
+  const parsed = parseBusinessPhone(value);
+  return parsed.ok ? parsed.value : null;
+}
+
+function storedBrandWebsite(value: string | null | undefined) {
+  const parsed = parseBusinessWebsite(value);
+  return parsed.ok ? parsed.value : null;
+}
 
 async function noteFreePostsExhausted(
   userId: number,
@@ -518,6 +550,8 @@ export const appRouter = router({
                   color: ctx.user.borderColor,
                   businessName: ctx.user.businessName ?? businessName,
                   suburb: ctx.user.suburb ?? suburb,
+                  phone: ctx.user.businessPhone,
+                  website: ctx.user.businessWebsite,
                 }
               : null,
           });
@@ -703,6 +737,8 @@ export const appRouter = router({
         suburb:
           cleanPreviewText(user?.suburb ?? undefined, PREVIEW_SUBURB_MAX) ??
           null,
+        businessPhone: storedBrandPhone(user?.businessPhone),
+        businessWebsite: storedBrandWebsite(user?.businessWebsite),
         trade: previewTradeLabel(user?.trade ?? undefined) ?? null,
         brandSetupSkipped: Boolean(user?.brandSetupSkipped),
         ...presentBorderSettings(user),
@@ -750,6 +786,8 @@ export const appRouter = router({
         z.object({
           businessName: z.string().min(1).max(PREVIEW_BUSINESS_NAME_MAX),
           suburb: z.string().max(PREVIEW_SUBURB_MAX).optional(),
+          phone: z.string().max(40).optional(),
+          website: z.string().max(200).optional(),
           trade: z.string().max(60).optional(),
           logo: z.string().min(10).max(2_800_000).optional(),
         })
@@ -768,12 +806,16 @@ export const appRouter = router({
         }
         const suburb =
           cleanPreviewText(input.suburb, PREVIEW_SUBURB_MAX) ?? null;
+        const phone = optionalBrandPhone(input.phone);
+        const website = optionalBrandWebsite(input.website);
         const trade = previewTradeLabel(input.trade) ?? null;
         await updateUserBrand(ctx.user.id, {
           businessName,
           suburb,
           trade,
           brandSetupSkipped: false,
+          ...(phone !== undefined ? { businessPhone: phone } : {}),
+          ...(website !== undefined ? { businessWebsite: website } : {}),
         });
         if (input.logo) {
           const { buffer, mime } = decodeBase64Image(input.logo);
@@ -799,6 +841,29 @@ export const appRouter = router({
         }
         await updateOnboardingStep(ctx.user.id, "profileCompleted", true);
         return { success: true } as const;
+      }),
+
+    /** Update the optional phone and website shown on the name bar. */
+    saveBrandContact: protectedProcedure
+      .input(
+        z.object({
+          phone: z.string().max(40),
+          website: z.string().max(200),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await ensureReferralSchema();
+        const phone = optionalBrandPhone(input.phone);
+        const website = optionalBrandWebsite(input.website);
+        await updateUserBrand(ctx.user.id, {
+          businessPhone: phone ?? null,
+          businessWebsite: website ?? null,
+        });
+        return {
+          success: true as const,
+          phone: phone ?? null,
+          website: website ?? null,
+        };
       }),
 
     /**
@@ -959,6 +1024,8 @@ export const appRouter = router({
           logoBuffer,
           businessName: user?.businessName,
           suburb: user?.suburb,
+          phone: user?.businessPhone,
+          website: user?.businessWebsite,
           trade: input.trade ?? user?.trade,
           destKeyPrefix: postKey,
           watermark: showMark,

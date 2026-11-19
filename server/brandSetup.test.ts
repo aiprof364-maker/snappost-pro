@@ -113,4 +113,41 @@ describe("account brand setup", () => {
     expect(mocks.updateUserLogo).not.toHaveBeenCalled();
     expect(mocks.storagePut).not.toHaveBeenCalled();
   });
+
+  it("saves a formatted phone and website and rejects a bad number", async () => {
+    const { appRouter } = await import("./routers");
+    const caller = appRouter.createCaller(context());
+
+    await expect(
+      caller.account.saveBrandSetup({
+        businessName: "Northside Decks",
+        phone: "512-555-0142",
+        website: "https://NorthsideDecks.com/quote/",
+      })
+    ).resolves.toEqual({ success: true });
+    expect(mocks.updateUserBrand).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({
+        businessPhone: "(512) 555-0142",
+        businessWebsite: "northsidedecks.com/quote",
+      })
+    );
+
+    mocks.updateUserBrand.mockClear();
+    await expect(
+      caller.account.saveBrandContact({
+        phone: "call me",
+        website: "northsidedecks.com",
+      })
+    ).rejects.toThrow("Enter a 10-digit US phone number");
+    expect(mocks.updateUserBrand).not.toHaveBeenCalled();
+
+    await expect(
+      caller.account.saveBrandContact({ phone: "", website: "" })
+    ).resolves.toEqual({ success: true, phone: null, website: null });
+    expect(mocks.updateUserBrand).toHaveBeenCalledWith(7, {
+      businessPhone: null,
+      businessWebsite: null,
+    });
+  });
 });

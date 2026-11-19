@@ -194,6 +194,51 @@ describe("post border renderer", () => {
     expect(near(pixel(data, info, 8, 8), [244, 224, 77])).toBe(true);
   });
 
+  it("prints phone and website under the name, still below the top quarter", async () => {
+    const plan = planBarText(1080, 1080, 940, 140, {
+      businessName: "Northside Decks",
+      suburb: "Austin, TX",
+      phone: "(512) 555-0142",
+      website: "northsidedecks.com",
+    });
+    expect(plan?.[0]?.text).toBe("Northside Decks");
+    expect(plan?.[0]?.fontSize).toBeGreaterThanOrEqual(40);
+    expect(plan?.[1]?.text).toBe(
+      "Austin, TX · (512) 555-0142 · northsidedecks.com"
+    );
+    expect(plan?.[1]?.fontSize).toBeGreaterThanOrEqual(28);
+    expect(plan?.[1]?.baseline).toBeGreaterThan(1080 * 0.25);
+
+    const framed = await framePostImage(await photo(1080, 1350, "#2f7d46"), {
+      style: "bar",
+      color: "#1B4F8A",
+      businessName: "Northside Decks",
+      phone: "5125550142",
+      website: "https://northsidedecks.com",
+    });
+    const { data, info } = await raw(framed);
+    expect(info.width).toBe(1080);
+    expect(info.height).toBe(1350);
+    expect(
+      countWhere(
+        data,
+        info,
+        0,
+        Math.floor(info.height * 0.25),
+        (red, green, blue) => red > 230 && green > 230 && blue > 230
+      )
+    ).toBe(0);
+    expect(
+      countWhere(
+        data,
+        info,
+        info.height - 180,
+        info.height,
+        (red, green, blue) => red > 230 && green > 230 && blue > 230
+      )
+    ).toBeGreaterThan(80);
+  });
+
   it("does not invent a phone number or website when those fields are absent", async () => {
     const plan = planBarText(800, 800, 680, 120, {
       businessName: "Northside Decks",

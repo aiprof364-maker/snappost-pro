@@ -1,8 +1,8 @@
 import sharp from "sharp";
 import {
-  borderCaption,
   borderInk,
   layoutPostBorder,
+  nameBarCopy,
   type PostBorderOptions,
 } from "@shared/postBorder";
 import { measureSnapPostText, snapPostGlyphPath } from "./glyphText";
@@ -50,9 +50,9 @@ export function planBarText(
   input: PostBorderOptions
 ): BarLine[] | null {
   if (textTop < height * 0.25) return null;
-  const copy = borderCaption(input);
-  const primary = copy.businessName ?? copy.suburb;
-  const secondary = copy.businessName && copy.suburb ? copy.suburb : undefined;
+  const copy = nameBarCopy(input);
+  const primary = copy.name;
+  const secondary = copy.detail;
   if (!primary) return null;
 
   const padX = Math.max(8, Math.round(width * 0.045));
@@ -72,10 +72,11 @@ export function planBarText(
   if (!name) return null;
 
   let detail: string | undefined;
-  let detailSize = Math.round(nameSize * 0.62);
-  if (secondary && detailSize >= 11) {
+  let detailSize = Math.round(Math.min(nameSize * 0.68, width * 0.034));
+  const minDetail = Math.max(12, Math.round(width * 0.028));
+  if (secondary && detailSize >= minDetail) {
     while (
-      detailSize > 11 &&
+      detailSize > minDetail &&
       measureSnapPostText(secondary, detailSize, "regular") > maxWidth
     ) {
       detailSize -= 1;

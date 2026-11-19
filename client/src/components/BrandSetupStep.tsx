@@ -12,6 +12,10 @@ import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { PREVIEW_TRADE_GROUPS, PREVIEW_TRADES } from "@shared/previewTrades";
 import {
+  parseBusinessPhone,
+  parseBusinessWebsite,
+} from "@shared/brandContact";
+import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_SUBURB_MAX,
 } from "@shared/previewCaption";
@@ -29,6 +33,8 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 export type BrandSetupValues = {
   businessName: string;
   suburb?: string;
+  phone?: string;
+  website?: string;
   trade?: string;
   logo?: string;
 };
@@ -53,11 +59,15 @@ export function BrandSetupDialog({
   prefill,
   saving,
   skipping,
+  phone = "",
+  website = "",
   onSave,
   onSkip,
 }: {
   open: boolean;
   prefill: Prefill;
+  phone?: string;
+  website?: string;
   saving: boolean;
   skipping: boolean;
   onSave: (values: BrandSetupValues) => void;
@@ -65,6 +75,10 @@ export function BrandSetupDialog({
 }) {
   const [businessName, setBusinessName] = useState(prefill.businessName);
   const [town, setTown] = useState(prefill.suburb);
+  const [businessPhone, setBusinessPhone] = useState(phone);
+  const [businessWebsite, setBusinessWebsite] = useState(website);
+  const [phoneError, setPhoneError] = useState("");
+  const [websiteError, setWebsiteError] = useState("");
   const [trade, setTrade] = useState(prefill.tradeId);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoError, setLogoError] = useState("");
@@ -80,6 +94,10 @@ export function BrandSetupDialog({
     if (justOpened) {
       setBusinessName(prefill.businessName);
       setTown(prefill.suburb);
+      setBusinessPhone(phone);
+      setBusinessWebsite(website);
+      setPhoneError("");
+      setWebsiteError("");
       setTrade(prefill.tradeId);
       setLogo(null);
       setLogoError("");
@@ -90,7 +108,7 @@ export function BrandSetupDialog({
     );
     setTown(current => (current.trim() ? current : prefill.suburb));
     setTrade(current => current || prefill.tradeId);
-  }, [open, prefill.businessName, prefill.suburb, prefill.tradeId]);
+  }, [open, phone, prefill.businessName, prefill.suburb, prefill.tradeId, website]);
 
   const busy = saving || skipping;
   const nameReady = businessName.trim().length > 0;
@@ -102,11 +120,18 @@ export function BrandSetupDialog({
       setLogoError("Use a logo under 2 MB.");
       return;
     }
+    const parsedPhone = parseBusinessPhone(businessPhone);
+    const parsedWebsite = parseBusinessWebsite(businessWebsite);
+    setPhoneError(parsedPhone.ok ? "" : parsedPhone.message);
+    setWebsiteError(parsedWebsite.ok ? "" : parsedWebsite.message);
+    if (!parsedPhone.ok || !parsedWebsite.ok) return;
     setLogoError("");
     const logoData = logo ? await fileToDataUrl(logo) : undefined;
     onSave({
       businessName: businessName.trim(),
       suburb: town.trim() || undefined,
+      phone: parsedPhone.value ?? "",
+      website: parsedWebsite.value ?? "",
       trade: trade || undefined,
       logo: logoData,
     });
@@ -162,6 +187,68 @@ export function BrandSetupDialog({
               className="mt-1.5"
               autoComplete="address-level2"
             />
+          </div>
+          <div>
+            <Label htmlFor="brand-phone">
+              Phone{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id="brand-phone"
+              value={businessPhone}
+              onChange={event => {
+                setBusinessPhone(event.target.value);
+                setPhoneError("");
+              }}
+              onBlur={() => {
+                const parsed = parseBusinessPhone(businessPhone);
+                if (parsed.ok && parsed.value) setBusinessPhone(parsed.value);
+                setPhoneError(parsed.ok ? "" : parsed.message);
+              }}
+              placeholder="(512) 555-0142"
+              autoComplete="tel"
+              inputMode="tel"
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              A US number. It shows on the name bar under your business name.
+            </p>
+            {phoneError && (
+              <p className="mt-1 text-sm text-destructive">{phoneError}</p>
+            )}
+          </div>
+          <div>
+            <Label htmlFor="brand-website">
+              Website{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id="brand-website"
+              value={businessWebsite}
+              onChange={event => {
+                setBusinessWebsite(event.target.value);
+                setWebsiteError("");
+              }}
+              onBlur={() => {
+                const parsed = parseBusinessWebsite(businessWebsite);
+                if (parsed.ok && parsed.value) setBusinessWebsite(parsed.value);
+                setWebsiteError(parsed.ok ? "" : parsed.message);
+              }}
+              placeholder="northsidedecks.com"
+              autoComplete="url"
+              inputMode="url"
+              className="mt-1.5"
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              A domain or address. Posts show it without https://.
+            </p>
+            {websiteError && (
+              <p className="mt-1 text-sm text-destructive">{websiteError}</p>
+            )}
           </div>
           <div>
             <Label htmlFor="brand-trade">
@@ -335,6 +422,8 @@ export function BrandSetupGate({
       <BrandSetupDialog
         open={visible}
         prefill={prefill}
+        phone={profile.businessPhone ?? ""}
+        website={profile.businessWebsite ?? ""}
         saving={saveBrandSetup.isPending}
         skipping={skipBrandSetup.isPending}
         onSave={values => saveBrandSetup.mutate(values)}

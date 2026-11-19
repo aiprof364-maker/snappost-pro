@@ -27,6 +27,7 @@ import { parseBorderColor, presentBorderSettings } from "@shared/postBorder";
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { PreviewLogoError, readPreviewLogo } from "./previewLogo";
+import { PreviewPhotoError, readPreviewPhoto } from "./previewPhoto";
 import { brandSignedInPhoto, signedInTextBadge } from "./signedInBranding";
 import { accountShowsWatermark, brandingForClaim } from "./freeMark";
 import {
@@ -394,7 +395,7 @@ export const appRouter = router({
     create: publicProcedure
       .input(
         z.object({
-          image: z.string().min(10).max(11_200_000),
+          image: z.string().min(10).max(12_000_000),
           logo: z
             .string()
             .min(10)
@@ -423,10 +424,21 @@ export const appRouter = router({
             message: previewFailureMessage(failure.reason),
           });
         }
-        const { buffer: photoBuffer, mime: photoMime } = decodePreviewImage(
-          input.image,
-          8 * 1024 * 1024
-        );
+        let photoBuffer: Buffer;
+        let photoMime = "image/jpeg";
+        try {
+          const photo = await readPreviewPhoto(input.image);
+          photoBuffer = photo.buffer;
+          photoMime = photo.mime;
+        } catch (error) {
+          if (error instanceof PreviewPhotoError) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: error.message,
+            });
+          }
+          throw error;
+        }
         let logo: { buffer: Buffer; mime: "image/png" } | null = null;
         if (input.logo) {
           try {
@@ -464,7 +476,8 @@ export const appRouter = router({
         } catch {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Please use a JPG or PNG photo.",
+            message:
+              "That photo format isn't supported yet. Try a screenshot of it, or a different photo.",
           });
         }
         if (!canMark) {

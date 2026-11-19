@@ -22,10 +22,7 @@ import {
   previewReturnPath,
 } from "@shared/previewHandoff";
 import { captureReferralCode } from "@/lib/referralCode";
-import {
-  PREVIEW_IMAGE_READ_ERROR,
-  readPreviewImage,
-} from "@/lib/readPreviewImage";
+import { readPreviewImage } from "@/lib/readPreviewImage";
 import {
   acceptPickedPhoto,
   consumeSharedPhoto,
@@ -322,6 +319,11 @@ export default function FreePreview() {
       setFormError(error.message);
       if (error.message.toLowerCase().includes("logo")) {
         setLogoError(error.message);
+      } else if (
+        error.message.includes("photo") ||
+        error.message.includes("isn't supported")
+      ) {
+        setPhotoError(error.message);
       }
     },
   });
@@ -367,15 +369,13 @@ export default function FreePreview() {
       if (cancelled) return;
       stripShareParamsFromLocation();
       if (!file) return;
-      const accepted = acceptPickedPhoto(file, MAX_PHOTO_BYTES);
-      if (!accepted) {
-        setPhotoError("Use a photo under 8 MB.");
-        setPhoto(null);
-        return;
-      }
+      acceptPickedPhoto(file, MAX_PHOTO_BYTES);
       const ticket = ++photoRead.current;
       setPhotoReading(true);
-      const ready = await readPreviewImage(accepted);
+      const ready = await readPreviewImage(file, {
+        kind: "photo",
+        maxBytes: MAX_PHOTO_BYTES,
+      });
       if (cancelled || photoRead.current !== ticket) return;
       setPhotoReading(false);
       if (!ready.ok) {
@@ -485,19 +485,14 @@ export default function FreePreview() {
       setImage(null);
       return;
     }
-    if (!acceptPickedPhoto(file, maxBytes)) {
-      setImage(null);
-      setError(tooBig);
-      return;
-    }
     const current = ++ticket.current;
     setReading(true);
-    const ready = await readPreviewImage(file, { kind });
+    const ready = await readPreviewImage(file, { kind, maxBytes });
     if (ticket.current !== current) return;
     setReading(false);
     if (!ready.ok) {
       setImage(null);
-      setError(ready.message || PREVIEW_IMAGE_READ_ERROR);
+      setError(ready.message || tooBig);
       return;
     }
     setImage(ready);

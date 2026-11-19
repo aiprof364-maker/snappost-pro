@@ -110,7 +110,7 @@ describe("preview logo validation", () => {
 
   it("returns a logo-specific message for a rejected file", async () => {
     await expect(
-      readPreviewLogo("data:image/gif;base64,R0lGODlhAQABAAAAACw=")
+      readPreviewLogo("data:text/plain;base64,aGVsbG8=")
     ).rejects.toThrow(PREVIEW_LOGO_MIME_ERROR);
     await expect(readPreviewLogo("data:image/png;base64,aaaa")).rejects.toThrow(
       PREVIEW_LOGO_DECODE_ERROR
@@ -120,7 +120,7 @@ describe("preview logo validation", () => {
       PREVIEW_LOGO_SIZE_ERROR
     );
     try {
-      await readPreviewLogo("data:image/gif;base64,R0lGODlhAQABAAAAACw=");
+      await readPreviewLogo("data:text/plain;base64,aGVsbG8=");
     } catch (error) {
       expect(error).toBeInstanceOf(PreviewLogoError);
       expect((error as Error).message).not.toBe(GENERIC_READ_ERROR);

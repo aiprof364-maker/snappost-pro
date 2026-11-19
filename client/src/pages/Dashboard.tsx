@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
+import { PENDING_POST_STORAGE_KEY } from "@shared/previewHandoff";
 import { trpc } from "@/lib/trpc";
 import { isDashboardDataLoading } from "@/lib/dashboardDataState";
 import { captionWhenPostOpens } from "@/lib/openedPostCaption";
@@ -116,6 +117,12 @@ export default function Dashboard() {
 
   // Handle facebook callback query params
   useEffect(() => {
+    if (loading || isAuthenticated) return;
+    const next = `${window.location.pathname}${window.location.search}`;
+    window.location.replace(getLoginUrl(next));
+  }, [isAuthenticated, loading]);
+
+  useEffect(() => {
     capturePromotionCode();
     const params = new URLSearchParams(window.location.search);
     const fb = params.get("facebook");
@@ -124,8 +131,29 @@ export default function Dashboard() {
     const accountCreated = params.get("account_created");
     const landing = params.get("landing");
     const requestedPost = Number(params.get("post"));
-    if (Number.isSafeInteger(requestedPost) && requestedPost > 0) {
-      setSelectedPostId(requestedPost);
+    let storedRaw: string | null = null;
+    try {
+      storedRaw = window.sessionStorage.getItem(PENDING_POST_STORAGE_KEY);
+    } catch {
+      storedRaw = null;
+    }
+    const storedPost = Number(storedRaw);
+    const postToOpen =
+      Number.isSafeInteger(requestedPost) && requestedPost > 0
+        ? requestedPost
+        : Number.isSafeInteger(storedPost) && storedPost > 0
+          ? storedPost
+          : null;
+    if (postToOpen) {
+      setSelectedPostId(postToOpen);
+      try {
+        window.sessionStorage.setItem(
+          PENDING_POST_STORAGE_KEY,
+          String(postToOpen)
+        );
+      } catch {
+        // The open draft still follows the post query when storage is blocked.
+      }
     }
     if (fb === "connected") {
       toast.success(
@@ -206,6 +234,26 @@ export default function Dashboard() {
     captionLoadedFor.current = next.loadedPostId;
     setSelectedCaption(next.caption);
   }, [posts.data, selectedPostId]);
+
+  if (!loading && !isAuthenticated) {
+    const loginHref = getLoginUrl(
+      `${window.location.pathname}${window.location.search}`
+    );
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+        <h1 className="font-display text-2xl font-bold">
+          Sign in to open your dashboard
+        </h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Your preview stays on the preview page until you start a free trial.
+          An empty dashboard is only for a signed-in account.
+        </p>
+        <a href={loginHref}>
+          <Button>Sign in</Button>
+        </a>
+      </div>
+    );
+  }
 
   if (
     isDashboardDataLoading({

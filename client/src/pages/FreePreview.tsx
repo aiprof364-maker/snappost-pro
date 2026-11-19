@@ -17,6 +17,10 @@ import { snapPostCaptionFooter } from "@shared/referrals";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
+import {
+  PENDING_POST_STORAGE_KEY,
+  previewReturnPath,
+} from "@shared/previewHandoff";
 import { captureReferralCode } from "@/lib/referralCode";
 import {
   acceptPickedPhoto,
@@ -360,10 +364,14 @@ export default function FreePreview() {
 
   useEffect(() => {
     const postId = claim.data?.postId;
-    if (!preview && postId) {
-      navigate(`/dashboard?post=${postId}`);
+    if (!isAuthenticated || preview || !postId) return;
+    try {
+      window.sessionStorage.setItem(PENDING_POST_STORAGE_KEY, String(postId));
+    } catch {
+      // The post id is still in the dashboard URL when storage is blocked.
     }
-  }, [claim.data, navigate, preview]);
+    navigate(`/dashboard?post=${postId}`);
+  }, [claim.data, isAuthenticated, navigate, preview]);
 
   useEffect(() => {
     if (accountCreated && !registrationTracked.current) {
@@ -436,7 +444,7 @@ export default function FreePreview() {
       await requestLink.mutateAsync({
         email: email.trim(),
         origin: window.location.origin,
-        next: previewPath(token, landing),
+        next: previewReturnPath(token, landing),
         previewToken: token,
         referralCode: captureReferralCode(),
       });
@@ -476,14 +484,13 @@ export default function FreePreview() {
                 <p className="mt-3 text-muted-foreground">
                   {claim.error.message}
                 </p>
-                <Link href="/dashboard" className="mt-7 inline-flex">
-                  <Button
-                    size="lg"
-                    className="gap-2 px-8 py-6 text-base font-bold"
-                  >
-                    Go to my dashboard <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  className="mt-7 gap-2 px-8 py-6 text-base font-bold"
+                  onClick={startAgain}
+                >
+                  Create a new preview
+                </Button>
               </>
             ) : (
               <>
@@ -636,14 +643,12 @@ export default function FreePreview() {
                   </span>
                   <div>
                     <h2 className="font-display text-2xl font-bold">
-                      {isAuthenticated
-                        ? "Saved to your dashboard"
-                        : "Sign up free and keep this post"}
+                      This is a preview only
                     </h2>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                      {isAuthenticated
-                        ? "This draft is in your account. Nothing is posted to Facebook until you publish it."
-                        : "Create your account with your business email. You get 3 free posts, and no card is required. Starter is $19/mo and Pro is $29/mo after that. Nothing is posted to Facebook until you choose to publish."}
+                      Nothing is posted to Facebook. Start a free trial to keep
+                      this photo, image, and caption, then post it when you are
+                      ready. No card is required for the 3 free posts.
                     </p>
                   </div>
                 </div>
@@ -658,14 +663,25 @@ export default function FreePreview() {
                         <Button
                           size="lg"
                           className="gap-2 py-6 text-base font-bold"
+                          onClick={() => {
+                            try {
+                              window.sessionStorage.setItem(
+                                PENDING_POST_STORAGE_KEY,
+                                String(claim.data?.postId)
+                              );
+                            } catch {
+                              // The post id is in the link.
+                            }
+                          }}
                         >
-                          Open this post <ArrowRight className="h-5 w-5" />
+                          Review and post this{" "}
+                          <ArrowRight className="h-5 w-5" />
                         </Button>
                       </Link>
                     ) : (
                       <p className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" /> Saving this
-                        post to your dashboard…
+                        post to your account…
                       </p>
                     )}
                   </div>
@@ -711,19 +727,19 @@ export default function FreePreview() {
                     <Button
                       type="submit"
                       size="lg"
-                      className="w-full gap-2 py-6 text-base font-bold sm:w-auto"
+                      className="w-full gap-2 py-6 text-base font-bold"
                       disabled={
                         requestLink.isPending || updateCaption.isPending
                       }
                     >
                       {requestLink.isPending || updateCaption.isPending ? (
                         <>
-                          <Loader2 className="h-5 w-5 animate-spin" /> Saving
-                          your post…
+                          <Loader2 className="h-5 w-5 animate-spin" /> Sending
+                          your access link…
                         </>
                       ) : (
                         <>
-                          Sign up free — keep this post{" "}
+                          Start your free trial to post{" "}
                           <ArrowRight className="h-5 w-5" />
                         </>
                       )}
@@ -873,36 +889,24 @@ export default function FreePreview() {
                 {formError && (
                   <p className="text-sm text-destructive">{formError}</p>
                 )}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full gap-2 bg-[#1877f2] py-7 text-base font-extrabold text-white shadow-lg shadow-[#1877f2]/25 hover:bg-[#166fe5] sm:w-auto sm:px-8"
-                    disabled={createPreview.isPending}
-                  >
-                    {createPreview.isPending ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" /> Creating
-                        your preview…
-                      </>
-                    ) : (
-                      <>
-                        Create my free branded post preview{" "}
-                        <Sparkles className="h-5 w-5" />
-                      </>
-                    )}
-                  </Button>
-                  <div className="flex items-center justify-center gap-3 sm:justify-start">
-                    <span className="text-sm font-semibold text-muted-foreground">
-                      Or sign up first
-                    </span>
-                    <Link href="/login?next=/dashboard">
-                      <Button type="button" size="lg" variant="outline">
-                        3 free posts, no card
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full gap-2 bg-[#1877f2] py-7 text-base font-extrabold text-white shadow-lg shadow-[#1877f2]/25 hover:bg-[#166fe5] sm:w-auto sm:px-8"
+                  disabled={createPreview.isPending}
+                >
+                  {createPreview.isPending ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" /> Creating
+                      your preview…
+                    </>
+                  ) : (
+                    <>
+                      Create my free branded post preview{" "}
+                      <Sparkles className="h-5 w-5" />
+                    </>
+                  )}
+                </Button>
                 <p className="text-center text-xs leading-5 text-muted-foreground sm:text-left">
                   See the result before email. The preview uses the free-plan{" "}
                   {PREVIEW_MARK} mark. Nothing is posted to Facebook.

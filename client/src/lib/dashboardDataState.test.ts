@@ -21,4 +21,14 @@ describe("isDashboardDataLoading", () => {
       }),
     ).toBe(false);
   });
+
+  it("does not treat a signed-out visitor as a loading dashboard", () => {
+    expect(
+      isDashboardDataLoading({
+        authLoading: false,
+        isAuthenticated: false,
+        overviewLoading: false,
+      }),
+    ).toBe(false);
+  });
 });

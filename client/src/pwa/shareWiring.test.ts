@@ -15,20 +15,22 @@ describe("share preload wiring", () => {
     expect(preview).toContain("isShareLanding");
     expect(preview).toContain("consumeSharedPhoto");
     expect(preview).toContain("acceptPickedPhoto");
-    expect(preview).toContain("setPhoto(accepted)");
+    expect(preview).toContain("readPreviewImage");
+    expect(preview).toContain("setPhoto(ready)");
     expect(preview).toContain("signedInShareDestination");
     expect(preview).not.toMatch(/consumeSharedPhoto[\s\S]{0,240}createPreview/);
   });
 
   it("keeps the shared-photo preload beside the brand step", () => {
     expect(preview).toContain("BrandSetupGate");
-    expect(preview).toContain("setPhoto(accepted)");
+    expect(preview).toContain("setPhoto(ready)");
     const handler = preview.slice(
       preview.indexOf("if (!isShareLanding(search))"),
-      preview.indexOf("setPhoto(accepted)")
+      preview.indexOf("setPhoto(ready)")
     );
     expect(handler).toContain("consumeSharedPhoto");
     expect(handler).toContain("acceptPickedPhoto");
+    expect(handler).toContain("readPreviewImage");
     expect(handler).not.toContain("BrandSetupGate");
     expect(handler).not.toContain("saveBrandSetup");
     expect(preview).toContain('params.delete("account_created")');

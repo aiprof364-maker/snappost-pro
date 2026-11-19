@@ -23,6 +23,10 @@ import {
 } from "@shared/previewHandoff";
 import { captureReferralCode } from "@/lib/referralCode";
 import {
+  PREVIEW_IMAGE_READ_ERROR,
+  readPreviewImage,
+} from "@/lib/readPreviewImage";
+import {
   acceptPickedPhoto,
   consumeSharedPhoto,
   stripShareParamsFromLocation,
@@ -105,14 +109,7 @@ function updateMetaContent(
   };
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+type ReadyImage = { name: string; dataUrl: string };
 
 function parseLanding(value: string | null): Landing {
   return value === "contractors" || value === "hairdressers"
@@ -132,16 +129,20 @@ function FilePicker({
   id,
   label,
   helper,
-  value,
+  valueName,
+  error,
+  reading,
   maxBytes,
-  onChange,
+  onPick,
 }: {
   id: string;
   label: string;
   helper: string;
-  value: File | null;
+  valueName: string | null;
+  error: string;
+  reading: boolean;
   maxBytes: number;
-  onChange: (file: File | null) => void;
+  onPick: (file: File | null) => void | Promise<void>;
 }) {
   const isPhoto = id === "preview-photo";
 
@@ -168,21 +169,34 @@ function FilePicker({
         id={id}
         className="mt-5 h-14 cursor-pointer border-0 bg-white/95 text-sm font-semibold text-foreground shadow-sm file:mr-4 file:h-10 file:rounded-lg file:border-0 file:bg-[#1877f2] file:px-4 file:font-bold file:text-white hover:file:bg-[#166fe5]"
         type="file"
-        accept="image/jpeg,image/png"
+        accept="image/*"
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
         onChange={event => {
-          const picked = event.target.files?.[0] ?? null;
-          const file = acceptPickedPhoto(picked, maxBytes);
-          if (picked && !file) event.currentTarget.value = "";
-          onChange(file);
+          const input = event.currentTarget;
+          const picked = input.files?.[0] ?? null;
+          void Promise.resolve(onPick(picked)).finally(() => {
+            input.value = "";
+          });
         }}
       />
-      {value ? (
+      {reading ? (
+        <p className="mt-3 text-sm font-bold text-white">Reading image…</p>
+      ) : valueName ? (
         <p className="mt-3 text-sm font-bold text-white">
-          <CheckCircle2 className="mr-1 inline h-4 w-4" /> {value.name}
+          <CheckCircle2 className="mr-1 inline h-4 w-4" /> {valueName}
         </p>
       ) : (
         <p className="mt-3 text-xs text-white/80">
-          JPG or PNG · {Math.round(maxBytes / (1024 * 1024))} MB maximum
+          From your gallery · {Math.round(maxBytes / (1024 * 1024))} MB maximum
+        </p>
+      )}
+      {error && (
+        <p
+          id={`${id}-error`}
+          className="mt-3 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-red-700"
+        >
+          {error}
         </p>
       )}
     </div>
@@ -199,8 +213,14 @@ export default function FreePreview() {
   const [token, setToken] = useState<string | null>(() =>
     initialSearch.get("token")
   );
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [logo, setLogo] = useState<File | null>(null);
+  const [photo, setPhoto] = useState<ReadyImage | null>(null);
+  const [logo, setLogo] = useState<ReadyImage | null>(null);
+  const [photoError, setPhotoError] = useState("");
+  const [logoError, setLogoError] = useState("");
+  const [photoReading, setPhotoReading] = useState(false);
+  const [logoReading, setLogoReading] = useState(false);
+  const photoRead = useRef(0);
+  const logoRead = useRef(0);
   const [businessName, setBusinessName] = useState("");
   const [suburb, setSuburb] = useState("");
   const [trade, setTrade] = useState(() =>
@@ -329,18 +349,30 @@ export default function FreePreview() {
       return;
     }
     let cancelled = false;
-    consumeSharedPhoto(search).then(file => {
+    void (async () => {
+      const file = await consumeSharedPhoto(search);
       if (cancelled) return;
       stripShareParamsFromLocation();
       if (!file) return;
       const accepted = acceptPickedPhoto(file, MAX_PHOTO_BYTES);
       if (!accepted) {
-        setFormError("Use a photo under 8 MB and a logo under 2 MB.");
+        setPhotoError("Use a photo under 8 MB.");
         setPhoto(null);
         return;
       }
-      setPhoto(accepted);
-    });
+      const ticket = ++photoRead.current;
+      setPhotoReading(true);
+      const ready = await readPreviewImage(accepted);
+      if (cancelled || photoRead.current !== ticket) return;
+      setPhotoReading(false);
+      if (!ready.ok) {
+        setPhoto(null);
+        setPhotoError(ready.message);
+        return;
+      }
+      setPhotoError("");
+      setPhoto(ready);
+    })();
     return () => {
       cancelled = true;
     };
@@ -398,8 +430,14 @@ export default function FreePreview() {
   const makePreview = async (event: React.FormEvent) => {
     event.preventDefault();
     setFormError("");
+    if (photoReading || logoReading) {
+      setFormError("Still reading your photo. Try again in a moment.");
+      return;
+    }
     if (!photo) {
-      setFormError("Add a photo to create your Facebook-post preview.");
+      setFormError(
+        photoError || "Add a photo to create your Facebook-post preview."
+      );
       return;
     }
     if (!photoPermission) {
@@ -408,29 +446,47 @@ export default function FreePreview() {
       );
       return;
     }
-    if (photo.size > MAX_PHOTO_BYTES || (logo && logo.size > MAX_LOGO_BYTES)) {
-      setFormError("Use a photo under 8 MB and a logo under 2 MB.");
+    createPreview.mutate({
+      image: photo.dataUrl,
+      logo: logo?.dataUrl,
+      trade: trade.trim() || undefined,
+      tone: tone.trim() || undefined,
+      businessName: businessName.trim() || undefined,
+      suburb: suburb.trim() || undefined,
+      landing,
+    });
+  };
+
+  const storePickedImage = async (
+    file: File | null,
+    maxBytes: number,
+    tooBig: string,
+    setImage: (image: ReadyImage | null) => void,
+    setError: (message: string) => void,
+    setReading: (reading: boolean) => void,
+    ticket: { current: number }
+  ) => {
+    setError("");
+    if (!file) {
+      setImage(null);
       return;
     }
-    try {
-      const [image, logoImage] = await Promise.all([
-        fileToDataUrl(photo),
-        logo ? fileToDataUrl(logo) : Promise.resolve(undefined),
-      ]);
-      createPreview.mutate({
-        image,
-        logo: logoImage,
-        trade: trade.trim() || undefined,
-        tone: tone.trim() || undefined,
-        businessName: businessName.trim() || undefined,
-        suburb: suburb.trim() || undefined,
-        landing,
-      });
-    } catch {
-      setFormError(
-        "We could not read that image. Please try another JPG or PNG."
-      );
+    if (!acceptPickedPhoto(file, maxBytes)) {
+      setImage(null);
+      setError(tooBig);
+      return;
     }
+    const current = ++ticket.current;
+    setReading(true);
+    const ready = await readPreviewImage(file);
+    if (ticket.current !== current) return;
+    setReading(false);
+    if (!ready.ok) {
+      setImage(null);
+      setError(ready.message || PREVIEW_IMAGE_READ_ERROR);
+      return;
+    }
+    setImage(ready);
   };
 
   const savePreview = async (event: React.FormEvent) => {
@@ -459,6 +515,10 @@ export default function FreePreview() {
     setCaption("");
     setPhoto(null);
     setLogo(null);
+    setPhotoError("");
+    setLogoError("");
+    setPhotoReading(false);
+    setLogoReading(false);
     setBusinessName("");
     setSuburb("");
     setPhotoPermission(false);
@@ -777,17 +837,41 @@ export default function FreePreview() {
                   id="preview-photo"
                   label="Upload a photo of your work"
                   helper="Your completed job, product, salon or result. You will see it branded before email."
-                  value={photo}
+                  valueName={photo?.name ?? null}
+                  error={photoError}
+                  reading={photoReading}
                   maxBytes={MAX_PHOTO_BYTES}
-                  onChange={setPhoto}
+                  onPick={file =>
+                    void storePickedImage(
+                      file,
+                      MAX_PHOTO_BYTES,
+                      "Use a photo under 8 MB.",
+                      setPhoto,
+                      setPhotoError,
+                      setPhotoReading,
+                      photoRead
+                    )
+                  }
                 />
                 <FilePicker
                   id="preview-logo"
                   label="Add your logo (optional)"
                   helper="Have a logo? We add it in the lower-right. No logo? Add your business name and city below."
-                  value={logo}
+                  valueName={logo?.name ?? null}
+                  error={logoError}
+                  reading={logoReading}
                   maxBytes={MAX_LOGO_BYTES}
-                  onChange={setLogo}
+                  onPick={file =>
+                    void storePickedImage(
+                      file,
+                      MAX_LOGO_BYTES,
+                      "Use a logo under 2 MB.",
+                      setLogo,
+                      setLogoError,
+                      setLogoReading,
+                      logoRead
+                    )
+                  }
                 />
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
@@ -897,8 +981,8 @@ export default function FreePreview() {
                 >
                   {createPreview.isPending ? (
                     <>
-                      <Loader2 className="h-5 w-5 animate-spin" /> Creating
-                      your preview…
+                      <Loader2 className="h-5 w-5 animate-spin" /> Creating your
+                      preview…
                     </>
                   ) : (
                     <>

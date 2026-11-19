@@ -318,7 +318,12 @@ export default function FreePreview() {
         ...(landing ? { landing_page: landing } : {}),
       });
     },
-    onError: error => setFormError(error.message),
+    onError: error => {
+      setFormError(error.message);
+      if (error.message.toLowerCase().includes("logo")) {
+        setLogoError(error.message);
+      }
+    },
   });
 
   const updateCaption = trpc.preview.updateCaption.useMutation({
@@ -472,7 +477,8 @@ export default function FreePreview() {
     setImage: (image: ReadyImage | null) => void,
     setError: (message: string) => void,
     setReading: (reading: boolean) => void,
-    ticket: { current: number }
+    ticket: { current: number },
+    kind: "photo" | "logo"
   ) => {
     setError("");
     if (!file) {
@@ -486,7 +492,7 @@ export default function FreePreview() {
     }
     const current = ++ticket.current;
     setReading(true);
-    const ready = await readPreviewImage(file);
+    const ready = await readPreviewImage(file, { kind });
     if (ticket.current !== current) return;
     setReading(false);
     if (!ready.ok) {
@@ -853,7 +859,8 @@ export default function FreePreview() {
                       setPhoto,
                       setPhotoError,
                       setPhotoReading,
-                      photoRead
+                      photoRead,
+                      "photo"
                     )
                   }
                 />
@@ -873,7 +880,8 @@ export default function FreePreview() {
                       setLogo,
                       setLogoError,
                       setLogoReading,
-                      logoRead
+                      logoRead,
+                      "logo"
                     )
                   }
                 />

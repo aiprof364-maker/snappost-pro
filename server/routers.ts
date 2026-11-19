@@ -1,8 +1,4 @@
-import {
-  COOKIE_NAME,
-  PLANS,
-  type PlanId,
-} from "@shared/const";
+import { COOKIE_NAME, PLANS, type PlanId } from "@shared/const";
 import {
   normalizeReferralCode,
   postCreationLimit,
@@ -26,13 +22,11 @@ import {
   PREVIEW_SUBURB_MAX,
   cleanPreviewText,
 } from "@shared/previewCaption";
-import {
-  parseBusinessPhone,
-  parseBusinessWebsite,
-} from "@shared/brandContact";
+import { parseBusinessPhone, parseBusinessWebsite } from "@shared/brandContact";
 import { parseBorderColor, presentBorderSettings } from "@shared/postBorder";
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
+import { PreviewLogoError, readPreviewLogo } from "./previewLogo";
 import { brandSignedInPhoto, signedInTextBadge } from "./signedInBranding";
 import { accountShowsWatermark, brandingForClaim } from "./freeMark";
 import {
@@ -401,7 +395,11 @@ export const appRouter = router({
       .input(
         z.object({
           image: z.string().min(10).max(11_200_000),
-          logo: z.string().min(10).max(2_800_000).optional(),
+          logo: z
+            .string()
+            .min(10)
+            .max(2_800_000, "Use a logo under 2 MB.")
+            .optional(),
           trade: z.string().max(60).optional(),
           tone: z.string().max(40).optional(),
           businessName: z.string().max(PREVIEW_BUSINESS_NAME_MAX).optional(),
@@ -429,9 +427,20 @@ export const appRouter = router({
           input.image,
           8 * 1024 * 1024
         );
-        const logo = input.logo
-          ? decodePreviewImage(input.logo, 2 * 1024 * 1024)
-          : null;
+        let logo: { buffer: Buffer; mime: "image/png" } | null = null;
+        if (input.logo) {
+          try {
+            logo = await readPreviewLogo(input.logo);
+          } catch (error) {
+            if (error instanceof PreviewLogoError) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: error.message,
+              });
+            }
+            throw error;
+          }
+        }
         const limits = readPreviewLimitConfig();
         const clientKey = previewClientKey({
           headers: ctx.req.headers,
@@ -511,11 +520,7 @@ export const appRouter = router({
             photoMime
           );
           const uploadedLogo = logo
-            ? await storagePut(
-                `${keyPrefix}/logo.${logo.mime.includes("png") ? "png" : "jpg"}`,
-                logo.buffer,
-                logo.mime
-              )
+            ? await storagePut(`${keyPrefix}/logo.png`, logo.buffer, logo.mime)
             : null;
           const signedUrl = await storageGetSignedUrl(original.key);
           stage = "caption";
@@ -1371,7 +1376,10 @@ export const appRouter = router({
         }
         let promotion: { id: string; code: string } | null = null;
         try {
-          promotion = await findActivePromotionCode(stripe, input.promotionCode);
+          promotion = await findActivePromotionCode(
+            stripe,
+            input.promotionCode
+          );
         } catch {
           console.error("[Stripe] promotion code lookup failed");
           promotion = null;
@@ -1384,7 +1392,10 @@ export const appRouter = router({
           try {
             checkoutCustomerId = await ensureReferrerCustomer(user, stripe);
           } catch (error) {
-            console.error("[Referral] credit could not be prepared for checkout", error);
+            console.error(
+              "[Referral] credit could not be prepared for checkout",
+              error
+            );
           }
         }
         const sessionParams = {

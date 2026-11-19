@@ -26,6 +26,7 @@ import {
   PREVIEW_SUBURB_MAX,
   cleanPreviewText,
 } from "@shared/previewCaption";
+import { parseBorderColor, presentBorderSettings } from "@shared/postBorder";
 import { previewTradeLabel } from "@shared/previewTrades";
 import { brandImage, fetchStorageBytes } from "./branding";
 import { brandSignedInPhoto, signedInTextBadge } from "./signedInBranding";
@@ -49,6 +50,7 @@ import {
   updatePost,
   updateUserLogo,
   updateUserBrand,
+  updateUserBorder,
   logConversionEvent,
   logConversionEventOnce,
   logAnonymousConversionOnce,
@@ -510,6 +512,14 @@ export const appRouter = router({
               suburb,
               callToAction: PREVIEW_CALL_TO_ACTION,
             },
+            border: ctx.user
+              ? {
+                  style: ctx.user.borderStyle,
+                  color: ctx.user.borderColor,
+                  businessName: ctx.user.businessName ?? businessName,
+                  suburb: ctx.user.suburb ?? suburb,
+                }
+              : null,
           });
           stage = "snap_post_mark";
           const marked =
@@ -695,6 +705,7 @@ export const appRouter = router({
           null,
         trade: previewTradeLabel(user?.trade ?? undefined) ?? null,
         brandSetupSkipped: Boolean(user?.brandSetupSkipped),
+        ...presentBorderSettings(user),
         brandSuggestion,
         facebook: integration
           ? {
@@ -788,6 +799,38 @@ export const appRouter = router({
         }
         await updateOnboardingStep(ctx.user.id, "profileCompleted", true);
         return { success: true } as const;
+      }),
+
+    /**
+     * Frame used on every post this account generates from now on.
+     * Existing accounts stay on None until they pick something else.
+     */
+    saveBorder: protectedProcedure
+      .input(
+        z.object({
+          style: z.enum(["none", "solid", "line", "brand", "bar"]),
+          color: z.string().max(7).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await ensureReferralSchema();
+        const color =
+          input.color === undefined ? undefined : parseBorderColor(input.color);
+        if (input.color !== undefined && !color) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Enter a brand color like #1B4F8A.",
+          });
+        }
+        await updateUserBorder(ctx.user.id, {
+          borderStyle: input.style,
+          ...(color ? { borderColor: color } : {}),
+        });
+        return {
+          success: true as const,
+          style: input.style,
+          color: color ?? null,
+        };
       }),
 
     /** Leave the brand step for later. The dashboard keeps a nudge. */
@@ -919,6 +962,10 @@ export const appRouter = router({
           trade: input.trade ?? user?.trade,
           destKeyPrefix: postKey,
           watermark: showMark,
+          border: {
+            style: user?.borderStyle,
+            color: user?.borderColor,
+          },
         });
         const marked =
           showMark && branded.watermarkedBuffer

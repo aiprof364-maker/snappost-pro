@@ -66,6 +66,8 @@ export async function ensureReferralSchema() {
       "ALTER TABLE `users` ADD `suburb` varchar(60)",
       "ALTER TABLE `users` ADD `trade` varchar(60)",
       "ALTER TABLE `users` ADD `brandSetupSkipped` boolean NOT NULL DEFAULT false",
+      "ALTER TABLE `users` ADD `borderStyle` varchar(16) NOT NULL DEFAULT 'none'",
+      "ALTER TABLE `users` ADD `borderColor` varchar(7)",
       "ALTER TABLE `users` ADD CONSTRAINT `users_referral_code_uq` UNIQUE (`referralCode`)",
       "ALTER TABLE `auth_tokens` ADD `referralCode` varchar(16)",
       "ALTER TABLE `posts` ADD `markedImageKey` varchar(256)",

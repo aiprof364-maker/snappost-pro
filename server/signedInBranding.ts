@@ -1,4 +1,5 @@
 import { badgeCallToAction } from "@shared/brandProfile";
+import type { PostBorderOptions } from "@shared/postBorder";
 import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_SUBURB_MAX,
@@ -44,6 +45,7 @@ export async function brandSignedInPhoto(params: {
   trade?: string | null;
   destKeyPrefix: string;
   watermark?: boolean;
+  border?: Pick<PostBorderOptions, "style" | "color"> | null;
 }) {
   const hasLogo = Boolean(params.logoBuffer);
   return brandImage({
@@ -57,5 +59,13 @@ export async function brandSignedInPhoto(params: {
       suburb: params.suburb,
       trade: params.trade,
     }),
+    border: params.border
+      ? {
+          style: params.border.style,
+          color: params.border.color,
+          businessName: params.businessName,
+          suburb: params.suburb,
+        }
+      : null,
   });
 }

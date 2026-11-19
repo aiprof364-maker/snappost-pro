@@ -1,5 +1,7 @@
 import sharp from "sharp";
+import { parseBorderStyle, type PostBorderOptions } from "@shared/postBorder";
 import { prepareLogoForBranding } from "./logoPreparation";
+import { framePostImage } from "./postBorderFrame";
 import {
   layoutSnapPostMark,
   renderSnapPostMarkOverlay,
@@ -50,6 +52,12 @@ export async function brandImage(params: {
   frame?: "original" | "square";
   textBadge?: TextBadgeInput | null;
   watermark?: boolean;
+  /**
+   * Account frame. Omitted or "none" keeps the current photo, logo, and badge
+   * pixels. A name bar replaces the lower-left text badge so the name is not
+   * drawn twice.
+   */
+  border?: PostBorderOptions | null;
 }): Promise<{
   key: string;
   url: string;
@@ -109,8 +117,10 @@ export async function brandImage(params: {
   }
 
   // A real logo keeps the lower-right treatment. The text badge is only the
-  // fallback for a preview that did not upload one.
-  if (!logoApplied && textBadge) {
+  // fallback for a preview that did not upload one. The name bar prints the
+  // business name itself, so it does not also draw this badge.
+  const nameOnBar = parseBorderStyle(params.border?.style) === "bar";
+  if (!logoApplied && textBadge && !nameOnBar) {
     const overlay = await renderTextBadgeOverlay(
       finalWidth,
       finalHeight,
@@ -128,7 +138,7 @@ export async function brandImage(params: {
     }
   }
 
-  const watermarkedBuffer = params.watermark
+  const watermarkedRaw = params.watermark
     ? await renderWatermarkedJpeg({
         base: resizedBase,
         width: finalWidth,
@@ -140,7 +150,19 @@ export async function brandImage(params: {
       })
     : null;
 
-  const outBuffer = await composited.jpeg({ quality: 90 }).toBuffer();
+  const applyBorder = (buffer: Buffer) => {
+    const border = params.border;
+    if (!border || parseBorderStyle(border.style) === "none") return buffer;
+    return framePostImage(buffer, border);
+  };
+
+  const watermarkedBuffer = watermarkedRaw
+    ? await applyBorder(watermarkedRaw)
+    : null;
+
+  const outBuffer = await applyBorder(
+    await composited.jpeg({ quality: 90 }).toBuffer()
+  );
   const { key, url } = await storagePut(
     `${destKeyPrefix}/branded.jpg`,
     outBuffer,

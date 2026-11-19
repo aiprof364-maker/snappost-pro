@@ -226,6 +226,16 @@ export async function updateUserLogo(userId: number, logoKey: string): Promise<v
   await db.update(users).set({ logoKey }).where(eq(users.id, userId));
 }
 
+/** Save the frame used on posts this account generates from now on. */
+export async function updateUserBorder(
+  userId: number,
+  data: { borderStyle: string; borderColor?: string }
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
 /** Save the business name, town, and trade shown on no-logo posts. */
 export async function updateUserBrand(
   userId: number,

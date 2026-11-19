@@ -29,7 +29,16 @@ export function accountShowsWatermark(
 }
 
 export async function brandingForClaim(
-  user: Pick<User, "id" | "plan" | "subscriptionStatus">,
+  user: Pick<
+    User,
+    | "id"
+    | "plan"
+    | "subscriptionStatus"
+    | "borderStyle"
+    | "borderColor"
+    | "businessName"
+    | "suburb"
+  >,
   draft: Pick<
     PreviewDraft,
     | "id"
@@ -76,6 +85,12 @@ export async function brandingForClaim(
             suburb: draft.suburb ?? undefined,
             callToAction: PREVIEW_CALL_TO_ACTION,
           },
+      border: {
+        style: user.borderStyle,
+        color: user.borderColor,
+        businessName: user.businessName ?? draft.businessName,
+        suburb: user.suburb ?? draft.suburb,
+      },
     });
     cleanKey = clean.key;
     cleanUrl = clean.url;

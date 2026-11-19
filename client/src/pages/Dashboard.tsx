@@ -28,6 +28,7 @@ import { getUploadLimitNotice } from "@shared/uploadLimit";
 import { capturePromotionCode } from "@/lib/promotionCode";
 import ReferralPanel from "@/components/ReferralPanel";
 import { BrandSetupGate } from "@/components/BrandSetupStep";
+import { PostBorderSettings } from "@/components/PostBorderSettings";
 import {
   CheckCircle2,
   ExternalLink,
@@ -529,6 +530,13 @@ export default function Dashboard() {
               )}
             </Button>
           </section>
+
+          <PostBorderSettings
+            borderStyle={overview.data?.borderStyle}
+            borderColor={overview.data?.borderColor}
+            businessName={overview.data?.businessName}
+            suburb={overview.data?.suburb}
+          />
 
           {/* Post history */}
           <div className="mt-10">

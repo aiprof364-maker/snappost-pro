@@ -49,6 +49,13 @@ export const users = mysqlTable("users", {
   trade: varchar("trade", { length: 60 }),
   /** Set when the owner skips the first-login brand step. */
   brandSetupSkipped: boolean("brandSetupSkipped").default(false).notNull(),
+  /**
+   * Frame for new posts: none, solid, line, brand, or bar.
+   * Existing accounts stay on none.
+   */
+  borderStyle: varchar("borderStyle", { length: 16 }).default("none").notNull(),
+  /** Hex color for the brand-color frame and the name bar. Null uses the default. */
+  borderColor: varchar("borderColor", { length: 7 }),
   /** Email verification status: pending, verified. */
   emailVerified: boolean("emailVerified").default(false).notNull(),
   /** Email verification token (hashed). */

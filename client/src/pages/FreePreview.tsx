@@ -37,11 +37,9 @@ import {
   CheckCircle2,
   ImagePlus,
   Loader2,
-  Mail,
-  PenLine,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
@@ -237,6 +235,9 @@ export default function FreePreview() {
   const [caption, setCaption] = useState("");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
+  const resultRef = useRef<HTMLElement>(null);
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const [emailError, setEmailError] = useState("");
   const claimStarted = useRef(false);
   const registrationTracked = useRef(false);
@@ -284,6 +285,13 @@ export default function FreePreview() {
       retry: false,
     }
   );
+
+  useLayoutEffect(() => {
+    if (!preview?.token) return;
+    setCaptionExpanded(false);
+    resultRef.current?.scrollIntoView({ block: "start" });
+    resultHeadingRef.current?.focus({ preventScroll: true });
+  }, [preview?.token]);
 
   useEffect(() => {
     if (storedPreview.data && token && !preview) {
@@ -587,7 +595,7 @@ export default function FreePreview() {
         }
       />
       <main className="flex-1">
-        {accountCreated && (
+        {accountCreated && !preview && (
           <section className="border-b border-emerald-200 bg-emerald-50">
             <div className="container max-w-3xl py-4 text-center text-emerald-950">
               <p className="font-bold">Your 3 free posts are ready.</p>
@@ -598,7 +606,13 @@ export default function FreePreview() {
             </div>
           </section>
         )}
-        <section className="border-b border-border/60 bg-background">
+        <section
+          className={
+            preview
+              ? "hidden border-b border-border/60 bg-background md:block"
+              : "border-b border-border/60 bg-background"
+          }
+        >
           <div className="container max-w-3xl pb-5 pt-10 sm:pb-7 sm:pt-14">
             <div className="mx-auto max-w-2xl text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
@@ -617,7 +631,9 @@ export default function FreePreview() {
           </div>
         </section>
 
-        <section className="container max-w-3xl py-8 sm:py-12">
+        <section
+          className={`container max-w-3xl ${preview ? "py-3 md:py-12" : "py-8 sm:py-12"}`}
+        >
           {loadingPreview ? (
             <div className="flex min-h-64 items-center justify-center rounded-3xl border bg-card">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -636,117 +652,72 @@ export default function FreePreview() {
               </Button>
             </div>
           ) : preview ? (
-            <div className="space-y-6">
-              <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-                <div className="border-b border-border/70 p-5 sm:p-7">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                      <CheckCircle2 className="h-6 w-6" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-bold text-emerald-700">
-                        Your real preview
-                      </p>
-                      <h2 className="font-display text-2xl font-bold">
-                        Your Facebook post is ready to review
-                      </h2>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid gap-0 md:grid-cols-2">
-                  <figure className="border-b border-border/70 bg-muted/20 p-4 md:border-b-0 md:border-r">
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Preview only · nothing is posted to Facebook
-                    </p>
-                    <img
-                      src={preview.brandedImageUrl}
-                      alt={
-                        preview.hasWatermark
-                          ? `${previewImageAlt(preview)}. Marked ${PREVIEW_MARK}`
-                          : previewImageAlt(preview)
-                      }
-                      className="aspect-square w-full rounded-xl object-cover bg-white"
-                    />
-                    <figcaption className="mt-3 text-sm font-semibold text-muted-foreground">
-                      {preview.hasWatermark
-                        ? `Marked “${PREVIEW_MARK}”. Free posts keep this mark until you upgrade.`
-                        : previewImageCaption(preview)}
-                    </figcaption>
-                  </figure>
-                  <div className="p-5 sm:p-7">
-                    <div className="flex items-center gap-2 text-sm font-bold text-primary">
-                      <PenLine className="h-4 w-4" /> SnapPost Pro-written
-                      caption
-                    </div>
-                    <Label htmlFor="preview-caption" className="sr-only">
-                      Your caption
-                    </Label>
-                    <Textarea
-                      id="preview-caption"
-                      value={caption}
-                      onChange={event => setCaption(event.target.value)}
-                      rows={10}
-                      className="mt-3 resize-y"
-                    />
-                    <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                      You can edit this now or later. You choose whether to
-                      publish.
-                    </p>
-                  </div>
-                </div>
-              </section>
+            <article
+              ref={resultRef}
+              id="preview-result"
+              className="scroll-mt-[calc(var(--cookie-offset,0px)+4.5rem)]"
+            >
+              <h2
+                ref={resultHeadingRef}
+                tabIndex={-1}
+                className="font-display text-lg font-bold outline-none"
+              >
+                Your post
+              </h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Nothing is posted to Facebook.
+              </p>
+              <img
+                src={preview.brandedImageUrl}
+                alt={
+                  preview.hasWatermark
+                    ? `${previewImageAlt(preview)}. Marked ${PREVIEW_MARK}`
+                    : previewImageAlt(preview)
+                }
+                className="-mx-4 mt-3 aspect-square w-[calc(100%+2rem)] max-w-none bg-white object-cover md:mx-0 md:w-full md:rounded-xl"
+              />
+              <p className="mt-2 hidden text-xs font-semibold text-muted-foreground md:block">
+                {preview.hasWatermark
+                  ? `Marked “${PREVIEW_MARK}”. Free posts keep this mark until you upgrade.`
+                  : previewImageCaption(preview)}
+              </p>
 
-              <section className="rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                    <Mail className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h2 className="font-display text-2xl font-bold">
-                      This is a preview only
-                    </h2>
-                    <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                      Nothing is posted to Facebook. Start a free trial to keep
-                      this photo, image, and caption, then post it when you are
-                      ready. No card is required for the 3 free posts.
-                    </p>
-                  </div>
-                </div>
+              <div className="mt-3">
                 {isAuthenticated ? (
-                  <div className="mt-6">
-                    {claim.isError ? (
-                      <p className="text-sm text-destructive">
-                        {claim.error.message}
-                      </p>
-                    ) : claim.data?.postId ? (
-                      <Link href={`/dashboard?post=${claim.data.postId}`}>
-                        <Button
-                          size="lg"
-                          className="gap-2 py-6 text-base font-bold"
-                          onClick={() => {
-                            try {
-                              window.sessionStorage.setItem(
-                                PENDING_POST_STORAGE_KEY,
-                                String(claim.data?.postId)
-                              );
-                            } catch {
-                              // The post id is in the link.
-                            }
-                          }}
-                        >
-                          Review and post this{" "}
-                          <ArrowRight className="h-5 w-5" />
-                        </Button>
-                      </Link>
-                    ) : (
-                      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Saving this
-                        post to your account…
-                      </p>
-                    )}
-                  </div>
+                  claim.isError ? (
+                    <p className="text-sm text-destructive">
+                      {claim.error.message}
+                    </p>
+                  ) : claim.data?.postId ? (
+                    <Link
+                      href={`/dashboard?post=${claim.data.postId}`}
+                      className="block w-full"
+                    >
+                      <Button
+                        size="lg"
+                        className="w-full gap-2 py-6 text-base font-bold"
+                        onClick={() => {
+                          try {
+                            window.sessionStorage.setItem(
+                              PENDING_POST_STORAGE_KEY,
+                              String(claim.data?.postId)
+                            );
+                          } catch {
+                            // The post id is in the link.
+                          }
+                        }}
+                      >
+                        Review and post this <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Saving this
+                      post to your account…
+                    </p>
+                  )
                 ) : sent ? (
-                  <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
                     <p className="font-bold">
                       Your secure access link is on its way.
                     </p>
@@ -758,64 +729,97 @@ export default function FreePreview() {
                     </p>
                   </div>
                 ) : (
-                  <form
-                    onSubmit={savePreview}
-                    className="mt-6 max-w-lg space-y-4"
+                  <Button
+                    type="submit"
+                    form="preview-continue"
+                    size="lg"
+                    className="w-full gap-2 py-6 text-base font-bold"
+                    disabled={requestLink.isPending || updateCaption.isPending}
                   >
-                    <div>
-                      <Label
-                        htmlFor="preview-email"
-                        className="text-sm font-bold"
-                      >
-                        Business email address
-                      </Label>
-                      <Input
-                        id="preview-email"
-                        type="email"
-                        autoComplete="email"
-                        inputMode="email"
-                        required
-                        value={email}
-                        onChange={event => setEmail(event.target.value)}
-                        placeholder="you@yourbusiness.com"
-                        className="mt-2 h-12 bg-background"
-                      />
-                    </div>
-                    {emailError && (
-                      <p className="text-sm text-destructive">{emailError}</p>
+                    {requestLink.isPending || updateCaption.isPending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" /> Sending
+                        your access link…
+                      </>
+                    ) : (
+                      <>
+                        Post it free: 3 posts, no card{" "}
+                        <ArrowRight className="h-5 w-5" />
+                      </>
                     )}
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full gap-2 py-6 text-base font-bold"
-                      disabled={
-                        requestLink.isPending || updateCaption.isPending
-                      }
-                    >
-                      {requestLink.isPending || updateCaption.isPending ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin" /> Sending
-                          your access link…
-                        </>
-                      ) : (
-                        <>
-                          Post it free: 3 posts, no card{" "}
-                          <ArrowRight className="h-5 w-5" />
-                        </>
-                      )}
-                    </Button>
+                  </Button>
+                )}
+                <button
+                  type="button"
+                  className="mt-2 block text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  onClick={startAgain}
+                >
+                  Create a different preview
+                </button>
+                {!isAuthenticated && !sent && (
+                  <form
+                    id="preview-continue"
+                    onSubmit={savePreview}
+                    className="mt-2"
+                  >
+                    <Label htmlFor="preview-email" className="sr-only">
+                      Business email address
+                    </Label>
+                    <Input
+                      id="preview-email"
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      required
+                      value={email}
+                      onChange={event => setEmail(event.target.value)}
+                      placeholder="Business email"
+                      className="h-11 bg-background"
+                    />
+                    {emailError && (
+                      <p className="mt-2 text-sm text-destructive">
+                        {emailError}
+                      </p>
+                    )}
                   </form>
                 )}
-              </section>
+              </div>
 
-              <button
-                type="button"
-                className="mx-auto block text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                onClick={startAgain}
-              >
-                Create a different preview
-              </button>
-            </div>
+              <div className="mt-3">
+                <p
+                  className={`whitespace-pre-wrap text-sm leading-5 md:hidden ${captionExpanded ? "" : "line-clamp-3"}`}
+                >
+                  {caption}
+                </p>
+                <button
+                  type="button"
+                  className="mt-1 text-sm font-semibold text-primary md:hidden"
+                  aria-expanded={captionExpanded}
+                  onClick={() => setCaptionExpanded(open => !open)}
+                >
+                  {captionExpanded ? "Show less" : "Show more"}
+                </button>
+                <div className={captionExpanded ? "mt-3" : "hidden md:block"}>
+                  <Label
+                    htmlFor="preview-caption"
+                    className="text-sm font-bold"
+                  >
+                    Caption
+                  </Label>
+                  <Textarea
+                    id="preview-caption"
+                    value={caption}
+                    onChange={event => setCaption(event.target.value)}
+                    rows={6}
+                    className="mt-2 resize-y"
+                  />
+                  <p className="mt-2 hidden text-xs leading-5 text-muted-foreground md:block">
+                    You can edit this now or later. You choose whether to
+                    publish.
+                  </p>
+                </div>
+              </div>
+            </article>
           ) : (
             <section className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
               <div className="flex items-start gap-4">
@@ -1000,7 +1004,9 @@ export default function FreePreview() {
           )}
         </section>
       </main>
-      <SiteFooter />
+      <div className={preview ? "hidden md:block" : undefined}>
+        <SiteFooter />
+      </div>
     </div>
   );
 }

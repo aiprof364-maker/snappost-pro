@@ -27,7 +27,34 @@ describe("free job-photo preview page", () => {
     expect(source).toContain("previewReturnPath");
     expect(source).toContain("Nothing is posted to Facebook");
     expect(source).not.toContain("/login?next=/dashboard");
-    expect(source).toContain("if (!isAuthenticated || preview || !postId) return");
+    expect(source).toContain(
+      "if (!isAuthenticated || preview || !postId) return"
+    );
+  });
+
+  it("puts the finished preview at the top of a phone screen", () => {
+    expect(source).toContain('id="preview-result"');
+    expect(source).toContain('scrollIntoView({ block: "start" })');
+    expect(source).toContain("line-clamp-3");
+    expect(source).toContain("Show more");
+    expect(source).toContain("Review and post this");
+    expect(source).toContain("Post it free: 3 posts, no card");
+    expect(source).toContain("Create a different preview");
+    expect(source).toContain(
+      "hidden border-b border-border/60 bg-background md:block"
+    );
+    expect(source).toContain('preview ? "hidden md:block" : undefined');
+    const imageAt = source.indexOf("preview.brandedImageUrl");
+    const signedOutAt = source.indexOf("Post it free: 3 posts, no card");
+    const signedInAt = source.indexOf("Review and post this");
+    const againAt = source.indexOf("Create a different preview");
+    const captionAt = source.indexOf("line-clamp-3");
+    expect(imageAt).toBeGreaterThan(-1);
+    expect(signedOutAt).toBeGreaterThan(imageAt);
+    expect(signedInAt).toBeGreaterThan(imageAt);
+    expect(againAt).toBeGreaterThan(signedOutAt);
+    expect(captionAt).toBeGreaterThan(againAt);
+    expect(source).not.toContain("posts.publish");
   });
 
   it("asks a new signed-in account for a business name on the preview itself", () => {

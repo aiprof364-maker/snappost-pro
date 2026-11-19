@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import { and, desc, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
 import { previewDrafts, posts, users } from "../drizzle/schema";
 import { type PlanId } from "@shared/const";
+import { carryPreviewBrand } from "@shared/previewHandoff";
 import { postCreationLimit } from "@shared/referrals";
 import { getDb } from "./db";
 import { storageDelete } from "./storage";
@@ -453,10 +454,21 @@ export async function claimPreviewDraft(input: {
       );
     }
 
+    const carried = carryPreviewBrand(user, draft);
+    const brandUpdate: {
+      logoKey?: string;
+      businessName?: string;
+      suburb?: string;
+    } = {};
     if (!user.logoKey && draft.logoImageKey) {
+      brandUpdate.logoKey = draft.logoImageKey;
+    }
+    if (carried.businessName) brandUpdate.businessName = carried.businessName;
+    if (carried.suburb) brandUpdate.suburb = carried.suburb;
+    if (Object.keys(brandUpdate).length > 0) {
       await tx
         .update(users)
-        .set({ logoKey: draft.logoImageKey })
+        .set(brandUpdate)
         .where(eq(users.id, input.userId));
     }
     await tx

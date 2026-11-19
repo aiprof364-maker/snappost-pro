@@ -10,11 +10,9 @@ describe("free job-photo preview page", () => {
   it("lets a visitor pick a trade and sign up without a card", () => {
     expect(source).toContain("Choose a trade");
     expect(source).toContain("PREVIEW_TRADES");
-    expect(source).toContain("Sign up free and keep this post");
+    expect(source).toContain("Start your free trial to post");
     expect(source).toContain("3 free posts");
     expect(source).toContain("no card");
-    expect(source).toContain("$19/mo");
-    expect(source).toContain("$29/mo");
     expect(source).toContain("Nothing is posted to Facebook");
     expect(source).toContain("snapPostCaptionFooter");
   });
@@ -24,11 +22,12 @@ describe("free job-photo preview page", () => {
     expect(source).not.toContain("postPhotoToPage");
   });
 
-  it("keeps a signed-in preview on screen and links to the saved post", () => {
-    expect(source).toContain("isAuthenticated && token && !preview");
-    expect(source).toContain("Saved to your dashboard");
-    expect(source).toContain("/dashboard?post=");
-    expect(source).not.toContain("Your free post is ready");
+  it("keeps a signed-out visitor on the preview and carries the token into sign-up", () => {
+    expect(source).toContain("Start your free trial to post");
+    expect(source).toContain("previewReturnPath");
+    expect(source).toContain("Nothing is posted to Facebook");
+    expect(source).not.toContain("/login?next=/dashboard");
+    expect(source).toContain("if (!isAuthenticated || preview || !postId) return");
   });
 
   it("asks a new signed-in account for a business name on the preview itself", () => {
@@ -37,7 +36,7 @@ describe("free job-photo preview page", () => {
     expect(source).toContain("preview.suburb");
     expect(source).toContain("Your 3 free posts are ready.");
     const gateAt = source.indexOf("<BrandSetupGate");
-    const savedAt = source.indexOf("Saved to your dashboard");
+    const savedAt = source.indexOf("Start your free trial to post");
     expect(gateAt).toBeGreaterThan(-1);
     expect(savedAt).toBeGreaterThan(gateAt);
   });

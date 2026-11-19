@@ -8,5 +8,8 @@ export function isDashboardDataLoading(input: {
   isAuthenticated: boolean;
   overviewLoading: boolean;
 }) {
-  return input.authLoading || !input.isAuthenticated || input.overviewLoading;
+  // A signed-out visit is not a loading state. The page must send them to
+  // sign in instead of painting an empty dashboard.
+  if (!input.isAuthenticated) return input.authLoading;
+  return input.authLoading || input.overviewLoading;
 }

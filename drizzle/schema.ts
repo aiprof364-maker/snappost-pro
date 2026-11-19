@@ -45,6 +45,10 @@ export const users = mysqlTable("users", {
   businessName: varchar("businessName", { length: 80 }),
   /** Town or city, for example "Austin, TX". */
   suburb: varchar("suburb", { length: 60 }),
+  /** Optional US phone shown on the name bar, stored as (512) 555-0142. */
+  businessPhone: varchar("businessPhone", { length: 32 }),
+  /** Optional website shown on the name bar, without a scheme. */
+  businessWebsite: varchar("businessWebsite", { length: 160 }),
   /** Known trade label used for the no-logo badge call to action. */
   trade: varchar("trade", { length: 60 }),
   /** Set when the owner skips the first-login brand step. */

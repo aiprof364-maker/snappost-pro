@@ -12,6 +12,11 @@ describe("brand setup step", () => {
     expect(source).toContain("Austin, TX");
     expect(source).toContain("brand-trade");
     expect(source).toContain("brand-logo");
+    expect(source).toContain('id="brand-phone"');
+    expect(source).toContain('id="brand-website"');
+    expect(source).toContain("(512) 555-0142");
+    expect(source).toContain("northsidedecks.com");
+    expect(source).not.toMatch(/tradies|colour/i);
     expect(source).toContain("Skip for now");
     expect(source).toContain(
       "Add your business name to continue, or skip for now."

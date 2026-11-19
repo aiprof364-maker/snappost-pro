@@ -42,6 +42,8 @@ export async function brandSignedInPhoto(params: {
   logoBuffer?: Buffer | null;
   businessName?: string | null;
   suburb?: string | null;
+  phone?: string | null;
+  website?: string | null;
   trade?: string | null;
   destKeyPrefix: string;
   watermark?: boolean;
@@ -65,6 +67,8 @@ export async function brandSignedInPhoto(params: {
           color: params.border.color,
           businessName: params.businessName,
           suburb: params.suburb,
+          phone: params.phone,
+          website: params.website,
         }
       : null,
   });

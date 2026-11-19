@@ -1,4 +1,9 @@
 import {
+  BRAND_CONTACT_SEPARATOR,
+  parseBusinessPhone,
+  parseBusinessWebsite,
+} from "./brandContact";
+import {
   PREVIEW_BUSINESS_NAME_MAX,
   PREVIEW_SUBURB_MAX,
   cleanPreviewText,
@@ -53,7 +58,7 @@ export const BORDER_PRESETS: ReadonlyArray<{
     id: "bar",
     label: "Name bar",
     description:
-      "A bar along the bottom with your business name and city. Nothing is written across the top.",
+      "A bar along the bottom with your business name. Phone and website go on the next line when you add them. Nothing is written across the top.",
   },
 ];
 
@@ -62,6 +67,8 @@ export type PostBorderOptions = {
   color?: string | null;
   businessName?: string | null;
   suburb?: string | null;
+  phone?: string | null;
+  website?: string | null;
 };
 
 export type PostBorderLayout = {
@@ -140,10 +147,18 @@ export function presentBorderSettings(
   };
 }
 
-/** Name and city actually stored on the account. Blank values stay blank. */
+function acceptedContact(
+  result: ReturnType<typeof parseBusinessPhone>
+): string | undefined {
+  return result.ok ? (result.value ?? undefined) : undefined;
+}
+
+/** Name, city, phone, and website actually stored on the account. */
 export function borderCaption(input: {
   businessName?: string | null;
   suburb?: string | null;
+  phone?: string | null;
+  website?: string | null;
 }) {
   return {
     businessName: cleanPreviewText(
@@ -151,6 +166,35 @@ export function borderCaption(input: {
       PREVIEW_BUSINESS_NAME_MAX
     ),
     suburb: cleanPreviewText(input.suburb ?? undefined, PREVIEW_SUBURB_MAX),
+    phone: acceptedContact(parseBusinessPhone(input.phone)),
+    website: acceptedContact(parseBusinessWebsite(input.website)),
+  };
+}
+
+/**
+ * Name bar copy. The name is the first line. City, phone, and website share
+ * the next line, joined with a middle dot. Missing fields are left out.
+ */
+export function nameBarCopy(input: {
+  businessName?: string | null;
+  suburb?: string | null;
+  phone?: string | null;
+  website?: string | null;
+}) {
+  const caption = borderCaption(input);
+  const extras = [caption.suburb, caption.phone, caption.website].filter(
+    (part): part is string => Boolean(part)
+  );
+  if (caption.businessName) {
+    return {
+      name: caption.businessName,
+      detail: extras.join(BRAND_CONTACT_SEPARATOR) || undefined,
+    };
+  }
+  if (!extras.length) return { name: undefined, detail: undefined };
+  return {
+    name: extras[0],
+    detail: extras.slice(1).join(BRAND_CONTACT_SEPARATOR) || undefined,
   };
 }
 

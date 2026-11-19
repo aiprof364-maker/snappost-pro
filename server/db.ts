@@ -240,7 +240,15 @@ export async function updateUserBorder(
 export async function updateUserBrand(
   userId: number,
   data: Partial<
-    Pick<InsertUser, "businessName" | "suburb" | "trade" | "brandSetupSkipped">
+    Pick<
+      InsertUser,
+      | "businessName"
+      | "suburb"
+      | "trade"
+      | "brandSetupSkipped"
+      | "businessPhone"
+      | "businessWebsite"
+    >
   >
 ): Promise<void> {
   const db = await getDb();

@@ -27,6 +27,7 @@ import { PLANS } from "@shared/const";
 import { getUploadLimitNotice } from "@shared/uploadLimit";
 import { capturePromotionCode } from "@/lib/promotionCode";
 import ReferralPanel from "@/components/ReferralPanel";
+import { BrandContactSettings } from "@/components/BrandContactSettings";
 import { BrandSetupGate } from "@/components/BrandSetupStep";
 import { PostBorderSettings } from "@/components/PostBorderSettings";
 import {
@@ -62,6 +63,10 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
   const logoRef = useRef<HTMLInputElement>(null);
+  const [contactDraft, setContactDraft] = useState<{
+    phone: string;
+    website: string;
+  } | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [selectedCaption, setSelectedCaption] = useState("");
   const captionLoadedFor = useRef<number | null>(null);
@@ -529,6 +534,13 @@ export default function Dashboard() {
                 "Add logo for future posts"
               )}
             </Button>
+            <BrandContactSettings
+              businessName={overview.data?.businessName}
+              suburb={overview.data?.suburb}
+              phone={overview.data?.businessPhone}
+              website={overview.data?.businessWebsite}
+              onDraftChange={setContactDraft}
+            />
           </section>
 
           <PostBorderSettings
@@ -536,6 +548,8 @@ export default function Dashboard() {
             borderColor={overview.data?.borderColor}
             businessName={overview.data?.businessName}
             suburb={overview.data?.suburb}
+            phone={contactDraft?.phone ?? overview.data?.businessPhone}
+            website={contactDraft?.website ?? overview.data?.businessWebsite}
           />
 
           {/* Post history */}

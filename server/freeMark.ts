@@ -38,6 +38,8 @@ export async function brandingForClaim(
     | "borderColor"
     | "businessName"
     | "suburb"
+    | "businessPhone"
+    | "businessWebsite"
   >,
   draft: Pick<
     PreviewDraft,
@@ -90,6 +92,8 @@ export async function brandingForClaim(
         color: user.borderColor,
         businessName: user.businessName ?? draft.businessName,
         suburb: user.suburb ?? draft.suburb,
+        phone: user.businessPhone,
+        website: user.businessWebsite,
       },
     });
     cleanKey = clean.key;

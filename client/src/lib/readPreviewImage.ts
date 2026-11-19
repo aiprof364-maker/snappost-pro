@@ -1,13 +1,19 @@
+import { sniffImageMime } from "@shared/imageSniff";
+
 /** Longest side kept for a preview photo. */
 export const PREVIEW_IMAGE_MAX_EDGE = 2048;
 
 /** Longest side kept for a preview logo. */
 export const PREVIEW_LOGO_MAX_EDGE = 1024;
 
-export const PREVIEW_IMAGE_READ_ERROR =
-  "We could not read that image. Please try another JPG or PNG.";
+export const PREVIEW_PHOTO_TOO_BIG = "Use a photo under 8 MB.";
+export const PREVIEW_LOGO_TOO_BIG = "Use a logo under 2 MB.";
+
+const DECODE_TIMEOUT_MS = 8_000;
 
 export type PreviewImageKind = "photo" | "logo";
+
+export { sniffImageMime };
 
 export function fittedImageSize(
   width: number,
@@ -25,48 +31,6 @@ export function fittedImageSize(
   };
 }
 
-export function sniffImageMime(
-  bytes: Uint8Array
-): "image/png" | "image/jpeg" | "image/webp" | "image/svg+xml" | null {
-  if (
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47
-  ) {
-    return "image/png";
-  }
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return "image/webp";
-  }
-  const head = new TextDecoder()
-    .decode(bytes.slice(0, 256))
-    .replace(/^\uFEFF/, "")
-    .trimStart()
-    .toLowerCase();
-  if (
-    head.startsWith("<svg") ||
-    (head.startsWith("<?xml") && head.includes("<svg"))
-  ) {
-    return "image/svg+xml";
-  }
-  return null;
-}
-
 type Drawable = CanvasImageSource & {
   width: number;
   height: number;
@@ -74,6 +38,22 @@ type Drawable = CanvasImageSource & {
   naturalHeight?: number;
   close?: () => void;
 };
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    work.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
 
 function encodeCanvas(
   source: Drawable,
@@ -98,11 +78,6 @@ function encodeCanvas(
   return dataUrl;
 }
 
-/**
- * Draw through an Image element while the blob URL is still alive.
- * SVG and WebP on Android are rasterised this way. Revoking the URL first
- * leaves the canvas blank and the picker reports that the file could not be read.
- */
 async function rasterizeWithImage(
   file: Blob,
   maxEdge: number,
@@ -122,13 +97,46 @@ async function rasterizeWithImage(
   }
 }
 
+async function bitmapDownscaled(file: Blob, maxEdge: number) {
+  if (typeof createImageBitmap !== "function") throw new Error("bitmap");
+  const edges = [maxEdge, Math.round(maxEdge / 2), Math.round(maxEdge / 4)];
+  let last: unknown;
+  for (const edge of edges) {
+    const sized = fittedImageSize(edge, edge, edge);
+    const attempts: ImageBitmapOptions[] = [
+      {
+        imageOrientation: "from-image",
+        resizeWidth: sized.width,
+        resizeQuality: "medium",
+      },
+      {
+        imageOrientation: "from-image",
+        resizeWidth: sized.width,
+        resizeHeight: sized.height,
+        resizeQuality: "low",
+      },
+    ];
+    for (const options of attempts) {
+      try {
+        return await createImageBitmap(file, options);
+      } catch (error) {
+        last = error;
+      }
+    }
+  }
+  try {
+    return await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (error) {
+    throw last instanceof Error ? last : error;
+  }
+}
+
 async function rasterizeWithBitmap(
   file: Blob,
   maxEdge: number,
   mime: "image/png" | "image/jpeg"
 ) {
-  if (typeof createImageBitmap !== "function") throw new Error("bitmap");
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await bitmapDownscaled(file, maxEdge);
   try {
     return encodeCanvas(bitmap, maxEdge, mime);
   } finally {
@@ -142,60 +150,84 @@ function bytesToDataUrl(bytes: Uint8Array, mime: string) {
   for (let index = 0; index < bytes.length; index += chunk) {
     const slice = bytes.subarray(index, index + chunk);
     const copy = new Array<number>(slice.length);
-    for (let offset = 0; offset < slice.length; offset++)
+    for (let offset = 0; offset < slice.length; offset++) {
       copy[offset] = slice[offset];
+    }
     binary += String.fromCharCode.apply(null, copy);
   }
   return `data:${mime};base64,${btoa(binary)}`;
 }
 
-async function readOriginalDataUrl(
-  file: Blob,
-  kind: PreviewImageKind
-): Promise<string> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const mime = sniffImageMime(bytes);
-  if (!mime) throw new Error("type");
-  if (kind === "photo" && mime === "image/svg+xml") throw new Error("type");
-  return bytesToDataUrl(bytes, mime);
+function originalMime(bytes: Uint8Array, file: Blob) {
+  const sniffed = sniffImageMime(bytes);
+  if (sniffed) return sniffed;
+  const declared = file.type.split(";")[0]?.trim().toLowerCase() || "";
+  if (declared.startsWith("image/")) return declared;
+  return "application/octet-stream";
 }
 
 /**
- * Read a picked image immediately and keep a data URL we own.
- * Android content:// files can become unreadable after the first failed
- * decode, so a logo is drawn with Image plus canvas before any other read.
- * Photos stay JPEG. Logos stay PNG so transparency survives, capped at 1024px.
+ * Read a picked gallery file into a data URL.
+ * Bytes are copied first so a content:// URI is only read once.
+ * Huge photos are downscaled with createImageBitmap resizeWidth/resizeHeight
+ * before they ever touch a canvas. If the browser cannot decode the file,
+ * the original bytes are uploaded and the server converts them.
  */
 export async function readPreviewImage(
   file: Blob & { name?: string },
-  options?: { kind?: PreviewImageKind }
+  options?: { kind?: PreviewImageKind; maxBytes?: number }
 ): Promise<
   { ok: true; dataUrl: string; name: string } | { ok: false; message: string }
 > {
   const kind = options?.kind ?? "photo";
-  const mime = kind === "logo" ? "image/png" : "image/jpeg";
+  const maxBytes =
+    options?.maxBytes ?? (kind === "logo" ? 2 * 1024 * 1024 : 8 * 1024 * 1024);
+  const output = kind === "logo" ? "image/png" : "image/jpeg";
   const maxEdge =
     kind === "logo" ? PREVIEW_LOGO_MAX_EDGE : PREVIEW_IMAGE_MAX_EDGE;
+  const tooBig = kind === "logo" ? PREVIEW_LOGO_TOO_BIG : PREVIEW_PHOTO_TOO_BIG;
   const name =
     file.name?.trim() || (kind === "logo" ? "logo.png" : "photo.jpg");
-  const attempts =
-    kind === "logo"
-      ? [() => rasterizeWithImage(file, maxEdge, mime)]
-      : [
-          () => rasterizeWithBitmap(file, maxEdge, mime),
-          () => rasterizeWithImage(file, maxEdge, mime),
-        ];
-  for (const attempt of attempts) {
-    try {
-      return { ok: true, dataUrl: await attempt(), name };
-    } catch {
-      // The next decoder gets the same blob. Logos try Image first so an
-      // SVG or WebP is rasterised before a failed bitmap read consumes it.
-    }
-  }
+
+  let bytes: Uint8Array;
   try {
-    return { ok: true, dataUrl: await readOriginalDataUrl(file, kind), name };
+    bytes = new Uint8Array(await file.arrayBuffer());
   } catch {
-    return { ok: false, message: PREVIEW_IMAGE_READ_ERROR };
+    return {
+      ok: false,
+      message:
+        file.size > maxBytes
+          ? tooBig
+          : "That photo format isn't supported yet. Try a screenshot of it, or a different photo.",
+    };
+  }
+
+  const raw = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(raw).set(bytes);
+  const memory = new Blob([raw], { type: originalMime(bytes, file) });
+  const decode = async () => {
+    if (kind === "logo") {
+      try {
+        return await rasterizeWithImage(memory, maxEdge, output);
+      } catch {
+        return rasterizeWithBitmap(memory, maxEdge, output);
+      }
+    }
+    try {
+      return await rasterizeWithBitmap(memory, maxEdge, output);
+    } catch {
+      return rasterizeWithImage(memory, maxEdge, output);
+    }
+  };
+
+  try {
+    return {
+      ok: true,
+      dataUrl: await withTimeout(decode(), DECODE_TIMEOUT_MS),
+      name,
+    };
+  } catch {
+    if (bytes.length > maxBytes) return { ok: false, message: tooBig };
+    return { ok: true, dataUrl: bytesToDataUrl(bytes, memory.type), name };
   }
 }

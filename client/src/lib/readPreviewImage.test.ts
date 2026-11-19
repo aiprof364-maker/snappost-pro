@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   PREVIEW_IMAGE_MAX_EDGE,
-  PREVIEW_IMAGE_READ_ERROR,
   PREVIEW_LOGO_MAX_EDGE,
   fittedImageSize,
   readPreviewImage,
@@ -66,11 +65,34 @@ describe("preview image sizing", () => {
     }
   });
 
-  it("reports the picker error when the photo cannot be decoded", async () => {
-    const result = await readPreviewImage(
-      new Blob(["not a photo"], { type: "image/jpeg" })
+  it("keeps a gallery photo the browser cannot decode, including an empty MIME type and HEIC", async () => {
+    const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xd9]);
+    expect(sniffImageMime(jpeg)).toBe("image/jpeg");
+    const emptyType = await readPreviewImage(new Blob([jpeg], { type: "" }));
+    expect(emptyType.ok).toBe(true);
+    if (emptyType.ok) {
+      expect(emptyType.dataUrl.startsWith("data:image/jpeg;base64,")).toBe(
+        true
+      );
+    }
+
+    const heic = new Uint8Array(12);
+    heic.set([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63,
+    ]);
+    expect(sniffImageMime(heic)).toBe("image/heic");
+    const heicPhoto = await readPreviewImage(
+      new Blob([heic], { type: "application/octet-stream" })
     );
-    expect(result).toEqual({ ok: false, message: PREVIEW_IMAGE_READ_ERROR });
+    expect(heicPhoto.ok).toBe(true);
+    if (heicPhoto.ok) {
+      expect(heicPhoto.dataUrl.startsWith("data:image/heic;base64,")).toBe(
+        true
+      );
+    }
+
+    const gif = new TextEncoder().encode("GIF89a");
+    expect(sniffImageMime(gif)).toBe("image/gif");
   });
 
   it("reads the photo in the picker, not when the form is submitted", () => {
@@ -91,13 +113,16 @@ describe("preview image sizing", () => {
     expect(reader).toContain('canvas.toDataURL("image/png")');
     expect(reader).toContain("PREVIEW_LOGO_MAX_EDGE");
     expect(reader).toContain("rasterizeWithImage");
-    expect(source).toContain("PREVIEW_IMAGE_READ_ERROR");
+    expect(reader).toContain("resizeWidth");
+    expect(reader).toContain("resizeHeight");
+    expect(source).not.toContain(
+      "We could not read that image. Please try another JPG or PNG."
+    );
     expect(source).toContain("photoError");
     expect(source).toContain("logoError");
     expect(source).toContain("photo.dataUrl");
     expect(source).toContain("logo?.dataUrl");
     expect(source).not.toContain("fileToDataUrl");
     expect(source).toContain("Post it free: 3 posts, no card");
-    expect(PREVIEW_IMAGE_READ_ERROR).toContain("could not read that image");
   });
 });

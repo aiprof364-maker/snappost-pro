@@ -1,3 +1,5 @@
+import { isTransientFailure } from "./transientRetry";
+
 type ErrorRecord = {
   message: string;
   code?: string | number;
@@ -16,13 +18,15 @@ function collectErrors(error: unknown): ErrorRecord[] {
       message?: unknown;
       code?: string | number;
       errno?: number;
+      http_code?: number;
       cause?: unknown;
+      error?: unknown;
     };
     records.push({
       message: typeof record.message === "string" ? record.message : "",
-      code: record.code ?? record.errno,
+      code: record.code ?? record.errno ?? record.http_code,
     });
-    current = record.cause;
+    current = record.cause ?? record.error;
   }
   return records;
 }
@@ -42,7 +46,10 @@ export function describePreviewFailure(error: unknown): {
   const blob = detail.toLowerCase();
   const codes = new Set(records.map(record => record.code));
 
-  if (blob.includes("enoent") && (blob.includes(".ttf") || blob.includes("font"))) {
+  if (
+    blob.includes("enoent") &&
+    (blob.includes(".ttf") || blob.includes("font"))
+  ) {
     return { reason: "font_missing", detail };
   }
   if (
@@ -66,6 +73,9 @@ export function describePreviewFailure(error: unknown): {
   if (blob.includes("cloudinary") || blob.includes("invalid image file")) {
     return { reason: "storage", detail };
   }
+  if (isTransientFailure(error)) {
+    return { reason: "transient", detail };
+  }
   return { reason: "unknown", detail: detail || "no error message" };
 }
 
@@ -81,7 +91,9 @@ export function previewFailureMessage(reason: string) {
       return "We could not save that preview. Please use a shorter business name or city.";
     case "storage":
       return "We could not store that photo. Please try another JPG or PNG shortly.";
+    case "transient":
+      return "Our server had a brief connection problem making your preview. Please try again.";
     default:
-      return "We could not create that preview. Please try another JPG or PNG shortly.";
+      return "Something went wrong on our side making that preview. Please try again in a minute.";
   }
 }

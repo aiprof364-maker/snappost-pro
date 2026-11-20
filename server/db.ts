@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { createHash } from "crypto";
 import { drizzle } from "drizzle-orm/mysql2";
+import { createPool } from "mysql2";
 import {
   InsertIntegration,
   InsertPost,
@@ -46,7 +47,20 @@ function calculateCompletionPercentage(checklist: OnboardingChecklist): number {
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Keep pooled connections alive and retire idle ones before the
+      // database gateway silently drops them. A dropped idle connection made
+      // the next query fail with "Connection lost" or ECONNRESET.
+      const pool = createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10_000,
+        maxIdle: 4,
+        idleTimeout: 60_000,
+      });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

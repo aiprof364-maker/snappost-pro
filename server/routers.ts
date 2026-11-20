@@ -36,6 +36,7 @@ import {
 } from "./previewFailure";
 import { readSnapPostFont } from "./snapPostFont";
 import { photoFitsSnapPostMark } from "./snapPostMark";
+import { retryTransient } from "./transientRetry";
 import { generateCaption } from "./captions";
 import {
   countUserPostsSince,
@@ -514,8 +515,8 @@ export const appRouter = router({
         });
 
         try {
-          const reservation = await reservePreviewDailySlot(
-            limits.globalDailyCap
+          const reservation = await retryTransient("daily_cap", () =>
+            reservePreviewDailySlot(limits.globalDailyCap)
           );
           if (!reservation.ok) {
             giveBackIp();
@@ -527,13 +528,13 @@ export const appRouter = router({
           reservedDay = reservation.day;
 
           stage = "store_original";
-          const original = await storagePut(
-            `${keyPrefix}/original.${ext}`,
-            photoBuffer,
-            photoMime
+          const original = await retryTransient("store_original", () =>
+            storagePut(`${keyPrefix}/original.${ext}`, photoBuffer, photoMime)
           );
           const uploadedLogo = logo
-            ? await storagePut(`${keyPrefix}/logo.png`, logo.buffer, logo.mime)
+            ? await retryTransient("store_logo", () =>
+                storagePut(`${keyPrefix}/logo.png`, logo.buffer, logo.mime)
+              )
             : null;
           const signedUrl = await storageGetSignedUrl(original.key);
           stage = "caption";
@@ -551,35 +552,39 @@ export const appRouter = router({
             include: showMark,
           });
           stage = "brand_image";
-          const clean = await brandImage({
-            photoBuffer,
-            logoBuffer: logo?.buffer,
-            destKeyPrefix: keyPrefix,
-            frame: "square",
-            watermark: showMark,
-            textBadge: {
-              businessName,
-              suburb,
-              callToAction: PREVIEW_CALL_TO_ACTION,
-            },
-            border: ctx.user
-              ? {
-                  style: ctx.user.borderStyle,
-                  color: ctx.user.borderColor,
-                  businessName: ctx.user.businessName ?? businessName,
-                  suburb: ctx.user.suburb ?? suburb,
-                  phone: ctx.user.businessPhone,
-                  website: ctx.user.businessWebsite,
-                }
-              : null,
-          });
+          const clean = await retryTransient("brand_image", () =>
+            brandImage({
+              photoBuffer,
+              logoBuffer: logo?.buffer,
+              destKeyPrefix: keyPrefix,
+              frame: "square",
+              watermark: showMark,
+              textBadge: {
+                businessName,
+                suburb,
+                callToAction: PREVIEW_CALL_TO_ACTION,
+              },
+              border: ctx.user
+                ? {
+                    style: ctx.user.borderStyle,
+                    color: ctx.user.borderColor,
+                    businessName: ctx.user.businessName ?? businessName,
+                    suburb: ctx.user.suburb ?? suburb,
+                    phone: ctx.user.businessPhone,
+                    website: ctx.user.businessWebsite,
+                  }
+                : null,
+            })
+          );
           stage = "snap_post_mark";
           const marked =
             showMark && clean.watermarkedBuffer
-              ? await storagePut(
-                  `${keyPrefix}/marked.jpg`,
-                  clean.watermarkedBuffer,
-                  "image/jpeg"
+              ? await retryTransient("store_marked", () =>
+                  storagePut(
+                    `${keyPrefix}/marked.jpg`,
+                    clean.watermarkedBuffer!,
+                    "image/jpeg"
+                  )
                 )
               : null;
           if (showMark && !marked) {
@@ -590,27 +595,34 @@ export const appRouter = router({
             });
           }
           stage = "save_draft";
-          const draft = await createPreviewDraft({
-            landing: previewLanding(input.landing),
-            originalImageKey: original.key,
-            originalImageUrl: original.url,
-            logoImageKey: uploadedLogo?.key,
-            brandedImageKey: marked?.key ?? clean.key,
-            brandedImageUrl: marked?.url ?? clean.url,
-            cleanImageKey: clean.key,
-            cleanImageUrl: clean.url,
-            caption,
-            businessName,
-            suburb,
-          });
+          const draft = await retryTransient("save_draft", () =>
+            createPreviewDraft({
+              landing: previewLanding(input.landing),
+              originalImageKey: original.key,
+              originalImageUrl: original.url,
+              logoImageKey: uploadedLogo?.key,
+              brandedImageKey: marked?.key ?? clean.key,
+              brandedImageUrl: marked?.url ?? clean.url,
+              cleanImageKey: clean.key,
+              cleanImageUrl: clean.url,
+              caption,
+              businessName,
+              suburb,
+            })
+          );
           stage = "log_event";
-          await logConversionEvent(null, "tool_used", {
-            source: "job_photo_preview",
-            landing: input.landing ?? null,
-            trade: trade ?? null,
-            hasLogo: Boolean(logo),
-            hasBusinessName: Boolean(businessName),
-          });
+          // The preview is saved. Analytics must never turn it into an error.
+          try {
+            await logConversionEvent(null, "tool_used", {
+              source: "job_photo_preview",
+              landing: input.landing ?? null,
+              trade: trade ?? null,
+              hasLogo: Boolean(logo),
+              hasBusinessName: Boolean(businessName),
+            });
+          } catch (logError) {
+            console.error("[Preview] Could not log tool_used event", logError);
+          }
           return draft;
         } catch (error) {
           if (!aiStarted) {

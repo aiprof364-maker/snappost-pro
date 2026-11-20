@@ -290,7 +290,7 @@ export default function Dashboard() {
   const atLimit =
     usage != null && usage.limit !== null && usage.used >= usage.limit;
   const showFreeUpgrade = plan === "free" && atLimit;
-  const showTrialConnect = subStatus === "trialing" && !facebookConnected;
+  const showFacebookConnect = !facebookConnected;
   const uploadLimitNotice = getUploadLimitNotice(plan, usage);
 
   const handleLogo = async (file?: File) => {
@@ -417,7 +417,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {showTrialConnect && (
+          {showFacebookConnect && (
             <section
               id="facebook-section"
               className="mt-5 rounded-2xl border border-primary/30 bg-card p-5 shadow-sm sm:p-6"
@@ -426,8 +426,8 @@ export default function Dashboard() {
                 Connect your Facebook Page
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Your 7-day trial is active. Connect the Page you want to publish
-                to. You can create posts before you connect.
+                Connect the Page you want to publish to. Connecting does not use
+                a post. You can create posts before you connect.
               </p>
               <div className="mt-4">
                 <FacebookConnect compact />

@@ -15,6 +15,24 @@ describe("dashboard post link", () => {
     expect(source).toContain("captionWhenPostOpens");
   });
 
+  it("shows the top Facebook connect panel for every plan without a Page", () => {
+    expect(source).toContain("const showFacebookConnect = !facebookConnected");
+    expect(source).not.toContain(
+      'subStatus === "trialing" && !facebookConnected'
+    );
+    const panel = source.slice(
+      source.indexOf("{showFacebookConnect && ("),
+      source.indexOf("{showFreeUpgrade ? (")
+    );
+    expect(panel).toContain('id="facebook-section"');
+    expect(panel).toContain("<FacebookConnect compact />");
+    expect(panel).toMatch(/Connecting does not use\s+a post/);
+    expect(panel).not.toContain("pendingPostId");
+    expect(panel).not.toContain("posts.publish");
+    expect(source).toContain("pendingPostId={firstDraft.id}");
+    expect(source).toContain("pendingPostId={selectedPost.id}");
+  });
+
   it("uses the shared brand step instead of the account_created flag", () => {
     expect(source).toContain("<BrandSetupGate showNudge />");
     expect(source).not.toContain("accountCreatedFlag");

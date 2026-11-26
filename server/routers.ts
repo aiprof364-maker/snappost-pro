@@ -276,7 +276,7 @@ export const appRouter = router({
           });
           magicLinkRequestTimes.set(email, Date.now());
           if (input.previewToken) {
-            await markPreviewEmailRequested(input.previewToken).catch(error => {
+            await markPreviewEmailRequested(input.previewToken, email).catch(error => {
               console.error("[Preview] Could not record email handoff", error);
             });
           }

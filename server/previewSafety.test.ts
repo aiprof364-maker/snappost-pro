@@ -19,7 +19,9 @@ describe("anonymous job-photo preview", () => {
     expect(previewBlock).toContain('logConversionEvent(null, "tool_used"');
     expect(previewBlock).toContain("reservePreviewDailySlot");
     expect(routers).toContain('"tool_signup_click"');
-    expect(routers).toContain("markPreviewEmailRequested");
+    expect(routers).toContain(
+      "markPreviewEmailRequested(input.previewToken, email)"
+    );
     expect(routers).toContain("preview: Boolean(input.previewToken)");
   });
 });

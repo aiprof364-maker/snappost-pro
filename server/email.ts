@@ -1,6 +1,10 @@
 import { accessLinkEmailParagraph } from "@shared/accessLink";
 import { Resend } from "resend";
 import { buildFreePostsUsedEmail, type FreePostsUsedKind } from "./freePostsEmail";
+import {
+  buildPreviewReminderEmail,
+  type PreviewReminderKind,
+} from "./previewReminderEmail";
 import { getNewsletterMessage, type NewsletterKind } from "./newsletterContent";
 import { getNewsletterUnsubscribeUrl } from "./newsletter";
 
@@ -17,7 +21,8 @@ export type AccountEmailKind =
   | "renewal"
   | "purchase"
   | "contact-owner-alert"
-  | FreePostsUsedKind;
+  | FreePostsUsedKind
+  | PreviewReminderKind;
 export type PurchaseConfirmationInput = {
   email: string;
   userName?: string | null;
@@ -98,6 +103,7 @@ async function sendAccountMessage(input: {
   html: string;
   idempotencyKey?: string;
   replyTo?: string;
+  headers?: Record<string, string>;
 }): Promise<AcceptedEmail> {
   const result = await getResendClient().emails.send(
     {
@@ -106,6 +112,7 @@ async function sendAccountMessage(input: {
       subject: input.subject,
       html: input.html,
       ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+      ...(input.headers ? { headers: input.headers } : {}),
     },
     input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined
   );
@@ -278,6 +285,9 @@ export async function sendAccountEmail(
     renewalAt?: Date | null;
     subscriptionStatus?: "trialing" | "active" | null;
     trialEligible?: boolean;
+    signInUrl?: string;
+    unsubscribeUrl?: string;
+    hasAccount?: boolean;
     contact?: {
       name: string;
       email: string;
@@ -341,6 +351,22 @@ export async function sendAccountEmail(
         },
         idempotencyKey,
       );
+    case "preview-day-1":
+    case "preview-day-3":
+      if (!input.signInUrl || !input.unsubscribeUrl) {
+        throw new Error("Preview reminder link is missing");
+      }
+      return sendPreviewReminderEmail(
+        kind,
+        {
+          email: input.email,
+          signInUrl: input.signInUrl,
+          unsubscribeUrl: input.unsubscribeUrl,
+          hasAccount: input.hasAccount === true,
+          plan: input.plan ?? null,
+        },
+        idempotencyKey
+      );
     case "contact-owner-alert": {
       if (!input.contact) throw new Error("Contact details are required");
       return sendContactFormNotification(
@@ -352,6 +378,31 @@ export async function sendAccountEmail(
       );
     }
   }
+}
+
+export async function sendPreviewReminderEmail(
+  kind: PreviewReminderKind,
+  input: {
+    email: string;
+    signInUrl: string;
+    unsubscribeUrl: string;
+    hasAccount: boolean;
+    plan?: "free" | "starter" | "pro" | null;
+  },
+  idempotencyKey?: string
+) {
+  const message = buildPreviewReminderEmail(kind, input);
+  return sendAccountMessage({
+    to: input.email,
+    subject: message.subject,
+    html: message.html,
+    idempotencyKey,
+    replyTo: getSupportReplyTo(),
+    headers: {
+      "List-Unsubscribe": `<${input.unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  });
 }
 
 export async function sendFreePostsUsedEmail(

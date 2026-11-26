@@ -46,7 +46,9 @@ The token is compared in constant time. Send it only in the `Authorization` head
 
 `freePreviewFunnel` is the Free-preview Funnel for the last 30 days.
 
-`emailReminders` is the Trial Expiration Warnings and Renewal Reminders cards. Sent is `accepted` rows in `account_email_delivery` (`trial-ending` and `renewal`). Failed includes `failed` and `uncertain`. Pending, retrying, and cancelled rows are not counted. `lastRun` is the latest accepted or attempted time for that reminder, or `null`. If that table does not exist yet, both cards are zero.
+`emailReminders` is the Trial Expiration Warnings, Renewal Reminders, and free-preview follow-ups. Sent is `accepted` rows in `account_email_delivery` (`trial-ending`, `renewal`, `preview-day-1`, and `preview-day-3`). Failed includes `failed` and `uncertain`. Pending, retrying, and cancelled rows are not counted. `lastRun` is the latest accepted or attempted time for that reminder, or `null`. If that table does not exist yet, every card is zero.
+
+`previewDay1Reminders` is the note sent about 24 hours after a visitor asks to save a free preview, when they still have not opened the link or created an account. `previewDay3Reminders` is the note sent about 72 hours after that request, when they still have not published a post. The account-email worker runs every 15 minutes, so each reminder goes out on the first run after that time. Each address gets each reminder at most once.
 
 ```json
 {
@@ -96,7 +98,9 @@ The token is compared in constant time. Send it only in the `Authorization` head
       "failed": 0,
       "lastRun": "2026-11-01T00:00:00.000Z"
     },
-    "renewalReminders": { "sent": 2, "failed": 1, "lastRun": null }
+    "renewalReminders": { "sent": 2, "failed": 1, "lastRun": null },
+    "previewDay1Reminders": { "sent": 0, "failed": 0, "lastRun": null },
+    "previewDay3Reminders": { "sent": 0, "failed": 0, "lastRun": null }
   }
 }
 ```

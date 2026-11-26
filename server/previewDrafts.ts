@@ -1,10 +1,11 @@
 import { createHash, randomBytes } from "crypto";
-import { and, desc, eq, gt, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNull, lt, or, sql } from "drizzle-orm";
 import { previewDrafts, posts, users } from "../drizzle/schema";
 import { type PlanId } from "@shared/const";
 import { carryPreviewBrand } from "@shared/previewHandoff";
 import { postCreationLimit } from "@shared/referrals";
 import { getDb } from "./db";
+import { PREVIEW_REMINDER_HOLD_MS } from "./previewReminderEmail";
 import { storageDelete } from "./storage";
 
 const PREVIEW_TTL_MS = 24 * 60 * 60 * 1000;
@@ -28,6 +29,15 @@ export class PreviewDraftError extends Error {
 
 function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+/** The original browser token and a later reminder token both open one draft. */
+function previewAccessMatch(token: string) {
+  const hash = tokenHash(token);
+  return or(
+    eq(previewDrafts.tokenHash, hash),
+    eq(previewDrafts.reminderTokenHash, hash)
+  );
 }
 
 /** Stable key for anonymous conversion events. The raw preview token is never stored. */
@@ -141,6 +151,22 @@ export async function ensurePreviewDraftSchema() {
       db,
       "ALTER TABLE preview_drafts ADD COLUMN cleanImageUrl VARCHAR(512) NULL"
     );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN requestedEmail VARCHAR(320) NULL"
+    );
+    await ensurePreviewColumn(
+      db,
+      "ALTER TABLE preview_drafts ADD COLUMN reminderTokenHash VARCHAR(64) NULL"
+    );
+    await ensurePreviewIndex(
+      db,
+      "CREATE INDEX preview_drafts_requested_email_idx ON preview_drafts (requestedEmail, emailRequestedAt)"
+    );
+    await ensurePreviewIndex(
+      db,
+      "CREATE UNIQUE INDEX preview_drafts_reminder_token_uq ON preview_drafts (reminderTokenHash)"
+    );
     // Same boot-time pattern as the referral columns: the daily cap table and
     // anonymous conversion events must exist even if migration 0013 has not run.
     await db.execute(
@@ -161,6 +187,44 @@ export async function ensurePreviewDraftSchema() {
     throw error;
   });
   return previewSchemaPromise;
+}
+
+function isDuplicateIndex(error: unknown) {
+  const messages: string[] = [];
+  const codes: Array<string | number | undefined> = [];
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current; depth++) {
+    if (current instanceof Error) messages.push(current.message);
+    if (typeof current === "object") {
+      const record = current as {
+        code?: string;
+        errno?: number;
+        cause?: unknown;
+      };
+      codes.push(record.code, record.errno);
+      current = record.cause;
+      continue;
+    }
+    break;
+  }
+  return (
+    codes.includes(1061) ||
+    codes.includes("ER_DUP_KEYNAME") ||
+    messages.some(message => /duplicate key name/i.test(message))
+  );
+}
+
+/** Additive index for databases created before reminder lookups. */
+async function ensurePreviewIndex(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  statement: string
+) {
+  try {
+    await db.execute(sql.raw(statement));
+  } catch (error) {
+    if (isDuplicateIndex(error)) return;
+    throw error;
+  }
 }
 
 function isDuplicateColumn(error: unknown) {
@@ -268,7 +332,7 @@ export async function getPublicPreviewDraft(token: string) {
     .from(previewDrafts)
     .where(
       and(
-        eq(previewDrafts.tokenHash, tokenHash(token)),
+        previewAccessMatch(token),
         isNull(previewDrafts.userId),
         gt(previewDrafts.expiresAt, new Date())
       )
@@ -293,7 +357,7 @@ export async function updatePublicPreviewCaption(input: {
     .set({ caption: input.caption })
     .where(
       and(
-        eq(previewDrafts.tokenHash, tokenHash(input.token)),
+        previewAccessMatch(input.token),
         isNull(previewDrafts.userId),
         gt(previewDrafts.expiresAt, new Date())
       )
@@ -306,28 +370,108 @@ export async function updatePublicPreviewCaption(input: {
   return { success: true } as const;
 }
 
-/** Record only that an email-access request followed a valid anonymous preview. */
-export async function markPreviewEmailRequested(token: string) {
+/**
+ * Record the address that asked to save this preview.
+ * The first request starts the reminder clock. Later requests keep that clock
+ * and can correct the address. The photo stays available through the day-3 link.
+ */
+export async function markPreviewEmailRequested(token: string, email: string) {
   await ensurePreviewDraftSchema();
   const db = await getDb();
   if (!db)
     throw new PreviewDraftError("Preview storage is temporarily unavailable.");
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.includes("@")) {
+    throw new PreviewDraftError("Preview storage is temporarily unavailable.");
+  }
 
-  const result = await db
-    .update(previewDrafts)
-    .set({ emailRequestedAt: new Date() })
+  const [existing] = await db
+    .select({
+      id: previewDrafts.id,
+      emailRequestedAt: previewDrafts.emailRequestedAt,
+      expiresAt: previewDrafts.expiresAt,
+    })
+    .from(previewDrafts)
     .where(
       and(
-        eq(previewDrafts.tokenHash, tokenHash(token)),
+        previewAccessMatch(token),
         isNull(previewDrafts.userId),
         gt(previewDrafts.expiresAt, new Date())
       )
+    )
+    .limit(1);
+  if (!existing) {
+    throw new PreviewDraftError(
+      "This preview has expired. Please create a new one."
+    );
+  }
+
+  const holdUntil = new Date(Date.now() + PREVIEW_REMINDER_HOLD_MS);
+  const currentExpiry = new Date(existing.expiresAt).getTime();
+  const result = await db
+    .update(previewDrafts)
+    .set({
+      emailRequestedAt: existing.emailRequestedAt ?? new Date(),
+      requestedEmail: normalized,
+      expiresAt: new Date(Math.max(currentExpiry, holdUntil.getTime())),
+    })
+    .where(
+      and(eq(previewDrafts.id, existing.id), isNull(previewDrafts.userId))
     );
   if (mysqlAffectedRows(result) !== 1) {
     throw new PreviewDraftError(
       "This preview has expired. Please create a new one."
     );
   }
+}
+
+/**
+ * Add a fresh access token for a reminder email without invalidating the
+ * original link. Returns null when the draft was already claimed or expired.
+ */
+export async function issuePreviewReminderToken(draftId: number, email: string) {
+  await ensurePreviewDraftSchema();
+  const db = await getDb();
+  if (!db) return null;
+  const normalized = email.trim().toLowerCase();
+  const [draft] = await db
+    .select({
+      id: previewDrafts.id,
+      requestedEmail: previewDrafts.requestedEmail,
+      userId: previewDrafts.userId,
+      expiresAt: previewDrafts.expiresAt,
+      landing: previewDrafts.landing,
+    })
+    .from(previewDrafts)
+    .where(eq(previewDrafts.id, draftId))
+    .limit(1);
+  if (
+    !draft ||
+    draft.userId ||
+    draft.requestedEmail !== normalized ||
+    new Date(draft.expiresAt).getTime() <= Date.now()
+  ) {
+    return null;
+  }
+  const token = randomBytes(32).toString("base64url");
+  const holdUntil = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const result = await db
+    .update(previewDrafts)
+    .set({
+      reminderTokenHash: tokenHash(token),
+      expiresAt: new Date(
+        Math.max(new Date(draft.expiresAt).getTime(), holdUntil.getTime())
+      ),
+    })
+    .where(
+      and(
+        eq(previewDrafts.id, draft.id),
+        eq(previewDrafts.requestedEmail, normalized),
+        isNull(previewDrafts.userId)
+      )
+    );
+  if (mysqlAffectedRows(result) !== 1) return null;
+  return { token, landing: draft.landing ?? null };
 }
 
 /**
@@ -345,7 +489,7 @@ export async function getUnclaimedPreviewDraft(token: string) {
     .from(previewDrafts)
     .where(
       and(
-        eq(previewDrafts.tokenHash, tokenHash(token)),
+        previewAccessMatch(token),
         isNull(previewDrafts.userId),
         gt(previewDrafts.expiresAt, new Date())
       )
@@ -375,7 +519,7 @@ export async function claimPreviewDraft(input: {
       .set({ userId: input.userId, claimedAt: now })
       .where(
         and(
-          eq(previewDrafts.tokenHash, tokenHash(input.token)),
+          previewAccessMatch(input.token),
           isNull(previewDrafts.userId),
           gt(previewDrafts.expiresAt, now)
         )
@@ -385,7 +529,7 @@ export async function claimPreviewDraft(input: {
       const [existing] = await tx
         .select()
         .from(previewDrafts)
-        .where(eq(previewDrafts.tokenHash, tokenHash(input.token)))
+        .where(previewAccessMatch(input.token))
         .limit(1);
       if (existing?.userId === input.userId && existing.postId) {
         return { postId: existing.postId, alreadyClaimed: true } as const;
@@ -398,7 +542,7 @@ export async function claimPreviewDraft(input: {
     const [draft] = await tx
       .select()
       .from(previewDrafts)
-      .where(eq(previewDrafts.tokenHash, tokenHash(input.token)))
+      .where(previewAccessMatch(input.token))
       .limit(1);
     const [user] = await tx
       .select()

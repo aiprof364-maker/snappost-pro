@@ -224,6 +224,8 @@ export const adminRouter = router({
       previewsCreated: allPreviewDrafts.filter(
         draft => draft.createdAt >= since
       ).length,
+      // The preview-result email capture. Still one row per draft, stamped
+      // when that visitor submits the email on the finished preview.
       previewsEmailRequested: allPreviewDrafts.filter(
         draft =>
           draft.emailRequestedAt !== null && draft.emailRequestedAt >= since

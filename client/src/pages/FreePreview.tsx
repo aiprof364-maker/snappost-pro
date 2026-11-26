@@ -17,6 +17,7 @@ import { snapPostCaptionFooter } from "@shared/referrals";
 import { trackMetaCustomEvent, trackMetaEvent } from "@/lib/metaPixel";
 import { trackGoogleAnalyticsEvent } from "@/lib/googleAnalytics";
 import { ACCESS_LINK_LIFETIME_LABEL } from "@shared/accessLink";
+import { watermarkedPreviewDownloadPath } from "@shared/previewDownload";
 import {
   PENDING_POST_STORAGE_KEY,
   previewReturnPath,
@@ -32,8 +33,10 @@ import { isShareLanding, signedInShareDestination } from "@shared/shareTarget";
 import {
   ArrowRight,
   CheckCircle2,
+  Download,
   ImagePlus,
   Loader2,
+  Mail,
   Sparkles,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -72,6 +75,8 @@ function previewImageCaption(preview: PreviewResult) {
   return "Your photo, ready to post";
 }
 
+const PREVIEW_SAVE_PROMPT =
+  "Enter your email to save these posts and get 3 free posts, no card needed.";
 const PREVIEW_PAGE_TITLE =
   "Turn a Job Photo into a Facebook Post | SnapPost Pro";
 const PREVIEW_PAGE_DESCRIPTION =
@@ -232,6 +237,7 @@ export default function FreePreview() {
   const [caption, setCaption] = useState("");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [sentTo, setSentTo] = useState("");
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const resultRef = useRef<HTMLElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -502,12 +508,14 @@ export default function FreePreview() {
     event.preventDefault();
     if (!preview || !token) return;
     setEmailError("");
+    const address = email.trim();
+    setSentTo(address);
     try {
       if (caption.trim() !== preview.caption.trim()) {
         await updateCaption.mutateAsync({ token, caption: caption.trim() });
       }
       await requestLink.mutateAsync({
-        email: email.trim(),
+        email: address,
         origin: window.location.origin,
         next: previewReturnPath(token, landing),
         previewToken: token,
@@ -533,6 +541,7 @@ export default function FreePreview() {
     setPhotoPermission(false);
     setFormError("");
     setSent(false);
+    setSentTo("");
     setEmailError("");
     claimStarted.current = false;
     window.history.replaceState({}, "", previewPath(undefined, landing));
@@ -717,73 +726,140 @@ export default function FreePreview() {
                       post to your account…
                     </p>
                   )
-                ) : sent ? (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
-                    <p className="font-bold">
-                      Your secure access link is on its way.
-                    </p>
-                    <p className="mt-1 text-sm text-emerald-800">
-                      Open the email from SnapPost Pro when you can. The link
-                      stays active for {ACCESS_LINK_LIFETIME_LABEL}, and you can
-                      open it more than once if you get interrupted. Your
-                      preview will be waiting in your dashboard.
-                    </p>
-                  </div>
                 ) : (
-                  <Button
-                    type="submit"
-                    form="preview-continue"
-                    size="lg"
-                    className="w-full gap-2 py-6 text-base font-bold"
-                    disabled={requestLink.isPending || updateCaption.isPending}
+                  <section
+                    className={`rounded-3xl border-2 p-4 shadow-sm sm:p-6 ${
+                      sent
+                        ? "border-emerald-300 bg-emerald-50"
+                        : "border-primary/40 bg-primary/5"
+                    }`}
+                    aria-labelledby="preview-save-heading"
                   >
-                    {requestLink.isPending || updateCaption.isPending ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" /> Sending
-                        your access link…
-                      </>
+                    {sent ? (
+                      <div role="status">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+                            <Mail className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                          <div>
+                            <h3
+                              id="preview-save-heading"
+                              className="font-display text-xl font-extrabold leading-snug text-emerald-950 sm:text-2xl"
+                            >
+                              Check your email
+                            </h3>
+                            <p className="mt-2 text-sm leading-6 text-emerald-950">
+                              We sent a secure access link to{" "}
+                              <span className="font-bold break-words">
+                                {sentTo}
+                              </span>
+                              . Open it to save these posts on your Free
+                              account. The link stays active for{" "}
+                              {ACCESS_LINK_LIFETIME_LABEL}, and you can open it
+                              more than once.
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-emerald-900">
+                              Your 3 free posts are waiting. No card needed.
+                              Nothing is posted to Facebook until you choose to
+                              publish.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="mt-4 text-sm font-semibold text-emerald-950 underline underline-offset-4"
+                          onClick={() => {
+                            setSent(false);
+                            setEmailError("");
+                          }}
+                        >
+                          Use a different email
+                        </button>
+                      </div>
                     ) : (
-                      <>
-                        Post it free: 3 posts, no card{" "}
-                        <ArrowRight className="h-5 w-5" />
-                      </>
+                      <form id="preview-save" onSubmit={savePreview}>
+                        <h3
+                          id="preview-save-heading"
+                          className="font-display text-xl font-extrabold leading-snug sm:text-2xl"
+                        >
+                          {PREVIEW_SAVE_PROMPT}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          We'll email a secure access link. Open it to create
+                          your Free account, or sign in, and save this preview.
+                          No password and no card.
+                        </p>
+                        <Label
+                          htmlFor="preview-email"
+                          className="mt-4 block text-sm font-bold"
+                        >
+                          Email
+                        </Label>
+                        <Input
+                          id="preview-email"
+                          type="email"
+                          name="email"
+                          autoComplete="email"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          inputMode="email"
+                          enterKeyHint="send"
+                          required
+                          value={email}
+                          onChange={event => setEmail(event.target.value)}
+                          placeholder="you@yourbusiness.com"
+                          className="mt-2 h-12 bg-background text-base md:text-base"
+                        />
+                        {emailError && (
+                          <p className="mt-2 text-sm text-destructive">
+                            {emailError}
+                          </p>
+                        )}
+                        <Button
+                          type="submit"
+                          size="lg"
+                          className="mt-3 h-12 w-full gap-2 text-base font-bold"
+                          disabled={
+                            requestLink.isPending || updateCaption.isPending
+                          }
+                        >
+                          {requestLink.isPending || updateCaption.isPending ? (
+                            <>
+                              <Loader2 className="h-5 w-5 animate-spin" />{" "}
+                              Sending your access link…
+                            </>
+                          ) : (
+                            <>
+                              Email my free access link{" "}
+                              <ArrowRight className="h-5 w-5" />
+                            </>
+                          )}
+                        </Button>
+                      </form>
                     )}
-                  </Button>
+                    {token && preview.hasWatermark && (
+                      <a
+                        href={watermarkedPreviewDownloadPath(token)}
+                        download="snappost-preview.jpg"
+                        className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-center text-sm font-bold text-foreground"
+                      >
+                        <Download
+                          className="h-4 w-4 shrink-0"
+                          aria-hidden="true"
+                        />
+                        Download preview with the SnapPost mark
+                      </a>
+                    )}
+                  </section>
                 )}
                 <button
                   type="button"
-                  className="mt-2 block text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  className="mt-3 block text-sm font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground"
                   onClick={startAgain}
                 >
                   Create a different preview
                 </button>
-                {!isAuthenticated && !sent && (
-                  <form
-                    id="preview-continue"
-                    onSubmit={savePreview}
-                    className="mt-2"
-                  >
-                    <Label htmlFor="preview-email" className="sr-only">
-                      Business email address
-                    </Label>
-                    <Input
-                      id="preview-email"
-                      type="email"
-                      autoComplete="email"
-                      inputMode="email"
-                      required
-                      value={email}
-                      onChange={event => setEmail(event.target.value)}
-                      placeholder="Business email"
-                      className="h-11 bg-background"
-                    />
-                    {emailError && (
-                      <p className="mt-2 text-sm text-destructive">
-                        {emailError}
-                      </p>
-                    )}
-                  </form>
-                )}
               </div>
 
               <div className="mt-3">

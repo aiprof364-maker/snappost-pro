@@ -123,6 +123,8 @@ describe("preview image sizing", () => {
     expect(source).toContain("photo.dataUrl");
     expect(source).toContain("logo?.dataUrl");
     expect(source).not.toContain("fileToDataUrl");
-    expect(source).toContain("Post it free: 3 posts, no card");
+    expect(source).toContain(
+      "Enter your email to save these posts and get 3 free posts, no card needed."
+    );
   });
 });

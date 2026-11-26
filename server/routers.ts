@@ -271,7 +271,9 @@ export const appRouter = router({
         link.searchParams.set("next", next);
         const { sendMagicSignInLink } = await import("./email");
         try {
-          await sendMagicSignInLink(email, link.toString());
+          await sendMagicSignInLink(email, link.toString(), {
+            preview: Boolean(input.previewToken),
+          });
           magicLinkRequestTimes.set(email, Date.now());
           if (input.previewToken) {
             await markPreviewEmailRequested(input.previewToken).catch(error => {

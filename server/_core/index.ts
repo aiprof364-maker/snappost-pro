@@ -45,6 +45,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "../authRoutes";
+import { registerPreviewDownloadRoute } from "../previewDownloadRoute";
 import { registerIntegrationRoutes } from "../integrationRoutes";
 import { registerNewsletterRoutes } from "../newsletterRoutes";
 import { appRouter } from "../routers";
@@ -86,6 +87,7 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerAuthRoutes(app);
+  registerPreviewDownloadRoute(app);
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);
   registerNewsletterRoutes(app);

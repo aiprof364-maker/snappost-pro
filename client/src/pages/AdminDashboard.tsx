@@ -161,7 +161,8 @@ export default function AdminDashboard() {
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Last {signupFunnel.data?.periodDays ?? 30} days. Aggregate-only
-              stages from preview through email access.
+              stages from preview through email access. Preview emails requested
+              counts the email capture on the finished preview.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[

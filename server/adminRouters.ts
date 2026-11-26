@@ -21,9 +21,12 @@ import {
 import { and, desc, eq, gte, inArray, like, ne } from "drizzle-orm";
 import { PLAN_POST_LIMITS } from "@shared/const";
 import { sendNewsletterSignupInvitation } from "./email";
-import { isConfiguredAdminEmail } from "./adminIdentity";
-import { hasPublishingReadyFacebookPage } from "./facebook";
-import { summarizeFreeToPaidFunnel } from "./funnelStats";
+import {
+  buildFreePreviewFunnel,
+  buildSubscriberFunnel,
+  emptyEmailReminderStats,
+  loadEmailReminderStats,
+} from "./adminStats";
 import { ensureReferralSchema } from "./referralSchema";
 
 /**
@@ -80,74 +83,22 @@ export const adminRouter = router({
     }
 
     await ensureReferralSchema();
-    const [allUsers, allPosts, allIntegrations, allEvents, allReferrals] = await Promise.all([
-      db.select().from(users),
-      db.select().from(posts),
-      db.select().from(integrations),
-      db.select().from(conversionEvents),
-      db.select().from(referrals),
-    ]);
+    const [allUsers, allPosts, allIntegrations, allEvents, allReferrals] =
+      await Promise.all([
+        db.select().from(users),
+        db.select().from(posts),
+        db.select().from(integrations),
+        db.select().from(conversionEvents),
+        db.select().from(referrals),
+      ]);
 
-    const customerUsers = allUsers.filter(user => user.role !== "admin");
-    const customerIds = new Set(customerUsers.map(user => user.id));
-    const upgradeFunnel = summarizeFreeToPaidFunnel(
-      allUsers.map(user => ({
-        id: user.id,
-        role: user.role,
-        plan: user.plan,
-        subscriptionStatus: user.subscriptionStatus,
-      })),
-      allEvents.map(event => ({
-        userId: event.userId,
-        eventType: event.eventType,
-        metadata: event.metadata,
-      })),
-      allReferrals.map(referral => ({
-        referrerUserId: referral.referrerUserId,
-        referredUserId: referral.referredUserId,
-        signupBonusPosts: referral.signupBonusPosts,
-        paidCreditStatus: referral.paidCreditStatus,
-        paidCreditCents: referral.paidCreditCents,
-      })),
-    );
-    return {
-      accounts: customerUsers.length,
-      freeAccounts: customerUsers.filter(user => user.plan === "free").length,
-      activatedAccounts: new Set(
-        allPosts
-          .filter(post => customerIds.has(post.userId))
-          .map(post => post.userId)
-      ).size,
-      facebookConnectionClicked: new Set(
-        allEvents
-          .filter(event => event.eventType === "facebook_connection_clicked")
-          .filter(
-            event => event.userId !== null && customerIds.has(event.userId)
-          )
-          .map(event => event.userId)
-      ).size,
-      connectedPages: new Set(
-        allIntegrations
-          .filter(integration => hasPublishingReadyFacebookPage(integration))
-          .filter(integration => customerIds.has(integration.userId))
-          .map(integration => integration.userId)
-      ).size,
-      checkoutStarted: new Set(
-        allEvents
-          .filter(event => event.eventType === "checkout_started")
-          .filter(
-            event => event.userId !== null && customerIds.has(event.userId)
-          )
-          .map(event => event.userId)
-      ).size,
-      subscriptionTrials: customerUsers.filter(
-        user => user.plan !== "free" && user.subscriptionStatus === "trialing"
-      ).length,
-      paidSubscribers: customerUsers.filter(
-        user => user.plan !== "free" && user.subscriptionStatus === "active"
-      ).length,
-      ...upgradeFunnel,
-    };
+    return buildSubscriberFunnel({
+      users: allUsers,
+      posts: allPosts,
+      integrations: allIntegrations,
+      events: allEvents,
+      referrals: allReferrals,
+    });
   }),
 
   /**
@@ -165,111 +116,32 @@ export const adminRouter = router({
       });
     }
 
-    const periodDays = 30;
-    const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+    const now = new Date();
     const [
       allTokens,
-      recentUsers,
+      allUsers,
       allPosts,
       allIntegrations,
       allEvents,
       allPreviewDrafts,
     ] = await Promise.all([
       db.select().from(authTokens),
-      db.select().from(users).where(gte(users.createdAt, since)),
+      db.select().from(users),
       db.select().from(posts),
       db.select().from(integrations),
       db.select().from(conversionEvents),
       db.select().from(previewDrafts),
     ]);
 
-    const freeAccessRequests = allTokens.filter(
-      token => token.createdAt >= since && !isConfiguredAdminEmail(token.email)
-    );
-    const freeAccessOpened = allTokens.filter(
-      token =>
-        token.usedAt !== null &&
-        token.usedAt >= since &&
-        !isConfiguredAdminEmail(token.email)
-    );
-    const newFreeUsers = recentUsers.filter(
-      user =>
-        user.role !== "admin" &&
-        user.plan === "free" &&
-        user.loginMethod === "email_magic_link"
-    );
-    const newUserIds = new Set(newFreeUsers.map(user => user.id));
-    const landingAccounts = { contractors: 0, hairdressers: 0 };
-
-    for (const event of allEvents) {
-      if (
-        event.eventType !== "free_account_created" ||
-        event.userId === null ||
-        !newUserIds.has(event.userId)
-      )
-        continue;
-      try {
-        const metadata = event.metadata ? JSON.parse(event.metadata) : null;
-        if (metadata?.landing === "contractors")
-          landingAccounts.contractors += 1;
-        if (metadata?.landing === "hairdressers")
-          landingAccounts.hairdressers += 1;
-      } catch {
-        // Old or malformed metadata does not affect aggregate funnel counts.
-      }
-    }
-
-    return {
-      periodDays,
-      previewsCreated: allPreviewDrafts.filter(
-        draft => draft.createdAt >= since
-      ).length,
-      // The preview-result email capture. Still one row per draft, stamped
-      // when that visitor submits the email on the finished preview.
-      previewsEmailRequested: allPreviewDrafts.filter(
-        draft =>
-          draft.emailRequestedAt !== null && draft.emailRequestedAt >= since
-      ).length,
-      previewsClaimed: allPreviewDrafts.filter(
-        draft => draft.claimedAt !== null && draft.claimedAt >= since
-      ).length,
-      freeAccessRequested: freeAccessRequests.length,
-      freeAccessOpened: freeAccessOpened.length,
-      freeAccountsCreated: newFreeUsers.length,
-      facebookConnectionClicked: new Set(
-        allEvents
-          .filter(
-            event =>
-              event.eventType === "facebook_connection_clicked" &&
-              event.createdAt >= since &&
-              event.userId !== null &&
-              newUserIds.has(event.userId)
-          )
-          .map(event => event.userId)
-      ).size,
-      connectedPages: new Set(
-        allIntegrations
-          .filter(
-            integration =>
-              newUserIds.has(integration.userId) &&
-              hasPublishingReadyFacebookPage(integration)
-          )
-          .map(integration => integration.userId)
-      ).size,
-      draftsCreated: new Set(
-        allPosts
-          .filter(post => newUserIds.has(post.userId))
-          .map(post => post.userId)
-      ).size,
-      postsPublished: new Set(
-        allPosts
-          .filter(
-            post => newUserIds.has(post.userId) && post.status === "published"
-          )
-          .map(post => post.userId)
-      ).size,
-      landingAccounts,
-    };
+    return buildFreePreviewFunnel({
+      now,
+      tokens: allTokens,
+      users: allUsers,
+      posts: allPosts,
+      integrations: allIntegrations,
+      events: allEvents,
+      previewDrafts: allPreviewDrafts,
+    });
   }),
 
   /**
@@ -413,20 +285,14 @@ export const adminRouter = router({
   emailDeliveryStats: protectedProcedure.query(async ({ ctx }) => {
     adminOnlyMiddleware(ctx);
 
-    // This would integrate with Resend API to get delivery stats
-    // For now, return a placeholder
-    return {
-      trialExpirationWarnings: {
-        sent: 0,
-        failed: 0,
-        lastRun: null,
-      },
-      renewalReminders: {
-        sent: 0,
-        failed: 0,
-        lastRun: null,
-      },
-    };
+    try {
+      const db = await getDb();
+      if (!db) return emptyEmailReminderStats();
+      return await loadEmailReminderStats(db);
+    } catch {
+      console.error("[Admin] email reminder counts unavailable");
+      return emptyEmailReminderStats();
+    }
   }),
 
   /**

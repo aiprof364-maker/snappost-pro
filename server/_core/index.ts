@@ -47,6 +47,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "../authRoutes";
 import { registerPreviewDownloadRoute } from "../previewDownloadRoute";
 import { registerIntegrationRoutes } from "../integrationRoutes";
+import { registerAdminStatsRoutes } from "../adminStatsRoutes";
 import { registerNewsletterRoutes } from "../newsletterRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -91,6 +92,7 @@ async function startServer() {
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);
   registerNewsletterRoutes(app);
+  registerAdminStatsRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",

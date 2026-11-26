@@ -14,3 +14,11 @@ export const ENV = {
   stripeStarterPriceId: process.env.STRIPE_STARTER_PRICE_ID ?? "",
   stripeProPriceId: process.env.STRIPE_PRO_PRICE_ID ?? "",
 };
+
+/**
+ * Bearer token for the read-only GET /api/admin/stats route.
+ * Read on each request. Blank or unset disables the route with HTTP 404.
+ */
+export function adminStatsToken() {
+  return (process.env.ADMIN_STATS_TOKEN ?? "").trim();
+}

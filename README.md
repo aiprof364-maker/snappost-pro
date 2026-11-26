@@ -102,6 +102,7 @@ Available pre-defined system envs:
 - `BUILT_IN_FORGE_API_KEY`: Bearer token used by Manus built-in apis (server-side)
 - `VITE_FRONTEND_FORGE_API_KEY`: Bearer token for frontend access to Manus built-in apis
 - `VITE_FRONTEND_FORGE_API_URL`: Manus built-in apis URL for frontend
+- `ADMIN_STATS_TOKEN`: Bearer token for read-only `GET /api/admin/stats`. Leave it unset to disable that route. See `docs/admin-stats.md`.
 
 Do not edit these directly in code or commit `.env` files.
 The envs above are system envs, when use env in website code, refer `server/_core/env.ts` for available list.

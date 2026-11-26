@@ -1,7 +1,31 @@
 import cron from "node-cron";
 import mysql, { type Pool, type PoolConnection, type ResultSetHeader, type RowDataPacket } from "mysql2/promise";
+import { createMagicLinkToken } from "./auth";
 import { getTrialEligibility } from "./db";
 import { sendAccountEmail, type AccountEmailKind } from "./email";
+import {
+  ensurePreviewDraftSchema,
+  issuePreviewReminderToken,
+} from "./previewDrafts";
+import {
+  PREVIEW_REMINDER_KINDS,
+  buildPreviewReminderCandidateQuery,
+  buildPreviewReminderSignInUrl,
+  isPreviewReminderKind,
+  normalizeReminderEmail,
+  previewReminderCampaignKey,
+  previewReminderDeliveryMetadata,
+  previewReminderEntityKey,
+  previewReminderNextPath,
+  previewReminderOptOutStatements,
+  previewReminderSchedule,
+  previewReminderSkipReason,
+  previewReminderSuppressionQueries,
+  previewReminderUnsubscribeUrl,
+  rememberedPreviewReminderLink,
+  type PreviewReminderAudience,
+  type PreviewReminderKind,
+} from "./previewReminderEmail";
 import {
   FREE_POSTS_USED_KINDS,
   ONBOARDING_EMAIL_KINDS,
@@ -115,6 +139,13 @@ async function ensureSchema(connection: PoolConnection | Pool) {
       UNIQUE KEY account_email_entity_campaign_uq (entityKey, campaignKey),
       KEY account_email_dispatch_idx (status, nextAttemptAt),
       KEY account_email_user_idx (userId)
+    ) ENGINE=InnoDB
+  `);
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS preview_reminder_opt_out (
+      email VARCHAR(320) NOT NULL,
+      createdAt DATETIME NOT NULL,
+      PRIMARY KEY (email)
     ) ENGINE=InnoDB
   `);
 }
@@ -259,6 +290,135 @@ async function enqueueSubscriptionReminders(connection: PoolConnection, now: Dat
   return queued;
 }
 
+function allowsMissingUser(kind: string) {
+  return kind === "contact-owner-alert" || isPreviewReminderKind(kind);
+}
+
+function countOf(value: unknown) {
+  const count = typeof value === "bigint" ? Number(value) : Number(value ?? 0);
+  return Number.isFinite(count) ? count : 0;
+}
+
+async function suppressPreviewReminders(connection: PoolConnection) {
+  for (const statement of previewReminderSuppressionQueries()) {
+    await connection.query(statement);
+  }
+}
+
+async function enqueuePreviewReminders(connection: PoolConnection, now: Date) {
+  try {
+    await ensurePreviewDraftSchema();
+  } catch (error) {
+    console.error("[Account email] preview reminder schema unavailable", {
+      code: sanitizeErrorClass(error),
+    });
+    return 0;
+  }
+  let queued = 0;
+  try {
+    for (const kind of PREVIEW_REMINDER_KINDS) {
+      const { sql, params } = buildPreviewReminderCandidateQuery(kind, now);
+      const [rows] = await connection.execute<RowDataPacket[]>(sql, params);
+      for (const row of rows) {
+        const email = normalizeReminderEmail(String(row.email ?? ""));
+        const requestedAt = toDate(row.emailRequestedAt as Date | string | null);
+        if (!email || !requestedAt) continue;
+        const schedule = previewReminderSchedule(requestedAt);
+        const availableAt = kind === "preview-day-1" ? schedule.day1At : schedule.day3At;
+        const [insert] = await connection.execute<ResultSetHeader>(
+          `INSERT IGNORE INTO account_email_delivery
+            (recipientEmail, entityKey, campaignKey, kind, status, availableAt, nextAttemptAt)
+           VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+          [
+            email,
+            previewReminderEntityKey(email),
+            previewReminderCampaignKey(kind),
+            kind,
+            availableAt,
+            availableAt,
+          ]
+        );
+        queued += insert.affectedRows;
+      }
+    }
+  } catch (error) {
+    console.error("[Account email] preview reminder planning failed", {
+      code: sanitizeErrorClass(error),
+    });
+  }
+  return queued;
+}
+
+async function loadPreviewReminderAudience(
+  connection: PoolConnection,
+  email: string,
+  now: Date
+): Promise<PreviewReminderAudience & { draftId: number | null }> {
+  const [rows] = await connection.execute<RowDataPacket[]>(
+    `SELECT
+       (SELECT COUNT(*) FROM users WHERE LOWER(email) = ?) AS accounts,
+       (SELECT COUNT(*) FROM auth_tokens WHERE LOWER(email) = ? AND usedAt IS NOT NULL) AS openedLinks,
+       (SELECT COUNT(*) FROM posts p INNER JOIN users u ON u.id = p.userId WHERE LOWER(u.email) = ? AND p.status = 'published') AS publishedPosts,
+       (SELECT COUNT(*) FROM preview_reminder_opt_out WHERE email = ?) AS optedOut,
+       (SELECT id FROM preview_drafts WHERE requestedEmail = ? AND userId IS NULL AND expiresAt > ? ORDER BY emailRequestedAt DESC, id DESC LIMIT 1) AS draftId,
+       (SELECT plan FROM users WHERE LOWER(email) = ? ORDER BY id ASC LIMIT 1) AS plan`,
+    [email, email, email, email, email, now, email]
+  );
+  const row = rows[0] ?? {};
+  const plan = row.plan === "starter" || row.plan === "pro" || row.plan === "free" ? row.plan : null;
+  const draftId = Number(row.draftId);
+  return {
+    email,
+    hasAccount: countOf(row.accounts) > 0,
+    linkOpened: countOf(row.openedLinks) > 0,
+    publishedPosts: countOf(row.publishedPosts),
+    optedOut: countOf(row.optedOut) > 0,
+    hasUnclaimedPreview: Number.isInteger(draftId) && draftId > 0,
+    plan,
+    draftId: Number.isInteger(draftId) && draftId > 0 ? draftId : null,
+  };
+}
+
+async function mintPreviewReminderSignInUrl(
+  kind: PreviewReminderKind,
+  email: string,
+  state: PreviewReminderAudience & { draftId: number | null }
+) {
+  let previewToken: string | null = null;
+  let landing: string | null = null;
+  if (state.draftId) {
+    const issued = await issuePreviewReminderToken(state.draftId, email);
+    if (issued) {
+      previewToken = issued.token;
+      landing = issued.landing;
+    }
+  }
+  if (kind === "preview-day-1" && !previewToken) return null;
+  const raw = await createMagicLinkToken(email);
+  return buildPreviewReminderSignInUrl(
+    raw,
+    previewReminderNextPath({
+      hasAccount: state.hasAccount || state.linkOpened,
+      previewToken,
+      landing,
+    })
+  );
+}
+
+/** Stop future preview reminders for this address and drop anything still queued. */
+export async function optOutPreviewReminders(email: string) {
+  const statements = previewReminderOptOutStatements(email);
+  if (!statements.email.includes("@")) {
+    throw new Error("Preview reminder opt-out email is invalid");
+  }
+  if (!(await initializeAccountEmailAutomation())) {
+    throw new Error("Preview reminder opt-out is unavailable");
+  }
+  const now = new Date();
+  await getPool().execute(statements.insertSql, [statements.email, now]);
+  await getPool().execute(statements.cancelSql, [statements.email]);
+}
+
 export function buildDueAccountEmailQuery(now: Date) {
   return {
     sql: `SELECT d.id, d.userId, d.recipientEmail, d.entityKey, d.campaignKey, d.kind, d.status, d.attempts, d.firstAttemptAt,
@@ -345,7 +505,7 @@ async function deliverOne(connection: PoolConnection, delivery: AccountDeliveryR
     );
     return false;
   }
-  if (!delivery.email || (!delivery.userId && delivery.kind !== "contact-owner-alert")) {
+  if (!delivery.email || (!delivery.userId && !allowsMissingUser(delivery.kind))) {
     await connection.execute("UPDATE account_email_delivery SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = 'recipient_unavailable' WHERE id = ?", [delivery.id]);
     return false;
   }
@@ -372,6 +532,46 @@ async function deliverOne(connection: PoolConnection, delivery: AccountDeliveryR
         trialEligible = false;
       }
     }
+    let previewSend: {
+      signInUrl: string;
+      unsubscribeUrl: string;
+      hasAccount: boolean;
+      plan: "free" | "starter" | "pro" | null;
+    } | null = null;
+    if (isPreviewReminderKind(delivery.kind)) {
+      const email = normalizeReminderEmail(delivery.email ?? "");
+      const state = await loadPreviewReminderAudience(connection, email, now);
+      const reason = previewReminderSkipReason(delivery.kind, state);
+      if (reason) {
+        await connection.execute(
+          "UPDATE account_email_delivery SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = ? WHERE id = ?",
+          [reason, delivery.id]
+        );
+        return false;
+      }
+      let signInUrl = rememberedPreviewReminderLink(delivery.metadata);
+      if (!signInUrl) {
+        const minted = await mintPreviewReminderSignInUrl(delivery.kind, email, state);
+        if (!minted) {
+          await connection.execute(
+            "UPDATE account_email_delivery SET status = 'cancelled', nextAttemptAt = NULL, lastErrorClass = 'preview_unavailable' WHERE id = ?",
+            [delivery.id]
+          );
+          return false;
+        }
+        signInUrl = minted;
+        await connection.execute(
+          "UPDATE account_email_delivery SET metadata = ? WHERE id = ?",
+          [previewReminderDeliveryMetadata(signInUrl), delivery.id]
+        );
+      }
+      previewSend = {
+        signInUrl,
+        unsubscribeUrl: previewReminderUnsubscribeUrl(email),
+        hasAccount: state.hasAccount || state.linkOpened,
+        plan: state.plan,
+      };
+    }
     let contact: { name: string; email: string; message: string; ownerEmail: string } | undefined;
     if (delivery.kind === "contact-owner-alert") {
       if (!dates.contactId) throw new Error("contact_missing");
@@ -391,16 +591,19 @@ async function deliverOne(connection: PoolConnection, delivery: AccountDeliveryR
     const result = await sendAccountEmail(delivery.kind, {
       email: delivery.email,
       userName: delivery.name,
-      plan: delivery.plan,
+      plan: previewSend?.plan ?? delivery.plan,
       trialEligible,
       trialEndsAt: dates.trialEndsAt,
       renewalAt: dates.renewalAt,
       subscriptionStatus: dates.subscriptionStatus,
       contact,
+      signInUrl: previewSend?.signInUrl,
+      unsubscribeUrl: previewSend?.unsubscribeUrl,
+      hasAccount: previewSend?.hasAccount,
     }, `snappost:account:${delivery.entityKey}:${delivery.campaignKey}`);
     await connection.execute(
-      "UPDATE account_email_delivery SET status = 'accepted', acceptedAt = ?, providerMessageId = ?, nextAttemptAt = NULL, lastErrorClass = NULL WHERE id = ?",
-      [now, result.id, delivery.id],
+      "UPDATE account_email_delivery SET status = 'accepted', acceptedAt = ?, providerMessageId = ?, nextAttemptAt = NULL, lastErrorClass = NULL, metadata = ? WHERE id = ?",
+      [now, result.id, previewSend ? null : delivery.metadata, delivery.id],
     );
     return true;
   } catch (error) {
@@ -428,13 +631,15 @@ export async function runAccountEmailAutomation(options: { now?: Date } = {}) {
         [now],
       );
       await suppressPendingOnboardingForFreePosts(connection);
+      await suppressPreviewReminders(connection);
       const onboardingQueued = await enqueueOnboarding(connection, now);
       const subscriptionQueued = await enqueueSubscriptionReminders(connection, now);
+      const previewQueued = await enqueuePreviewReminders(connection, now);
       const { sql, params } = buildDueAccountEmailQuery(now);
       const [due] = await connection.execute<AccountDeliveryRow[]>(sql, params);
       let accepted = 0;
       for (const delivery of due) if (await deliverOne(connection, delivery, now)) accepted += 1;
-      return { queued: onboardingQueued + subscriptionQueued + recovered.affectedRows, accepted };
+      return { queued: onboardingQueued + subscriptionQueued + previewQueued + recovered.affectedRows, accepted };
     });
     if (!lock.acquired) {
       lastRun = { at: now.toISOString(), status: "busy", queued: 0, accepted: 0 };

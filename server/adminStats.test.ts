@@ -397,6 +397,27 @@ describe("admin stats payload", () => {
             lastAccepted: now,
             lastAttempt: now,
           },
+          {
+            kind: "preview-day-1",
+            status: "accepted",
+            count: 4,
+            lastAccepted: older,
+            lastAttempt: older,
+          },
+          {
+            kind: "preview-day-1",
+            status: "uncertain",
+            count: 1,
+            lastAccepted: null,
+            lastAttempt: recent,
+          },
+          {
+            kind: "preview-day-3",
+            status: "failed",
+            count: 2,
+            lastAccepted: null,
+            lastAttempt: newestReal,
+          },
         ]),
       },
       now
@@ -452,6 +473,16 @@ describe("admin stats payload", () => {
         sent: 1,
         failed: 0,
         lastRun: "2026-11-16T00:00:00.000Z",
+      },
+      previewDay1Reminders: {
+        sent: 4,
+        failed: 1,
+        lastRun: "2026-11-24T00:00:00.000Z",
+      },
+      previewDay3Reminders: {
+        sent: 0,
+        failed: 2,
+        lastRun: "2026-11-24T08:00:00.000Z",
       },
     });
 

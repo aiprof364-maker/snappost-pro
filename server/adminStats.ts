@@ -13,6 +13,7 @@ import { isConfiguredAdminEmail } from "./adminIdentity";
 import { getDb } from "./db";
 import { hasPublishingReadyFacebookPage } from "./facebook";
 import { summarizeFreeToPaidFunnel } from "./funnelStats";
+import { PREVIEW_DAY1_KIND, PREVIEW_DAY3_KIND } from "./previewReminderEmail";
 
 /** Window shown on the admin dashboard's Free-preview Funnel. */
 export const FREE_PREVIEW_FUNNEL_DAYS = 30;
@@ -89,6 +90,16 @@ export type EmailReminderStats = {
     lastRun: string | null;
   };
   renewalReminders: {
+    sent: number;
+    failed: number;
+    lastRun: string | null;
+  };
+  previewDay1Reminders: {
+    sent: number;
+    failed: number;
+    lastRun: string | null;
+  };
+  previewDay3Reminders: {
     sent: number;
     failed: number;
     lastRun: string | null;
@@ -372,6 +383,8 @@ export function emptyEmailReminderStats(): EmailReminderStats {
   return {
     trialExpirationWarnings: { sent: 0, failed: 0, lastRun: null },
     renewalReminders: { sent: 0, failed: 0, lastRun: null },
+    previewDay1Reminders: { sent: 0, failed: 0, lastRun: null },
+    previewDay3Reminders: { sent: 0, failed: 0, lastRun: null },
   };
 }
 
@@ -392,13 +405,15 @@ function reminderBucket(rows: EmailReminderCountRow[], kind: string) {
   };
 }
 
-/** Trial Expiration Warnings and Renewal Reminders from the account email outbox. */
+/** Trial, renewal, and free-preview reminder counts from the account email outbox. */
 export function summarizeEmailReminderRows(
   rows: EmailReminderCountRow[]
 ): EmailReminderStats {
   return {
     trialExpirationWarnings: reminderBucket(rows, TRIAL_REMINDER_KIND),
     renewalReminders: reminderBucket(rows, RENEWAL_REMINDER_KIND),
+    previewDay1Reminders: reminderBucket(rows, PREVIEW_DAY1_KIND),
+    previewDay3Reminders: reminderBucket(rows, PREVIEW_DAY3_KIND),
   };
 }
 
@@ -484,7 +499,7 @@ export async function loadEmailReminderStats(db: {
              MAX(acceptedAt) AS lastAccepted,
              MAX(lastAttemptAt) AS lastAttempt
       FROM account_email_delivery
-      WHERE kind IN ('trial-ending', 'renewal')
+      WHERE kind IN ('trial-ending', 'renewal', 'preview-day-1', 'preview-day-3')
       GROUP BY kind, status
     `);
     return summarizeEmailReminderRows(

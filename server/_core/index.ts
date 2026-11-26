@@ -49,6 +49,7 @@ import { registerPreviewDownloadRoute } from "../previewDownloadRoute";
 import { registerIntegrationRoutes } from "../integrationRoutes";
 import { registerAdminStatsRoutes } from "../adminStatsRoutes";
 import { registerNewsletterRoutes } from "../newsletterRoutes";
+import { registerPreviewReminderRoutes } from "../previewReminderRoutes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -92,6 +93,7 @@ async function startServer() {
   // Facebook OAuth callback + Stripe webhook (raw body handled inside)
   registerIntegrationRoutes(app);
   registerNewsletterRoutes(app);
+  registerPreviewReminderRoutes(app);
   registerAdminStatsRoutes(app);
   // tRPC API
   app.use(

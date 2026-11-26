@@ -215,7 +215,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Email Delivery Stats */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-2">
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -251,6 +251,46 @@ export default function AdminDashboard() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Sent • {emailStats.data?.renewalReminders.failed ?? 0} failed
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-medium">
+                    Preview day-1 reminders
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {emailStats.data?.previewDay1Reminders.sent ?? 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sent • {emailStats.data?.previewDay1Reminders.failed ?? 0}{" "}
+                  failed
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-medium">
+                    Preview day-3 reminders
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {emailStats.data?.previewDay3Reminders.sent ?? 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sent • {emailStats.data?.previewDay3Reminders.failed ?? 0}{" "}
+                  failed
                 </p>
               </CardContent>
             </Card>

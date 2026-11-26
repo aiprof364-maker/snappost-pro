@@ -247,6 +247,13 @@ export const previewDrafts = mysqlTable(
     /** Visitor-supplied suburb shown on a no-logo preview. Never invented. */
     suburb: varchar("suburb", { length: 60 }),
     emailRequestedAt: timestamp("emailRequestedAt"),
+    /** Address that asked to save this preview. Used only for follow-up mail. */
+    requestedEmail: varchar("requestedEmail", { length: 320 }),
+    /**
+     * Second access hash for a reminder link. The original tokenHash stays
+     * valid so the first email still opens the same preview.
+     */
+    reminderTokenHash: varchar("reminderTokenHash", { length: 64 }),
     userId: int("userId"),
     postId: int("postId"),
     claimedAt: timestamp("claimedAt"),
@@ -258,6 +265,13 @@ export const previewDrafts = mysqlTable(
       table.tokenHash
     ),
     expiryIndex: index("preview_drafts_expiry_idx").on(table.expiresAt),
+    requestedEmailIndex: index("preview_drafts_requested_email_idx").on(
+      table.requestedEmail,
+      table.emailRequestedAt
+    ),
+    reminderTokenUnique: uniqueIndex("preview_drafts_reminder_token_uq").on(
+      table.reminderTokenHash
+    ),
   })
 );
 

@@ -52,6 +52,8 @@ const stats: AdminStats = {
   emailReminders: {
     trialExpirationWarnings: { sent: 0, failed: 0, lastRun: null },
     renewalReminders: { sent: 0, failed: 0, lastRun: null },
+    previewDay1Reminders: { sent: 0, failed: 0, lastRun: null },
+    previewDay3Reminders: { sent: 0, failed: 0, lastRun: null },
   },
 };
 

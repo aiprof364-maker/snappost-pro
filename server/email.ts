@@ -116,11 +116,18 @@ function accountFooter() {
   return `<hr style="margin:30px 0;border:none;border-top:1px solid #ddd"><p style="font-size:12px;color:#666">Questions? Reply to this email or visit our <a href="https://snappostpro.com/contact">contact page</a>.</p>`;
 }
 
-export async function sendMagicSignInLink(email: string, signInUrl: string) {
+export async function sendMagicSignInLink(
+  email: string,
+  signInUrl: string,
+  options?: { preview?: boolean }
+) {
+  const previewIntro = options?.preview
+    ? `<p>Your branded preview is ready. Open the secure link below to save it on a Free account and get 3 free posts. No card needed.</p>`
+    : "";
   return sendAccountMessage({
     to: email,
     subject: "Your secure SnapPost Pro access link",
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Your SnapPost Pro access link</h2><p>${accessLinkEmailParagraph()}</p><p style="margin:28px 0"><a href="${escapeHtml(signInUrl)}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Open SnapPost Pro</a></p><p style="font-size:12px;color:#64748b">If you did not request this email, you can safely ignore it.</p></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#172033"><h2>Your SnapPost Pro access link</h2>${previewIntro}<p>${accessLinkEmailParagraph()}</p><p style="margin:28px 0"><a href="${escapeHtml(signInUrl)}" style="background:#5747e8;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none;font-weight:700">Open SnapPost Pro</a></p><p style="font-size:12px;color:#64748b">If you did not request this email, you can safely ignore it.</p></div>`,
   });
 }
 

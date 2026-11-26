@@ -61,6 +61,24 @@ describe("account email copy", () => {
     expect(message.html).not.toContain("15 minutes");
     expect(message.html).not.toContain("can only be used once");
     expect(message.html).not.toContain("Sign in to SnapPost Pro");
+    expect(message.html).not.toContain("Your branded preview is ready");
+  });
+
+  it("tells a preview visitor that the access link saves the free posts", async () => {
+    const { sendMagicSignInLink } = await import("./email");
+    await sendMagicSignInLink(
+      "customer@example.com",
+      "https://snappostpro.com/api/auth/verify?token=value",
+      { preview: true }
+    );
+
+    const message = payload();
+    expect(message.subject).toBe("Your secure SnapPost Pro access link");
+    expect(message.html).toContain("Your branded preview is ready");
+    expect(message.html).toContain("3 free posts");
+    expect(message.html).toContain("No card needed");
+    expect(message.html).toContain("stays active for 24 hours");
+    expect(message.html).not.toMatch(/tradies/i);
   });
 
   it("keeps the invitation limited to available product behaviour", async () => {

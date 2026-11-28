@@ -2,6 +2,7 @@ import BeforeAfterCaptionProof from "@/components/BeforeAfterCaptionProof";
 import LandingPromoVideo from "@/components/LandingPromoVideo";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import TradeVideoSection from "@/components/TradeVideoSection";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -246,6 +247,8 @@ export default function TradeLandingPage({
             </div>
           </div>
         </section>
+
+        <TradeVideoSection tradeId={page.id} />
 
         <section className="border-b border-border/60 bg-muted/20 py-16 md:py-20">
           <div className="container">

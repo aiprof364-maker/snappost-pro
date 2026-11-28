@@ -4,6 +4,7 @@ import {
   type TradeLandingId,
   type TradeLandingNavItem,
 } from "./tradeLandingNav";
+import { injectTradeVideoMarkup } from "./tradeLandingVideos";
 
 export const SITE_ORIGIN = "https://snappostpro.com";
 
@@ -860,5 +861,5 @@ export function applyTradeLandingMetadata(template: string, pathname: string) {
     /<script\s+type="application\/ld\+json"\s+data-trade-faq="true">[\s\S]*?<\/script>/i,
     `<script type="application/ld+json" data-trade-faq="true">${json}</script>`
   );
-  return html;
+  return injectTradeVideoMarkup(html, landing.id);
 }

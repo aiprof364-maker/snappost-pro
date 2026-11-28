@@ -12,6 +12,7 @@ import {
   tradeLandingByPath,
   tradePreviewHref,
 } from "./tradeLandingPages";
+import { tradeVideosJsonLd, videosForTrade } from "./tradeLandingVideos";
 
 const indexHtml = readFileSync(
   new URL("../client/index.html", import.meta.url),
@@ -160,6 +161,28 @@ describe("trade landing pages", () => {
       expect(JSON.parse(json ?? "{}")).toEqual(tradeFaqJsonLd(page.faqs));
       expect(html).not.toContain(SITE_DEFAULT_TITLE);
       expect(html).not.toContain(SITE_DEFAULT_DESCRIPTION);
+      expect(html).not.toContain("<iframe");
+      expect(html).not.toContain("youtube.com/iframe_api");
+
+      const videos = videosForTrade(page.id);
+      if (videos.length === 0) {
+        expect(html).not.toContain("data-trade-videos");
+        expect(html).not.toContain("i.ytimg.com");
+        continue;
+      }
+
+      expect(html.match(/data-trade-videos="true"/g)).toHaveLength(1);
+      expect(html.match(/data-trade-videos="crawl"/g)).toHaveLength(1);
+      expect(html).toContain("See it in action");
+      const videoJson = html.match(
+        /<script type="application\/ld\+json" data-trade-videos="true">([\s\S]*?)<\/script>/
+      )?.[1];
+      expect(JSON.parse(videoJson ?? "{}")).toEqual(tradeVideosJsonLd(videos));
+      for (const video of videos) {
+        expect(html).toContain(`https://i.ytimg.com/vi/${video.id}/oar2.jpg`);
+        expect(html).toContain(`https://www.youtube.com/watch?v=${video.id}`);
+        expect(html).toContain(video.title);
+      }
     }
   });
 

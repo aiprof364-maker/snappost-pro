@@ -1,10 +1,12 @@
 import { useEffect } from "react";
+import { tradeVideosJsonLd, videosForTrade } from "@shared/tradeLandingVideos";
 import {
   SITE_DEFAULT_DESCRIPTION,
   SITE_DEFAULT_TITLE,
   SITE_ORIGIN,
   tradeCanonicalUrl,
   tradeFaqJsonLd,
+  tradeLandingByPath,
   type TradeFaq,
 } from "@shared/tradeLandingPages";
 
@@ -48,6 +50,23 @@ function upsertJsonLd(json: string) {
   element.textContent = json;
 }
 
+function upsertVideoJsonLd(json: string | null) {
+  const selector =
+    'script[type="application/ld+json"][data-trade-videos="true"]';
+  if (!json) {
+    removeElement(selector);
+    return;
+  }
+  let element = document.head.querySelector<HTMLScriptElement>(selector);
+  if (!element) {
+    element = document.createElement("script");
+    element.type = "application/ld+json";
+    element.setAttribute("data-trade-videos", "true");
+    document.head.appendChild(element);
+  }
+  element.textContent = json;
+}
+
 function removeElement(selector: string) {
   document.head.querySelectorAll(selector).forEach(element => element.remove());
 }
@@ -61,6 +80,7 @@ function restoreDefaultHead() {
   upsertMeta("property", "og:type", "website");
   removeElement('link[rel="canonical"]');
   removeElement('script[type="application/ld+json"][data-trade-faq="true"]');
+  removeElement('script[type="application/ld+json"][data-trade-videos="true"]');
 }
 
 export function useTradePageMetadata(page: {
@@ -71,6 +91,10 @@ export function useTradePageMetadata(page: {
 }) {
   const canonicalUrl = tradeCanonicalUrl(page.path);
   const jsonLd = JSON.stringify(tradeFaqJsonLd(page.faqs));
+  const videos = videosForTrade(tradeLandingByPath(page.path)?.id);
+  const videoJsonLd = videos.length
+    ? JSON.stringify(tradeVideosJsonLd(videos))
+    : null;
 
   useEffect(() => {
     document.title = page.title;
@@ -81,9 +105,10 @@ export function useTradePageMetadata(page: {
     upsertMeta("property", "og:type", "website");
     upsertCanonical(canonicalUrl);
     upsertJsonLd(jsonLd);
+    upsertVideoJsonLd(videoJsonLd);
 
     return () => {
       restoreDefaultHead();
     };
-  }, [canonicalUrl, jsonLd, page.description, page.title]);
+  }, [canonicalUrl, jsonLd, page.description, page.title, videoJsonLd]);
 }
